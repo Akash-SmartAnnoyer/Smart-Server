@@ -11,7 +11,7 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key')
 
 # Mock credentials with different orgIds (replace with database in production)
 users = {
-    'royalspice@smartserver.com': {'password': 'R0y@!$p!ce', 'orgId': 10},
+    'royalspice@smartserver.com': {'password': 'R0y@!$p!ce', 'orgId': 3},
     'ammammagarillu': {'password': 'ammammagarillu', 'orgId': 2},
     'biryanis': {'password': 'biryanis', 'orgId': 1}
 }
