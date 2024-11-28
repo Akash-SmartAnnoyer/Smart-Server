@@ -6,6 +6,8 @@ import { RiMoneyDollarCircleLine } from 'react-icons/ri';
 const { Option } = Select;
 const { Text } = Typography;
 
+const API_URL = 'http://localhost:5000/api';
+
 const ChargesManagement = () => {
   const [form] = Form.useForm();
   const [charges, setCharges] = useState([]);
@@ -18,15 +20,10 @@ const ChargesManagement = () => {
 
   const fetchCharges = async () => {
     try {
-      const response = await fetch(`https://smart-server-menu-database-default-rtdb.firebaseio.com/restaurants/${orgId}/charges.json`);
+      const response = await fetch(`${API_URL}/charges?org_id=${orgId}`);
+      if (!response.ok) throw new Error('Failed to fetch charges');
       const data = await response.json();
-      if (data) {
-        const chargesArray = Object.entries(data).map(([id, charge]) => ({
-          id,
-          ...charge
-        }));
-        setCharges(chargesArray);
-      }
+      setCharges(data);
     } catch (error) {
       console.error('Error fetching charges:', error);
       message.error('Failed to fetch charges');
@@ -40,25 +37,27 @@ const ChargesManagement = () => {
         type: values.type,
         value: parseFloat(values.value),
         description: values.description || '',
-        isEnabled: true
+        is_enabled: true,
+        org_id: parseInt(orgId)
       };
 
-      if (editingId) {
-        // Update existing charge
-        await fetch(`https://smart-server-menu-database-default-rtdb.firebaseio.com/restaurants/${orgId}/charges/${editingId}.json`, {
-          method: 'PUT',
-          body: JSON.stringify(chargeData)
-        });
-        message.success('Charge updated successfully');
-      } else {
-        // Add new charge
-        await fetch(`https://smart-server-menu-database-default-rtdb.firebaseio.com/restaurants/${orgId}/charges.json`, {
-          method: 'POST',
-          body: JSON.stringify(chargeData)
-        });
-        message.success('Charge added successfully');
-      }
+      const url = editingId 
+        ? `${API_URL}/charges/${editingId}`
+        : `${API_URL}/charges`;
 
+      const method = editingId ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(chargeData)
+      });
+
+      if (!response.ok) throw new Error('Failed to save charge');
+
+      message.success(`Charge ${editingId ? 'updated' : 'added'} successfully`);
       form.resetFields();
       setEditingId(null);
       fetchCharges();
@@ -70,9 +69,12 @@ const ChargesManagement = () => {
 
   const handleDelete = async (id) => {
     try {
-      await fetch(`https://smart-server-menu-database-default-rtdb.firebaseio.com/restaurants/${orgId}/charges/${id}.json`, {
+      const response = await fetch(`${API_URL}/charges/${id}`, {
         method: 'DELETE'
       });
+
+      if (!response.ok) throw new Error('Failed to delete charge');
+
       message.success('Charge deleted successfully');
       fetchCharges();
     } catch (error) {
@@ -81,28 +83,54 @@ const ChargesManagement = () => {
     }
   };
 
-  const handleEdit = (record) => {
-    form.setFieldsValue({
-      name: record.name,
-      type: record.type,
-      value: record.value.toString(), // Convert to string for form input
-      description: record.description
-    });
-    setEditingId(record.id);
-  };
-
   const handleToggleCharge = async (record, enabled) => {
     try {
-      await fetch(`https://smart-server-menu-database-default-rtdb.firebaseio.com/restaurants/${orgId}/charges/${record.id}.json`, {
+      const response = await fetch(`${API_URL}/charges/${record.id}/toggle`, {
         method: 'PATCH',
-        body: JSON.stringify({ isEnabled: enabled })
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ is_enabled: enabled })
       });
+
+      if (!response.ok) throw new Error('Failed to update charge status');
+
       message.success(`${record.name} ${enabled ? 'enabled' : 'disabled'}`);
       fetchCharges();
     } catch (error) {
       console.error('Error toggling charge:', error);
       message.error('Failed to update charge status');
     }
+  };
+
+  const handleEdit = (record) => {
+    try {
+      // Set the editing ID
+      setEditingId(record.id);
+      
+      // Set form values
+      form.setFieldsValue({
+        name: record.name,
+        type: record.type,
+        value: record.value.toString(), // Convert number to string for form input
+        description: record.description || ''
+      });
+
+      // Scroll to form
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    } catch (error) {
+      console.error('Error setting edit form:', error);
+      message.error('Failed to load item for editing');
+    }
+  };
+
+  // Add a cancel edit function
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    form.resetFields();
   };
 
   return (
@@ -212,21 +240,39 @@ const ChargesManagement = () => {
             />
           </Form.Item>
 
-          <Button 
-            type="primary" 
-            htmlType="submit"
-            icon={<PlusOutlined />}
-            style={{
-              width: '100%',
-              height: '40px',
-              borderRadius: '8px',
-              background: '#ff4d4f',
-              fontWeight: '500',
-              border: 'none'
-            }}
-          >
-            {editingId ? 'Update Charge' : 'Add Charge'}
-          </Button>
+          <div style={{ 
+            display: 'flex', 
+            gap: '8px',
+            marginTop: '16px' 
+          }}>
+            <Button 
+              type="primary" 
+              htmlType="submit"
+              icon={editingId ? <EditOutlined /> : <PlusOutlined />}
+              style={{
+                flex: 1,
+                height: '40px',
+                borderRadius: '8px',
+                background: '#ff4d4f',
+                fontWeight: '500',
+                border: 'none'
+              }}
+            >
+              {editingId ? 'Update Charge' : 'Add Charge'}
+            </Button>
+
+            {editingId && (
+              <Button 
+                onClick={handleCancelEdit}
+                style={{
+                  height: '40px',
+                  borderRadius: '8px',
+                }}
+              >
+                Cancel
+              </Button>
+            )}
+          </div>
         </Form>
 
         {/* Charges List */}
@@ -283,11 +329,11 @@ const ChargesManagement = () => {
                 </div>
 
                 <Switch
-                  checked={charge.isEnabled}
+                  checked={charge.is_enabled}
                   onChange={(checked) => handleToggleCharge(charge, checked)}
                   size="small"
                   style={{ 
-                    backgroundColor: charge.isEnabled ? '#ff4d4f' : '#f5f5f5'
+                    backgroundColor: charge.is_enabled ? '#ff4d4f' : '#f5f5f5'
                   }}
                 />
               </div>
