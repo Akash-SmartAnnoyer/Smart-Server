@@ -59,7 +59,7 @@ const { Option } = Select;
 const { Title, Text } = Typography;
 const { TextArea } = Input;
 
-const API_URL = 'https://smart-server-menu-database-default-rtdb.firebaseio.com';
+const API_URL = ' http://127.0.0.1:5000/api';
 
 // Theme colors
 const theme = {
@@ -311,96 +311,48 @@ const ModernMenuManagement = () => {
   const orgId = localStorage.getItem('orgId');
 
   useEffect(() => {
-    fetchData();
-    const handleResize = () => {
-      setSiderCollapsed(window.innerWidth <= 768);
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [categoriesRes, menuItemsRes] = await Promise.all([
+          fetch(`${API_URL}/categories`),
+          fetch(`${API_URL}/menu-items`)
+        ]);
+        
+        const categoriesData = await categoriesRes.json();
+        const menuItemsData = await menuItemsRes.json();
+        
+        setCategories(categoriesData);
+        setMenuItems(menuItemsData);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        message.error('Failed to load data');
+      } finally {
+        setLoading(false);
+      }
     };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+
+    fetchData();
   }, []);
 
-  const fetchData = async () => {
-
-    setLoading(true);
-
+  const handleAddItem = async (values) => {
     try {
+      const response = await fetch(`${API_URL}/menu-items`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(values),
+      });
 
-      const [categoriesRes, subcategoriesRes, menuItemsRes] = await Promise.all(
-
-        [
-
-          fetch(`${API_URL}/categories.json`),
-
-          fetch(`${API_URL}/subcategories.json`),
-
-          fetch(`${API_URL}/menu_items.json`),
-
-        ]
-
-      );
-
-      const [categoriesData, subcategoriesData, menuItemsData] =
-
-        await Promise.all([
-
-          categoriesRes.json(),
-
-          subcategoriesRes.json(),
-
-          menuItemsRes.json(),
-
-        ]);
-
-
-
-      const categoriesArray = categoriesData
-
-        ? Object.entries(categoriesData)
-
-            .map(([firebaseId, data]) => ({ firebaseId, ...data }))
-
-            .filter(item => item && item.orgId === parseInt(orgId))
-
-        : [];
-
-      const subcategoriesArray = subcategoriesData
-
-        ? Object.entries(subcategoriesData)
-
-            .map(([firebaseId, data]) => ({ firebaseId, ...data }))
-
-            .filter(item => item && item.orgId === parseInt(orgId))
-
-        : [];
-
-      const menuItemsArray = menuItemsData
-
-        ? Object.entries(menuItemsData)
-
-            .map(([firebaseId, data]) => ({ firebaseId, ...data }))
-
-            .filter(item => item && item.orgId === parseInt(orgId))
-
-        : [];
-
-
-
-      setCategories(categoriesArray);
-
-      setSubcategories(subcategoriesArray);
-
-      setMenuItems(menuItemsArray);
-
+      const newItem = await response.json();
+      setMenuItems(prev => [...prev, newItem]);
+      message.success('Item added successfully');
+      setIsModalVisible(false);
     } catch (error) {
-
-      console.error('Error fetching data:', error);
-
-      message.error('Failed to fetch data');
-
+      console.error('Error adding item:', error);
+      message.error('Failed to add item');
     }
-
-    setLoading(false);
-
   };
 
 // Also update the handleCreate function to properly handle both image types
