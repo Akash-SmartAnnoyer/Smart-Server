@@ -27,6 +27,7 @@ import {
 import { MapContainer, TileLayer, Marker, useMap, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { message } from 'antd';
 
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
@@ -43,6 +44,8 @@ const versionInfo = {
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
 let cachedData = null;
 let cacheTimestamp = null;
+
+const API_URL = 'http://localhost:5000/api';
 
 const RestaurantManagement = () => {
   const [loading, setLoading] = useState(false);
@@ -78,27 +81,28 @@ const RestaurantManagement = () => {
     try {
       setLoading(true);
       const orgId = localStorage.getItem('orgId');
-      const response = await fetch('https://smart-server-menu-database-default-rtdb.firebaseio.com/restaurants.json');
-  
-      if (response.ok) {
-        const data = await response.json();
-        const restaurantsArray = Object.entries(data);
-        const [id, restaurantData] = restaurantsArray.find(([_, r]) => r.orgId === orgId) || [];
-  
-        if (restaurantData) {
-          const restaurantWithId = { ...restaurantData, id };
-          setRestaurant(restaurantWithId);
-          // Cache the data
-          cachedData = restaurantWithId;
-          cacheTimestamp = Date.now();
-        } else {
-          console.error("No restaurant found for this orgId");
-        }
+      
+      // Updated to use PostgreSQL API
+      const response = await fetch(`${API_URL}/restaurants/org/${orgId}`);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch restaurant data');
+      }
+
+      const restaurantData = await response.json();
+      
+      if (restaurantData) {
+        setRestaurant(restaurantData);
+        // Cache the data
+        cachedData = restaurantData;
+        cacheTimestamp = Date.now();
       } else {
-        console.error("Failed to fetch restaurant data:", response.status);
+        console.error("No restaurant found for this orgId");
+        message.error("No restaurant found for this organization");
       }
     } catch (error) {
       console.error("Error fetching restaurant data:", error);
+      message.error("Failed to fetch restaurant data");
     } finally {
       setLoading(false);
     }
@@ -107,27 +111,31 @@ const RestaurantManagement = () => {
   const onSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    
     try {
-      const { id, ...restaurantData } = restaurant;
-      const response = await fetch(`https://smart-server-menu-database-default-rtdb.firebaseio.com/restaurants/${id}.json`, {
+      const response = await fetch(`${API_URL}/restaurants/${restaurant.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(restaurantData),
+        body: JSON.stringify({
+          name: restaurant.name,
+          phone: restaurant.phone,
+          email: restaurant.email,
+          address: restaurant.address,
+          position: restaurant.position
+        }),
       });
-  
-      if (response.ok) {
-        console.log("Restaurant information updated successfully");
-        // Update cache with new data
-        cachedData = restaurant;
-        cacheTimestamp = Date.now();
-      } else {
-        console.error("Failed to update restaurant information");
+
+      if (!response.ok) {
+        throw new Error('Failed to update restaurant');
       }
+
+      const updatedRestaurant = await response.json();
+      setRestaurant(updatedRestaurant);
+      message.success('Restaurant details updated successfully');
     } catch (error) {
-      console.error("Error updating restaurant information:", error);
+      console.error('Error updating restaurant:', error);
+      message.error('Failed to update restaurant details');
     } finally {
       setLoading(false);
     }
@@ -135,7 +143,10 @@ const RestaurantManagement = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setRestaurant(prev => ({ ...prev, [name]: value }));
+    setRestaurant(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   const handleLogoChange = (e) => {
@@ -503,7 +514,7 @@ const RestaurantManagement = () => {
     setLoading(true);
     try {
       const { id } = restaurant;
-      const response = await fetch(`https://smart-server-menu-database-default-rtdb.firebaseio.com/restaurants/${id}.json`, {
+      const response = await fetch(`${API_URL}/restaurants/${id}/logo`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -511,13 +522,16 @@ const RestaurantManagement = () => {
         body: JSON.stringify({ logo: restaurant.logo }),
       });
 
-      if (response.ok) {
-        console.log("Logo updated successfully");
-      } else {
-        console.error("Failed to update logo");
+      if (!response.ok) {
+        throw new Error('Failed to update logo');
       }
+
+      const updatedRestaurant = await response.json();
+      setRestaurant(updatedRestaurant);
+      message.success('Logo updated successfully');
     } catch (error) {
       console.error("Error updating logo:", error);
+      message.error('Failed to update logo');
     } finally {
       setLoading(false);
     }
