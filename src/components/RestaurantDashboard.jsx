@@ -884,53 +884,30 @@ export const RestaurantDashboard = () => {
     fetchDashboardData();
   }, [orgId]);
 
+  const API_URL = 'http://localhost:5000/api';
+
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
 
-      // Fetch orders
-      const ordersResponse = await fetch('https://smart-server-menu-database-default-rtdb.firebaseio.com/history.json');
+      // Fetch orders with their items
+      const ordersResponse = await fetch(`${API_URL}/orders?org_id=${orgId}`);
+      if (!ordersResponse.ok) throw new Error('Failed to fetch orders');
       const ordersData = await ordersResponse.json();
       
       // Fetch categories
-      const categoriesResponse = await fetch('https://smart-server-menu-database-default-rtdb.firebaseio.com/categories.json');
+      const categoriesResponse = await fetch(`${API_URL}/categories?org_id=${orgId}`);
+      if (!categoriesResponse.ok) throw new Error('Failed to fetch categories');
       const categoriesData = await categoriesResponse.json();
       
       // Fetch menu items
-      const menuItemsResponse = await fetch('https://smart-server-menu-database-default-rtdb.firebaseio.com/menu_items.json');
+      const menuItemsResponse = await fetch(`${API_URL}/menu-items?org_id=${orgId}`);
+      if (!menuItemsResponse.ok) throw new Error('Failed to fetch menu items');
       const menuItemsData = await menuItemsResponse.json();
 
-      // Process orders
-      const processedOrders = ordersData ? 
-        Object.entries(ordersData)
-          .map(([key, value]) => ({
-            ...value,
-            id: key
-          }))
-          .filter(order => order.orgId === orgId)
-          .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)) : [];
-
-      // Process categories
-      const processedCategories = categoriesData ?
-        Object.entries(categoriesData)
-          .map(([key, value]) => ({
-            ...value,
-            id: key
-          }))
-          .filter(cat => cat.orgId === orgId) : [];
-
-      // Process menu items
-      const processedMenuItems = menuItemsData ?
-        Object.entries(menuItemsData)
-          .map(([key, value]) => ({
-            ...value,
-            id: key
-          }))
-          .filter(item => item.orgId === orgId) : [];
-
-      setOrders(processedOrders);
-      setCategories(processedCategories);
-      setMenuItems(processedMenuItems);
+      setOrders(ordersData);
+      setCategories(categoriesData);
+      setMenuItems(menuItemsData);
 
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
