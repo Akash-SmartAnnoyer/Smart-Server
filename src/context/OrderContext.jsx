@@ -1,102 +1,77 @@
-import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { message } from 'antd';
 
 const OrderContext = createContext();
+const API_URL = 'http://localhost:5000/api';
 
-export const OrderProvider = ({ children }) => {
+export function OrderProvider({ children }) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [lastFetchTime, setLastFetchTime] = useState(null);
   const orgId = localStorage.getItem('orgId');
-  const tableNumber = localStorage.getItem('tableNumber');
 
-  const fetchOrders = async (force = false) => {
-    if (!force && lastFetchTime && Date.now() - lastFetchTime < 30000) {
-      return;
-    }
-
+  const fetchOrders = useCallback(async () => {
     try {
-      setLoading(true);
-      const response = await fetch(`https://smart-server-menu-database-default-rtdb.firebaseio.com/history.json`);
-      if (!response.ok) throw new Error('Failed to fetch orders');
-      
+      const response = await fetch(`${API_URL}/orders?org_id=${orgId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch orders');
+      }
       const data = await response.json();
-      const ordersArray = Object.entries(data || {})
-        .map(([key, order]) => ({
-          ...order,
-          id: order.id || key
-        }))
-        .filter(order => 
-          order.orgId === orgId && 
-          order.tableNumber === tableNumber
-        );
-
-      const sortedOrders = ordersArray.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-      setOrders(sortedOrders);
-      setLastFetchTime(Date.now());
+      setOrders(data);
     } catch (error) {
-      console.error('Failed to fetch orders:', error);
+      console.error('Error fetching orders:', error);
+      message.error('Failed to fetch orders');
     } finally {
       setLoading(false);
     }
-  };
+  }, [orgId]);
 
-  const updateOrder = async (orderId, updates) => {
+  const updateOrder = useCallback(async (orderId, status, statusMessage = '') => {
     try {
-      await fetch(`https://smart-server-menu-database-default-rtdb.firebaseio.com/history/${orderId}.json`, {
+      const response = await fetch(`${API_URL}/orders/${orderId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates),
+        body: JSON.stringify({ status, statusMessage }),
       });
 
+      if (!response.ok) {
+        throw new Error('Failed to update order');
+      }
+
+      const updatedOrder = await response.json();
       setOrders(prevOrders =>
         prevOrders.map(order =>
-          order.id === orderId ? { ...order, ...updates } : order
+          order.id === orderId ? updatedOrder : order
         )
       );
+
       return true;
     } catch (error) {
-      console.error('Failed to update order:', error);
+      console.error('Error updating order:', error);
+      message.error('Failed to update order');
       return false;
     }
-  };
-
-  // Memoize helper functions to prevent unnecessary re-renders
-  const getActiveOrders = useCallback(() => 
-    orders.filter(order => !['completed', 'cancelled'].includes(order.status))
-  , [orders]);
-
-  const getOrderById = useCallback((orderId) => 
-    orders.find(order => order.id === orderId)
-  , [orders]);
-
-  const getLastActiveOrder = useCallback(() => 
-    orders.find(order => 
-      order.status !== 'cancelled' && 
-      order.status !== 'completed'
-    )
-  , [orders]);
+  }, []);
 
   useEffect(() => {
-    if (orgId && tableNumber) {
+    if (orgId) {
       fetchOrders();
     }
-  }, [orgId, tableNumber]);
+  }, [orgId, fetchOrders]);
+
+  const value = {
+    orders,
+    setOrders,
+    loading,
+    updateOrder,
+    fetchOrders
+  };
 
   return (
-    <OrderContext.Provider value={{ 
-      orders,
-      loading,
-      setOrders,
-      updateOrder,
-      fetchOrders,
-      getActiveOrders,
-      getOrderById,
-      getLastActiveOrder
-    }}>
+    <OrderContext.Provider value={value}>
       {children}
     </OrderContext.Provider>
   );
-};
+}
 
 export const useOrders = () => {
   const context = useContext(OrderContext);

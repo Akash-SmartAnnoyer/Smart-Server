@@ -28,7 +28,7 @@ const AdminOrderComponent = () => {
   const ws = useRef(null);
   const audioRef = useRef(new Audio(notificationSound));
   const orgId = localStorage.getItem('orgId');
-
+  const API_URL = 'http://localhost:5000/api';
   // Filter out cancelled and completed orders
   const activeOrders = orders.filter(order => 
     !['cancelled', 'completed'].includes(order.status)
@@ -90,7 +90,7 @@ const AdminOrderComponent = () => {
     ws.current.onmessage = (event) => {
       console.log('Received message:', event.data);
       const data = JSON.parse(event.data);
-      if (data.type === 'newOrder' && data.order.orgId == orgId) {
+      if (data.type === 'newOrder' && data.order.org_id == orgId) {
         // Add the new order to the beginning of the orders array
         setOrders(prevOrders => [data.order, ...prevOrders]);
         
@@ -105,7 +105,7 @@ const AdminOrderComponent = () => {
         // Show visual notification
         notification.open({
           message: 'New Order Arrived',
-          description: `Order #${data.order.id} has been placed for Table ${data.order.tableNumber}`,
+          description: `Order #${data.order.id} has been placed for Table ${data.order.table_number}`,
           icon: <BellOutlined style={{ color: '#ff4d4f' }} />,
           duration: 4.5,
         });
@@ -182,25 +182,20 @@ const AdminOrderComponent = () => {
 
   const fetchOrders = async () => {
     try {
-      const response = await fetch(`https://smart-server-menu-database-default-rtdb.firebaseio.com/history.json`);
+      const response = await fetch(`${API_URL}/orders?org_id=${orgId}`);
       if (!response.ok) {
         throw new Error('Failed to fetch orders');
       }
-  
+
       const data = await response.json();
-  
-      const ordersArray = Object.entries(data)
-        .map(([key, order]) => ({
-          ...order,
-          id: order.id || key
-        }))
-        .filter(order => 
-          order.orgId === orgId && 
-          !['cancelled', 'completed'].includes(order.status)
-        );
-  
-      const sortedOrders = ordersArray?.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-      setOrders(sortedOrders);
+      
+      // Filter and sort orders
+      const activeOrders = data.filter(order => 
+        order.org_id === parseInt(orgId) && 
+        !['cancelled', 'completed'].includes(order.status)
+      ).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+      setOrders(activeOrders);
     } catch (error) {
       console.error('Failed to fetch orders', error);
       message.error('Failed to fetch orders');
@@ -231,22 +226,25 @@ const AdminOrderComponent = () => {
     }
   };
 
-  // Add new useEffect for search filtering
+  // Update the useEffect for filtering orders
   useEffect(() => {
-    if (activeOrders.length) {
-      const filtered = activeOrders.filter(order => 
-        order.id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        order.tableNumber?.toString().includes(searchQuery) ||
-        order.status?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (order.items && order.items.some(item => 
-          item.name?.toLowerCase().includes(searchQuery.toLowerCase())
-        ))
+    const filtered = orders.filter(order => {
+      const searchLower = searchQuery.toLowerCase();
+      return (
+        // Convert order.id to string before using toLowerCase()
+        String(order.id).includes(searchLower) ||
+        order.table_number.toLowerCase().includes(searchLower) ||
+        order.status.toLowerCase().includes(searchLower)
       );
-      setFilteredOrders(filtered);
-    } else {
-      setFilteredOrders([]);
-    }
-  }, [activeOrders, searchQuery]);
+    });
+
+    // Sort orders by timestamp, newest first
+    const sortedOrders = filtered.sort((a, b) => 
+      new Date(b.timestamp) - new Date(a.timestamp)
+    );
+
+    setFilteredOrders(sortedOrders);
+  }, [orders, searchQuery]);
 
   if (loading) {
     return (
@@ -409,20 +407,15 @@ const AdminOrderComponent = () => {
                     marginBottom: '15px'
                   }}>
                     <div>
-                      <Text strong style={{
-                        fontSize: 'clamp(1.1rem, 2.5vw, 1.4rem)',
-                        color: '#ff4d4f'
+                      <Text strong style={{ 
+                        fontSize: 'clamp(1.1rem, 2.5vw, 1.4rem)', 
+                        color: '#ff4d4f' 
                       }}>
-                        #{order.id}
+                        #{String(order.id)}
                       </Text>
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        marginTop: '5px'
-                      }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '5px' }}>
                         <TableOutlined style={{ color: '#ff4d4f' }} />
-                        <Text>Table {order.tableNumber}</Text>
+                        <Text>Table {order.table_number}</Text>
                       </div>
                     </div>
                     <div style={{

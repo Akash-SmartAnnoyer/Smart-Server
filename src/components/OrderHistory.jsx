@@ -11,6 +11,9 @@ import {
 } from '@ant-design/icons';
 import { useOrders } from '../context/OrderContext';
 import FoodLoader from './FoodLoader';
+// import { API_URL } from '../config';
+
+const API_URL = 'http://localhost:5000/api';
 
 function OrderHistory() {
   const { orders, loading, setOrders } = useOrders();
@@ -53,12 +56,12 @@ function OrderHistory() {
 
   const handleDelete = async (orderId) => {
     try {
-      const deleteResponse = await fetch(`https://smart-server-menu-database-default-rtdb.firebaseio.com/history/${orderId}.json`, {
+      const response = await fetch(`${API_URL}/orders/${orderId}`, {
         method: 'DELETE',
       });
 
-      if (!deleteResponse.ok) {
-        throw new Error(`Failed to delete order. Status: ${deleteResponse.status}`);
+      if (!response.ok) {
+        throw new Error(`Failed to delete order. Status: ${response.status}`);
       }
 
       message.success('Order deleted successfully');
@@ -74,10 +77,9 @@ function OrderHistory() {
     if (orders.length) {
       const sorted = [...orders].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
       const filtered = sorted.filter(order => 
-        (order.id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (order.items && order.items.some(item => item.name?.toLowerCase().includes(searchQuery.toLowerCase()))) ||
-        order.status?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        order.tableNumber?.toString().includes(searchQuery)) ?? false
+        String(order.id).includes(searchQuery.toLowerCase()) ||
+        order.table_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        order.status.toLowerCase().includes(searchQuery.toLowerCase())
       );
       setFilteredOrders(filtered);
     }
