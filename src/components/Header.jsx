@@ -1,20 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Input, Badge, Tooltip, Modal, Rate } from 'antd';
+import { Input, Badge, Tooltip, Modal, Rate, message } from 'antd';
 import { FaUtensils } from "react-icons/fa";
-import { AiOutlineShoppingCart, AiOutlineFileText, AiFillPhone, AiFillMail, AiFillEnvironment, AiOutlineAudio } from 'react-icons/ai';
+import { AiOutlineShoppingCart, AiOutlineFileText, AiFillPhone, AiFillMail, AiFillEnvironment } from 'react-icons/ai';
 import { 
   Search, 
   MapPin, 
-  ShoppingCart, 
-  FileText, 
-  ChevronDown, 
-  LogOut, 
-  MapPinned
+  LogOut
 } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
 import './Header.css';
 import { Modal as AntModal } from 'antd';
+
+const API_URL = 'http://localhost:5000/api';
 
 function Header({ onSearch }) {
   const navigate = useNavigate();
@@ -28,6 +26,7 @@ function Header({ onSearch }) {
   const [role, setRole] = useState(localStorage.getItem('role'));
   const [restaurantDetails, setRestaurantDetails] = useState(null);
   const [isSignOutModalVisible, setIsSignOutModalVisible] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const searchPlaceholders = [
     "Search for your favorite dishes...",
@@ -54,32 +53,38 @@ function Header({ onSearch }) {
   }, []);
 
   useEffect(() => {
-    // Fetch restaurant details
     fetchRestaurantDetails();
   }, []);
 
   const fetchRestaurantDetails = async () => {
     try {
+      setLoading(true);
       const orgId = localStorage.getItem('orgId');
-      // Your existing fetch logic here
-      // This is just a placeholder
-      const response = await fetch('https://smart-server-menu-database-default-rtdb.firebaseio.com/restaurants.json');
+      
+      if (!orgId) {
+        console.error("No orgId found in localStorage");
+        return;
+      }
+
+      const response = await fetch(`${API_URL}/restaurants/org/${orgId}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch restaurant details');
+      }
+
       const data = await response.json();
-      setRestaurantDetails(data);
+      
       if (data) {
-        const restaurant = Object.values(data).find(restaurant => restaurant.orgId === orgId);
-        
-        if (restaurant) {
-          setRestaurantDetails(restaurant);
-          setRestaurantLogo(restaurant.logo);
-        } else {
-          console.error("No restaurant found with the given orgId");
-        }
+        setRestaurantDetails(data);
+        setRestaurantLogo(data.logo);
       } else {
-        console.error("No data available in the database");
+        message.error("No restaurant found for this organization");
       }
     } catch (error) {
       console.error('Error fetching restaurant details:', error);
+      message.error('Failed to load restaurant details');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -90,6 +95,7 @@ function Header({ onSearch }) {
       onSearch(value);
     }
   };
+
   const handleLogoClick = () => {
     setIsLogoModalVisible(true);
   };
@@ -101,6 +107,7 @@ function Header({ onSearch }) {
   const confirmSignOut = () => {
     localStorage.removeItem('adminToken');
     localStorage.removeItem('role');
+    localStorage.removeItem('orgId');
     setIsSignOutModalVisible(false);
     navigate('/');
   };
@@ -122,16 +129,16 @@ function Header({ onSearch }) {
             </div>
 
             <div className="header__right">
-              {role === 'customer' ? (
+              {role === 'customer' && restaurantDetails && (
                 <>
                   <div className="header__location">
                     <MapPin size={20} />
                     <div>
                       <div className="header__location-text">
-                        {restaurantDetails?.name || 'Restaurant Name'}
+                        {restaurantDetails.name}
                       </div>
                       <div className="header__location-subtext">
-                        {restaurantDetails?.address || 'Loading address...'}
+                        {restaurantDetails.address}
                       </div>
                     </div>
                   </div>
@@ -146,7 +153,8 @@ function Header({ onSearch }) {
                     </div>
                   )}
                 </>
-              ) : (
+              )}
+              {role === 'admin' && (
                 <div className="header__admin-actions">
                   {restaurantLogo && (
                     <div className="header__restaurant-logo-container">
@@ -183,6 +191,8 @@ function Header({ onSearch }) {
           )}
         </div>
       </div>
+
+      {/* Sign Out Modal */}
       <AntModal
         title="Confirm Sign Out"
         open={isSignOutModalVisible}
@@ -206,6 +216,8 @@ function Header({ onSearch }) {
       >
         <p>Are you sure you want to sign out?</p>
       </AntModal>
+
+      {/* Restaurant Details Modal */}
       <Modal
         visible={isLogoModalVisible}
         onCancel={() => setIsLogoModalVisible(false)}
@@ -233,7 +245,9 @@ function Header({ onSearch }) {
                 marginBottom: '20px',
               }}
             />
-            <h2 style={{ fontSize: '24px', marginBottom: '10px', color: '#333' }}>{restaurantDetails.name}</h2>
+            <h2 style={{ fontSize: '24px', marginBottom: '10px', color: '#333' }}>
+              {restaurantDetails.name}
+            </h2>
             <Rate disabled defaultValue={4} style={{ marginBottom: '15px' }} />
             <p style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
               <AiFillPhone style={{ marginRight: '10px', color: '#ff4d4f' }} />
@@ -245,7 +259,7 @@ function Header({ onSearch }) {
             </p>
             <p style={{ display: 'flex', alignItems: 'flex-start', marginBottom: '10px' }}>
               <AiFillEnvironment 
-                size={64}  // Increased size significantly
+                size={64}
                 style={{ 
                   marginRight: '10px', 
                   marginTop: '4px', 
@@ -254,14 +268,6 @@ function Header({ onSearch }) {
               />
               <span>{restaurantDetails.address}</span>
             </p>
-            {/* <p style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
-              <FaUtensils style={{ marginRight: '10px', color: '#ff4d4f' }} />
-              Cuisine: {restaurantDetails.peopleCount}
-            </p> */}
-            {/* <p style={{ display: 'flex', alignItems: 'center' }}>
-              <AiOutlineShoppingCart style={{ marginRight: '10px', color: '#ff4d4f' }} />
-              Seating Capacity: {restaurantDetails.seatingCapacity}
-            </p> */}
           </div>
         )}
       </Modal>
