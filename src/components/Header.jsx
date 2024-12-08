@@ -23,9 +23,9 @@ function Header({ toggleDrawer, onSearch }) {
   const [restaurantLogo, setRestaurantLogo] = useState('');
   const [isLogoModalVisible, setIsLogoModalVisible] = useState(false);
   
-  // Add state to track the role
+  // Add state to track the roles
   const [role, setRole] = useState(localStorage.getItem('role'));  const [restaurantDetails, setRestaurantDetails] = useState(null);
-
+// test commit
   useEffect(() => {
     fetchRestaurantDetails();
   }, []);
