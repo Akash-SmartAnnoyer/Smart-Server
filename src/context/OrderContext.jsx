@@ -9,14 +9,14 @@ export const OrderProvider = ({ children }) => {
   const orgId = localStorage.getItem('orgId');
   const tableNumber = localStorage.getItem('tableNumber');
 
-  const fetchOrders = async (force = false) => {
+  const fetchOrders = async (force = false, page = 1, limit = 10) => {
     if (!force && lastFetchTime && Date.now() - lastFetchTime < 30000) {
       return;
     }
 
     try {
       setLoading(true);
-      const response = await fetch(`https://smart-server-menu-database-default-rtdb.firebaseio.com/history.json`);
+      const response = await fetch(`https://smart-server-menu-database-default-rtdb.firebaseio.com/history.json?orderBy="timestamp"&limitToLast=${limit}`);
       if (!response.ok) throw new Error('Failed to fetch orders');
       
       const data = await response.json();
@@ -31,7 +31,13 @@ export const OrderProvider = ({ children }) => {
         );
 
       const sortedOrders = ordersArray.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-      setOrders(sortedOrders);
+      
+      if (page === 1) {
+        setOrders(sortedOrders);
+      } else {
+        setOrders(prev => [...prev, ...sortedOrders]);
+      }
+      
       setLastFetchTime(Date.now());
     } catch (error) {
       console.error('Failed to fetch orders:', error);
