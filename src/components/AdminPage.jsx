@@ -20,7 +20,8 @@ const { Option } = Select;
 const { Title, Text } = Typography;
 
 const AdminOrderComponent = () => {
-  const { orders, loading, setOrders, updateOrder } = useOrders();
+  const { orders, setOrders, updateOrder } = useOrders();
+  const [loading, setLoading] = useState(true);
   const [newOrders, setNewOrders] = useState([]);
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
