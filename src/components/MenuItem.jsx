@@ -1,22 +1,30 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Button, Tooltip, Input, Tag, Drawer } from 'antd';
-import { MinusOutlined, PlusOutlined, CloseOutlined, EditOutlined } from '@ant-design/icons';
-import { useCart } from '../contexts/CartContext';
-import { useCartIcon } from '../contexts/CartIconContext';
-import FlyingItemAnimation from './FlyingItemAnimation';
-import FoodLoader from './FoodLoader';
-import RecommendationSection from './RecommendationSection';
-import CookingRequestDrawer from './CookingRequestDrawer';
+import React, { useState, useEffect, useRef } from "react";
+import { Button, Tooltip, Input, Tag, Drawer } from "antd";
+import {
+  MinusOutlined,
+  PlusOutlined,
+  CloseOutlined,
+  EditOutlined,
+} from "@ant-design/icons";
+import { useCart } from "../contexts/CartContext";
+import { useCartIcon } from "../contexts/CartIconContext";
+import FlyingItemAnimation from "./FlyingItemAnimation";
+import FoodLoader from "./giftLoader";
+import RecommendationSection from "./RecommendationSection";
+import CookingRequestDrawer from "./CookingRequestDrawer";
 
 const MenuItem = ({ item, onItemAdded, recommendations }) => {
   const [showRecommendations, setShowRecommendations] = useState(false);
   const [showCookingRequest, setShowCookingRequest] = useState(false);
-  const [cookingRequest, setCookingRequest] = useState('');
+  const [cookingRequest, setCookingRequest] = useState("");
   const { cart, addToCart, updateQuantity, removeFromCart } = useCart();
   const cartIconRef = useCartIcon();
   const [quantity, setQuantity] = useState(0);
   const [showAnimation, setShowAnimation] = useState(false);
-  const [animationStartPosition, setAnimationStartPosition] = useState({ x: 0, y: 0 });
+  const [animationStartPosition, setAnimationStartPosition] = useState({
+    x: 0,
+    y: 0,
+  });
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [selectedTags, setSelectedTags] = useState([]);
@@ -25,269 +33,269 @@ const MenuItem = ({ item, onItemAdded, recommendations }) => {
 
   const styles = {
     editIcon: {
-      position: 'absolute',
+      position: "absolute",
       top: 12,
       right: 12,
-      backgroundColor: '#fff',
-      borderRadius: '50%',
+      backgroundColor: "#fff",
+      borderRadius: "50%",
       padding: 8,
-      cursor: 'pointer',
-      boxShadow: '0 2px 6px rgba(0, 0, 0, 0.15)',
+      cursor: "pointer",
+      boxShadow: "0 2px 6px rgba(0, 0, 0, 0.15)",
     },
     card: {
-      display: 'flex',
-      background: '#fff',
-      borderRadius: '12px',
-      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-      overflow: 'hidden',
-      height: '220px',
-      marginBottom: '24px',
-      border: '1px solid #f0f0f0',
-      '@media (max-width: 767px)': {
-        height: 'auto',
-        flexDirection: 'column',
+      display: "flex",
+      background: "#fff",
+      borderRadius: "12px",
+      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+      overflow: "hidden",
+      height: "220px",
+      marginBottom: "24px",
+      border: "1px solid #f0f0f0",
+      "@media (max-width: 767px)": {
+        height: "auto",
+        flexDirection: "column",
       },
     },
     contentSection: {
       flex: 1,
-      padding: '24px',
-      display: 'flex',
-      flexDirection: 'column',
-      position: 'relative',
-      minHeight: '220px',
-      justifyContent: 'space-between',
+      padding: "24px",
+      display: "flex",
+      flexDirection: "column",
+      position: "relative",
+      minHeight: "220px",
+      justifyContent: "space-between",
     },
     mainContent: {
       flex: 1,
     },
     description: {
-      fontSize: '14px',
-      color: '#666',
-      margin: '8px 0 12px 0',
-      position: 'relative',
-      maxHeight: isDescriptionExpanded ? 'none' : '36px',
-      overflow: 'hidden',
-      transition: 'max-height 0.3s ease-out',
+      fontSize: "14px",
+      color: "#666",
+      margin: "8px 0 12px 0",
+      position: "relative",
+      maxHeight: isDescriptionExpanded ? "none" : "36px",
+      overflow: "hidden",
+      transition: "max-height 0.3s ease-out",
     },
     bottomSection: {
-      marginTop: 'auto',
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
+      marginTop: "auto",
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
     },
     price: {
-      fontSize: '16px',
-      fontWeight: 'bold',
-      color: '#333',
+      fontSize: "16px",
+      fontWeight: "bold",
+      color: "#333",
     },
     quantityControls: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '12px',
+      display: "flex",
+      alignItems: "center",
+      gap: "12px",
     },
     addToCartButton: {
-      padding: '8px 24px',
-      borderRadius: '8px',
-      border: 'none',
-      background: '#e5004b',
-      color: 'white',
-      cursor: 'pointer',
-      transition: 'background 0.3s',
-      fontSize: '14px',
-      fontWeight: 'bold',
+      padding: "8px 24px",
+      borderRadius: "8px",
+      border: "none",
+      background: "#e5004b",
+      color: "white",
+      cursor: "pointer",
+      transition: "background 0.3s",
+      fontSize: "14px",
+      fontWeight: "bold",
     },
     titleWrapper: {
-      display: 'flex',
-      alignItems: 'center',
-      marginBottom: '12px',
+      display: "flex",
+      alignItems: "center",
+      marginBottom: "12px",
     },
     foodTypeIcon: {
-      width: '28px',
-      marginRight: '12px',
+      width: "28px",
+      marginRight: "12px",
     },
     title: {
-      fontSize: '18px',
-      fontWeight: 'bold',
+      fontSize: "18px",
+      fontWeight: "bold",
       margin: 0,
     },
     readMore: {
-      color: '#e5004b',
-      cursor: 'pointer',
-      fontWeight: '500',
-      display: 'inline-block',
-      marginLeft: '4px',
-      userSelect: 'none',
+      color: "#e5004b",
+      cursor: "pointer",
+      fontWeight: "500",
+      display: "inline-block",
+      marginLeft: "4px",
+      userSelect: "none",
     },
     quantityDisplay: {
-      width: '40px',
-      textAlign: 'center',
-      fontSize: '16px',
+      width: "40px",
+      textAlign: "center",
+      fontSize: "16px",
     },
     disabledAddToCartButton: {
-      background: '#d9d9d9',
-      cursor: 'not-allowed',
+      background: "#d9d9d9",
+      cursor: "not-allowed",
     },
     loaderContainer: {
-      position: 'absolute',
+      position: "absolute",
       top: 0,
       left: 0,
       right: 0,
       bottom: 0,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: '#f5f5f5',
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      background: "#f5f5f5",
     },
     cookingRequestDrawer: {
-      background: '#f8f8f8',
+      background: "#f8f8f8",
       padding: 0,
-      borderRadius: '20px 20px 0 0',
-      boxShadow: '0 -4px 12px rgba(0, 0, 0, 0.15)',
-      overflow: 'hidden',
+      borderRadius: "20px 20px 0 0",
+      boxShadow: "0 -4px 12px rgba(0, 0, 0, 0.15)",
+      overflow: "hidden",
     },
     selectedItemHeader: {
-      backgroundColor: '#fff',
-      padding: '20px',
-      borderBottom: '1px solid #eee',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '16px',
+      backgroundColor: "#fff",
+      padding: "20px",
+      borderBottom: "1px solid #eee",
+      display: "flex",
+      alignItems: "center",
+      gap: "16px",
     },
     selectedItemImage: {
-      width: '80px',
-      height: '80px',
-      borderRadius: '12px',
-      objectFit: 'cover',
+      width: "80px",
+      height: "80px",
+      borderRadius: "12px",
+      objectFit: "cover",
     },
     selectedItemDetails: {
       flex: 1,
     },
     selectedItemName: {
-      fontSize: '18px',
-      fontWeight: 'bold',
-      color: '#333',
-      marginBottom: '4px',
+      fontSize: "18px",
+      fontWeight: "bold",
+      color: "#333",
+      marginBottom: "4px",
     },
     selectedItemPrice: {
-      fontSize: '16px',
-      color: '#e5004b',
-      fontWeight: 'bold',
+      fontSize: "16px",
+      color: "#e5004b",
+      fontWeight: "bold",
     },
     cookingRequestContent: {
-      padding: '24px',
+      padding: "24px",
     },
     cookingRequestTitle: {
-      fontSize: '20px',
-      fontWeight: 'bold',
-      marginBottom: '20px',
-      color: '#333',
+      fontSize: "20px",
+      fontWeight: "bold",
+      marginBottom: "20px",
+      color: "#333",
     },
     cookingRequestTextarea: {
-      marginBottom: '24px',
-      borderRadius: '12px',
-      padding: '16px',
-      fontSize: '16px',
-      resize: 'none',
-      border: '2px solid #eee',
-      transition: 'border-color 0.3s',
-      '&:focus': {
-        borderColor: '#e5004b',
-        boxShadow: 'none',
+      marginBottom: "24px",
+      borderRadius: "12px",
+      padding: "16px",
+      fontSize: "16px",
+      resize: "none",
+      border: "2px solid #eee",
+      transition: "border-color 0.3s",
+      "&:focus": {
+        borderColor: "#e5004b",
+        boxShadow: "none",
       },
     },
     cookingRequestTags: {
-      display: 'flex',
-      flexWrap: 'wrap',
-      gap: '12px',
-      marginBottom: '24px',
+      display: "flex",
+      flexWrap: "wrap",
+      gap: "12px",
+      marginBottom: "24px",
     },
     cookingRequestTagItem: {
-      backgroundColor: '#fff',
-      border: '2px solid #eee',
-      borderRadius: '20px',
-      padding: '8px 16px',
-      fontSize: '14px',
-      fontWeight: '500',
-      cursor: 'pointer',
-      transition: 'all 0.3s',
-      color: '#666',
-      '&:hover': {
-        backgroundColor: '#e5004b',
-        color: '#fff',
-        borderColor: '#e5004b',
+      backgroundColor: "#fff",
+      border: "2px solid #eee",
+      borderRadius: "20px",
+      padding: "8px 16px",
+      fontSize: "14px",
+      fontWeight: "500",
+      cursor: "pointer",
+      transition: "all 0.3s",
+      color: "#666",
+      "&:hover": {
+        backgroundColor: "#e5004b",
+        color: "#fff",
+        borderColor: "#e5004b",
       },
     },
     selectedTagItem: {
-      backgroundColor: '#e5004b',
-      color: '#fff',
-      borderColor: '#e5004b',
+      backgroundColor: "#e5004b",
+      color: "#fff",
+      borderColor: "#e5004b",
     },
     cookingRequestActions: {
-      display: 'flex',
-      justifyContent: 'flex-end',
-      gap: '16px',
-      borderTop: '1px solid #eee',
-      padding: '20px',
-      backgroundColor: '#fff',
+      display: "flex",
+      justifyContent: "flex-end",
+      gap: "16px",
+      borderTop: "1px solid #eee",
+      padding: "20px",
+      backgroundColor: "#fff",
     },
     submitButton: {
-      backgroundColor: '#e5004b',
-      color: '#fff',
-      border: 'none',
-      borderRadius: '8px',
-      padding: '12px 32px',
-      fontSize: '16px',
-      fontWeight: 'bold',
-      cursor: 'pointer',
-      transition: 'background-color 0.3s',
-      '&:hover': {
-        backgroundColor: '#c80041',
+      backgroundColor: "#e5004b",
+      color: "#fff",
+      border: "none",
+      borderRadius: "8px",
+      padding: "12px 32px",
+      fontSize: "16px",
+      fontWeight: "bold",
+      cursor: "pointer",
+      transition: "background-color 0.3s",
+      "&:hover": {
+        backgroundColor: "#c80041",
       },
     },
     cancelButton: {
-      backgroundColor: '#f5f5f5',
-      color: '#666',
-      border: 'none',
-      borderRadius: '8px',
-      padding: '12px 32px',
-      fontSize: '16px',
-      fontWeight: 'bold',
-      cursor: 'pointer',
-      transition: 'background-color 0.3s',
-      '&:hover': {
-        backgroundColor: '#e5e5e5',
+      backgroundColor: "#f5f5f5",
+      color: "#666",
+      border: "none",
+      borderRadius: "8px",
+      padding: "12px 32px",
+      fontSize: "16px",
+      fontWeight: "bold",
+      cursor: "pointer",
+      transition: "background-color 0.3s",
+      "&:hover": {
+        backgroundColor: "#e5e5e5",
       },
     },
     commonSpiceOptions: [
-      { id: 1, label: 'Extra Spicy' },
-      { id: 2, label: 'Less Spicy' },
-      { id: 3, label: 'Double Spicy' },
-      { id: 4, label: 'Non Spicy' },
+      { id: 1, label: "Extra Spicy" },
+      { id: 2, label: "Less Spicy" },
+      { id: 3, label: "Double Spicy" },
+      { id: 4, label: "Non Spicy" },
     ],
     imageSection: {
-      position: 'relative',
-      width: '220px',
-      height: '220px',
-      overflow: 'hidden',
-      '@media (max-width: 767px)': {
-        width: '100%',
-        height: '200px',
+      position: "relative",
+      width: "220px",
+      height: "220px",
+      overflow: "hidden",
+      "@media (max-width: 767px)": {
+        width: "100%",
+        height: "200px",
       },
     },
     image: {
-      width: '100%',
-      height: '100%',
-      objectFit: 'cover',
+      width: "100%",
+      height: "100%",
+      objectFit: "cover",
     },
     editIcon: {
-      position: 'absolute',
+      position: "absolute",
       top: 12,
       right: 12,
-      backgroundColor: '#fff',
-      borderRadius: '50%',
+      backgroundColor: "#fff",
+      borderRadius: "50%",
       padding: 8,
-      cursor: 'pointer',
-      boxShadow: '0 2px 6px rgba(0, 0, 0, 0.15)',
+      cursor: "pointer",
+      boxShadow: "0 2px 6px rgba(0, 0, 0, 0.15)",
       zIndex: 2,
     },
   };
@@ -308,25 +316,36 @@ const MenuItem = ({ item, onItemAdded, recommendations }) => {
   // Rest of your existing functions...
   const getFoodTypeIcon = (type) => {
     switch (type) {
-      case 'veg':
-        return <img src="https://img.icons8.com/?size=100&id=61083&format=png&color=000000" alt="Veg" style={styles.foodTypeIcon} />;
-      case 'nonveg':
-        return <img src="https://img.icons8.com/?size=100&id=61082&format=png&color=000000" alt="Non-Veg" style={styles.foodTypeIcon} />;
+      case "veg":
+        return (
+          <img
+            src="https://img.icons8.com/?size=100&id=61083&format=png&color=000000"
+            alt="Veg"
+            style={styles.foodTypeIcon}
+          />
+        );
+      case "nonveg":
+        return (
+          <img
+            src="https://img.icons8.com/?size=100&id=61082&format=png&color=000000"
+            alt="Non-Veg"
+            style={styles.foodTypeIcon}
+          />
+        );
       default:
         return null;
     }
   };
-
 
   const getTruncatedDescription = (text) => {
     return text.length > 50 ? `${text.substring(0, 50)}...` : text;
   };
 
   const getImageUrl = (imageData) => {
-    if (!imageData) return '';
-    if (typeof imageData === 'string') return imageData;
+    if (!imageData) return "";
+    if (typeof imageData === "string") return imageData;
     if (imageData.file?.url) return imageData.file.url;
-    return '';
+    return "";
   };
 
   useEffect(() => {
@@ -413,7 +432,7 @@ const MenuItem = ({ item, onItemAdded, recommendations }) => {
     }
     // triggerAnimation();
     if (onItemAdded) onItemAdded();
-    console.log('Cooking request:', cookingRequest);
+    console.log("Cooking request:", cookingRequest);
     setShowCookingRequest(false);
   };
 
@@ -435,7 +454,7 @@ const MenuItem = ({ item, onItemAdded, recommendations }) => {
             </div>
             {needsTruncation() && (
               <span onClick={toggleDescription} style={styles.readMore}>
-                {isDescriptionExpanded ? 'Show less' : 'Read more'}
+                {isDescriptionExpanded ? "Show less" : "Read more"}
               </span>
             )}
           </div>
@@ -463,13 +482,17 @@ const MenuItem = ({ item, onItemAdded, recommendations }) => {
                 />
               </div>
             ) : (
-              <Tooltip title={item.isAvailable ? '' : 'This item is currently unavailable'}>
+              <Tooltip
+                title={
+                  item.isAvailable ? "" : "This item is currently unavailable"
+                }
+              >
                 <button
                   onClick={item.isAvailable ? handleAddToCart : undefined}
                   disabled={!item.isAvailable}
                   style={{
                     ...styles.addToCartButton,
-                    ...(item.isAvailable ? {} : styles.disabledAddToCartButton)
+                    ...(item.isAvailable ? {} : styles.disabledAddToCartButton),
                   }}
                 >
                   ADD
@@ -486,8 +509,8 @@ const MenuItem = ({ item, onItemAdded, recommendations }) => {
             style={styles.image}
             onLoad={() => setImageLoaded(true)}
             onError={(e) => {
-              console.error('Error loading image:', e);
-              e.target.src = '/path-to-your-fallback-image.jpg';
+              console.error("Error loading image:", e);
+              e.target.src = "/path-to-your-fallback-image.jpg";
             }}
           />
           {quantity > 0 && (
@@ -508,8 +531,6 @@ const MenuItem = ({ item, onItemAdded, recommendations }) => {
         onCookingRequestChange={handleCookingRequestChange}
         item={item}
       />
-
-
 
       <RecommendationSection
         isVisible={showRecommendations}

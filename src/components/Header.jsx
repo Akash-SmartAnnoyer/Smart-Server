@@ -1,39 +1,46 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Input, Badge, Tooltip, Modal, Rate } from 'antd';
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Input, Badge, Tooltip, Modal, Rate } from "antd";
 import { FaUtensils } from "react-icons/fa";
-import { AiOutlineShoppingCart, AiOutlineFileText, AiFillPhone, AiFillMail, AiFillEnvironment, AiOutlineAudio } from 'react-icons/ai';
-import { 
-  Search, 
-  MapPin, 
-  ShoppingCart, 
-  FileText, 
-  ChevronDown, 
-  LogOut, 
-  MapPinned
-} from 'lucide-react';
-import { useCart } from '../contexts/CartContext';
-import './Header.css';
-import { Modal as AntModal } from 'antd';
+import {
+  AiOutlineShoppingCart,
+  AiOutlineFileText,
+  AiFillPhone,
+  AiFillMail,
+  AiFillEnvironment,
+  AiOutlineAudio,
+} from "react-icons/ai";
+import {
+  Search,
+  MapPin,
+  ShoppingCart,
+  FileText,
+  ChevronDown,
+  LogOut,
+  MapPinned,
+} from "lucide-react";
+import { useCart } from "../contexts/CartContext";
+import "./Header.css";
+import { Modal as AntModal } from "antd";
 
 function Header({ onSearch }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { cart } = useCart();
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [currentPlaceholder, setCurrentPlaceholder] = useState(0);
-  const [restaurantLogo, setRestaurantLogo] = useState('');
+  const [restaurantLogo, setRestaurantLogo] = useState("");
   const [isLogoModalVisible, setIsLogoModalVisible] = useState(false);
-  const [role, setRole] = useState(localStorage.getItem('role'));
+  const [role, setRole] = useState(localStorage.getItem("role"));
   const [restaurantDetails, setRestaurantDetails] = useState(null);
   const [isSignOutModalVisible, setIsSignOutModalVisible] = useState(false);
 
   const searchPlaceholders = [
-    "Search for your favorite dishes...",
-    "Craving something specific?",
-    "Explore our menu",
-    "What would you like to eat?",
+    "Find the perfect gift...",
+    "Looking for something special?",
+    "Explore our gift collection",
+    "What are you shopping for?",
   ];
 
   useEffect(() => {
@@ -41,13 +48,13 @@ function Header({ onSearch }) {
       setIsCollapsed(window.scrollY > 80);
     };
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentPlaceholder(prev => (prev + 1) % searchPlaceholders.length);
+      setCurrentPlaceholder((prev) => (prev + 1) % searchPlaceholders.length);
     }, 3000);
 
     return () => clearInterval(interval);
@@ -60,15 +67,19 @@ function Header({ onSearch }) {
 
   const fetchRestaurantDetails = async () => {
     try {
-      const orgId = localStorage.getItem('orgId');
+      const orgId = localStorage.getItem("orgId");
       // Your existing fetch logic here
       // This is just a placeholder
-      const response = await fetch('https://smart-server-stage-database-default-rtdb.firebaseio.com/restaurants.json');
+      const response = await fetch(
+        "https://smart-server-stage-database-default-rtdb.firebaseio.com/restaurants.json"
+      );
       const data = await response.json();
       setRestaurantDetails(data);
       if (data) {
-        const restaurant = Object.values(data).find(restaurant => restaurant.orgId === orgId);
-        
+        const restaurant = Object.values(data).find(
+          (restaurant) => restaurant.orgId === orgId
+        );
+
         if (restaurant) {
           setRestaurantDetails(restaurant);
           setRestaurantLogo(restaurant.logo);
@@ -79,7 +90,7 @@ function Header({ onSearch }) {
         console.error("No data available in the database");
       }
     } catch (error) {
-      console.error('Error fetching restaurant details:', error);
+      console.error("Error fetching restaurant details:", error);
     }
   };
 
@@ -99,45 +110,49 @@ function Header({ onSearch }) {
   };
 
   const confirmSignOut = () => {
-    localStorage.removeItem('adminToken');
-    localStorage.removeItem('role');
+    localStorage.removeItem("adminToken");
+    localStorage.removeItem("role");
     setIsSignOutModalVisible(false);
-    navigate('/');
+    navigate("/");
   };
 
   return (
-    <header className={`header ${isCollapsed ? 'header--collapsed' : 'header--expanded'}`}>
+    <header
+      className={`header ${
+        isCollapsed ? "header--collapsed" : "header--expanded"
+      }`}
+    >
       <div className="header__container">
         <div className="header__content">
           <div className="header__top-row">
             <div className="header__left">
               <Link to="/home" className="header__logo">
-                <img 
-                  src="/assets/logo-transparent-png.png" 
-                  alt="Smart Server" 
-                  className="header__logo-image" 
+                <img
+                  src="/assets/logo-transparent-png.png"
+                  alt="Smart Server"
+                  className="header__logo-image"
                 />
                 <span className="header__logo-text">Smart Server</span>
               </Link>
             </div>
 
             <div className="header__right">
-              {role === 'customer' ? (
+              {role === "customer" ? (
                 <>
                   <div className="header__location">
                     <MapPin size={20} />
                     <div>
                       <div className="header__location-text">
-                        {restaurantDetails?.name || 'Restaurant Name'}
+                        {restaurantDetails?.name || "Restaurant Name"}
                       </div>
                       <div className="header__location-subtext">
-                        {restaurantDetails?.address || 'Loading address...'}
+                        {restaurantDetails?.address || "Loading address..."}
                       </div>
                     </div>
                   </div>
                   {restaurantLogo && (
                     <div className="header__restaurant-logo-container">
-                      <img 
+                      <img
                         src={restaurantLogo}
                         alt="Restaurant Logo"
                         className="header__restaurant-logo"
@@ -150,7 +165,7 @@ function Header({ onSearch }) {
                 <div className="header__admin-actions">
                   {restaurantLogo && (
                     <div className="header__restaurant-logo-container">
-                      <img 
+                      <img
                         src={restaurantLogo}
                         alt="Restaurant Logo"
                         className="header__restaurant-logo"
@@ -158,16 +173,13 @@ function Header({ onSearch }) {
                       />
                     </div>
                   )}
-                  <LogOut 
-                    className="header__icon" 
-                    onClick={handleSignOut}
-                  />
+                  <LogOut className="header__icon" onClick={handleSignOut} />
                 </div>
               )}
             </div>
           </div>
 
-          {role !== 'admin' && (
+          {role !== "admin" && (
             <div className="header__search-row">
               <div className="search-container">
                 <Search className="search-icon" size={20} />
@@ -191,17 +203,17 @@ function Header({ onSearch }) {
         okText="Yes, Sign Out"
         cancelText="Cancel"
         className="signout-confirmation-modal"
-        okButtonProps={{ 
-          style: { 
-            background: '#ff4b2b',
-            borderColor: '#ff4b2b'
-          } 
+        okButtonProps={{
+          style: {
+            background: "#ff4b2b",
+            borderColor: "#ff4b2b",
+          },
         }}
-        cancelButtonProps={{ 
-          style: { 
-            borderColor: '#ff4b2b',
-            color: '#ff4b2b'
-          } 
+        cancelButtonProps={{
+          style: {
+            borderColor: "#ff4b2b",
+            color: "#ff4b2b",
+          },
         }}
       >
         <p>Are you sure you want to sign out?</p>
@@ -212,45 +224,67 @@ function Header({ onSearch }) {
         footer={null}
         width="90%"
         style={{
-          maxWidth: '600px',
+          maxWidth: "600px",
         }}
         bodyStyle={{
-          padding: '20px',
-          background: 'linear-gradient(135deg, #ffffff, #fff0f0)',
-          borderRadius: '1rem',
+          padding: "20px",
+          background: "linear-gradient(135deg, #ffffff, #fff0f0)",
+          borderRadius: "1rem",
         }}
       >
         {restaurantDetails && (
           <div className="restaurant-details">
-            <img 
+            <img
               src={restaurantDetails.logo}
               alt={`${restaurantDetails.name} Logo`}
               style={{
-                width: '100%',
-                maxHeight: '200px',
-                objectFit: 'contain',
-                borderRadius: '10px',
-                marginBottom: '20px',
+                width: "100%",
+                maxHeight: "200px",
+                objectFit: "contain",
+                borderRadius: "10px",
+                marginBottom: "20px",
               }}
             />
-            <h2 style={{ fontSize: '24px', marginBottom: '10px', color: '#333' }}>{restaurantDetails.name}</h2>
-            <Rate disabled defaultValue={4} style={{ marginBottom: '15px' }} />
-            <p style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
-              <AiFillPhone style={{ marginRight: '10px', color: '#ff4d4f' }} />
+            <h2
+              style={{ fontSize: "24px", marginBottom: "10px", color: "#333" }}
+            >
+              {restaurantDetails.name}
+            </h2>
+            <Rate disabled defaultValue={4} style={{ marginBottom: "15px" }} />
+            <p
+              style={{
+                display: "flex",
+                alignItems: "center",
+                marginBottom: "10px",
+              }}
+            >
+              <AiFillPhone style={{ marginRight: "10px", color: "#ff4d4f" }} />
               {restaurantDetails.phone}
             </p>
-            <p style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
-              <AiFillMail style={{ marginRight: '10px', color: '#ff4d4f' }} />
+            <p
+              style={{
+                display: "flex",
+                alignItems: "center",
+                marginBottom: "10px",
+              }}
+            >
+              <AiFillMail style={{ marginRight: "10px", color: "#ff4d4f" }} />
               {restaurantDetails.email}
             </p>
-            <p style={{ display: 'flex', alignItems: 'flex-start', marginBottom: '10px' }}>
-              <AiFillEnvironment 
-                size={64}  // Increased size significantly
-                style={{ 
-                  marginRight: '10px', 
-                  marginTop: '4px', 
-                  color: '#ff4d4f' 
-                }} 
+            <p
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                marginBottom: "10px",
+              }}
+            >
+              <AiFillEnvironment
+                size={64} // Increased size significantly
+                style={{
+                  marginRight: "10px",
+                  marginTop: "4px",
+                  color: "#ff4d4f",
+                }}
               />
               <span>{restaurantDetails.address}</span>
             </p>
