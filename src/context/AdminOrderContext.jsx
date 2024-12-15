@@ -34,7 +34,7 @@ export const AdminOrderProvider = ({ children }) => {
           ...order,
           id: order.id || key
         }))
-        .filter(order => !['cancelled', 'completed'].includes(order.status))
+        // .filter(order => !['cancelled', 'completed'].includes(order.status))
         .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
       setOrders(ordersArray);
