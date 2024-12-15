@@ -182,30 +182,71 @@ const AdminOrderComponent = () => {
 
   const fetchOrders = async () => {
     try {
-      const response = await fetch(`https://smart-server-menu-database-default-rtdb.firebaseio.com/history.json`);
+      // Construct query URL with filters
+      const queryParams = new URLSearchParams({
+        orderBy: '"orgId"',
+        equalTo: `"${orgId}"`,
+        // Add additional filters as needed
+      }).toString();
+  
+      const response = await fetch(
+        `https://smart-server-stage-database-default-rtdb.firebaseio.com/history.json?${queryParams}`
+      );
+  
       if (!response.ok) {
         throw new Error('Failed to fetch orders');
       }
   
       const data = await response.json();
+      
+      if (!data) {
+        setOrders([]);
+        return;
+      }
   
       const ordersArray = Object.entries(data)
         .map(([key, order]) => ({
           ...order,
           id: order.id || key
         }))
-        .filter(order => 
-          order.orgId === orgId && 
-          !['cancelled', 'completed'].includes(order.status)
-        );
+        .filter(order => !['cancelled', 'completed'].includes(order.status))
+        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
   
-      const sortedOrders = ordersArray?.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-      setOrders(sortedOrders);
+      setOrders(ordersArray);
     } catch (error) {
       console.error('Failed to fetch orders', error);
       message.error('Failed to fetch orders');
     }
   };
+
+  
+
+  // const fetchOrders = async () => {
+  //   try {
+  //     const response = await fetch(`https://smart-server-stage-database-default-rtdb.firebaseio.com/history.json`);
+  //     if (!response.ok) {
+  //       throw new Error('Failed to fetch orders');
+  //     }
+  
+  //     const data = await response.json();
+  
+  //     const ordersArray = Object.entries(data)
+  //       .map(([key, order]) => ({
+  //         ...order,
+  //         id: order.id || key
+  //       }))
+  //       .filter(order => 
+  //         order.orgId === orgId && 
+  //         !['cancelled', 'completed'].includes(order.status)
+  //       );
+  
+  //     const sortedOrders = ordersArray?.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  //     setOrders(sortedOrders);
+  //   } catch (error) {
+  //     console.error('Failed to fetch orders', error);
+  //     message.error('Failed to fetch orders');
+  //   }
+  // };
 
   const getStatusIcon = (status) => {
     switch(status) {

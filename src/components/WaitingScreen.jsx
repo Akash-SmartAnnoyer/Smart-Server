@@ -72,7 +72,7 @@ const WaitingScreen = () => {
       const fetchOrder = async () => {
         try {
           const orgId = localStorage.getItem('orgId');
-          const response = await fetch(`https://smart-server-menu-database-default-rtdb.firebaseio.com/history.json?orgId=${orgId}`);
+          const response = await fetch(`https://smart-server-stage-database-default-rtdb.firebaseio.com/history.json?orgId=${orgId}`);
     
           if (!response.ok) throw new Error('Failed to fetch order');
     
@@ -253,7 +253,7 @@ const WaitingScreen = () => {
     };
   
     try {
-      const response = await fetch('https://smart-server-menu-database-default-rtdb.firebaseio.com/feedback.json', {
+      const response = await fetch('https://smart-server-stage-database-default-rtdb.firebaseio.com/feedback.json', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

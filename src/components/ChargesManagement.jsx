@@ -18,7 +18,7 @@ const ChargesManagement = () => {
 
   const fetchCharges = async () => {
     try {
-      const response = await fetch(`https://smart-server-menu-database-default-rtdb.firebaseio.com/restaurants/${orgId}/charges.json`);
+      const response = await fetch(`https://smart-server-stage-database-default-rtdb.firebaseio.com/restaurants/${orgId}/charges.json`);
       const data = await response.json();
       if (data) {
         const chargesArray = Object.entries(data).map(([id, charge]) => ({
@@ -45,14 +45,14 @@ const ChargesManagement = () => {
 
       if (editingId) {
         // Update existing charge
-        await fetch(`https://smart-server-menu-database-default-rtdb.firebaseio.com/restaurants/${orgId}/charges/${editingId}.json`, {
+        await fetch(`https://smart-server-stage-database-default-rtdb.firebaseio.com/restaurants/${orgId}/charges/${editingId}.json`, {
           method: 'PUT',
           body: JSON.stringify(chargeData)
         });
         message.success('Charge updated successfully');
       } else {
         // Add new charge
-        await fetch(`https://smart-server-menu-database-default-rtdb.firebaseio.com/restaurants/${orgId}/charges.json`, {
+        await fetch(`https://smart-server-stage-database-default-rtdb.firebaseio.com/restaurants/${orgId}/charges.json`, {
           method: 'POST',
           body: JSON.stringify(chargeData)
         });
@@ -70,7 +70,7 @@ const ChargesManagement = () => {
 
   const handleDelete = async (id) => {
     try {
-      await fetch(`https://smart-server-menu-database-default-rtdb.firebaseio.com/restaurants/${orgId}/charges/${id}.json`, {
+      await fetch(`https://smart-server-stage-database-default-rtdb.firebaseio.com/restaurants/${orgId}/charges/${id}.json`, {
         method: 'DELETE'
       });
       message.success('Charge deleted successfully');
@@ -93,7 +93,7 @@ const ChargesManagement = () => {
 
   const handleToggleCharge = async (record, enabled) => {
     try {
-      await fetch(`https://smart-server-menu-database-default-rtdb.firebaseio.com/restaurants/${orgId}/charges/${record.id}.json`, {
+      await fetch(`https://smart-server-stage-database-default-rtdb.firebaseio.com/restaurants/${orgId}/charges/${record.id}.json`, {
         method: 'PATCH',
         body: JSON.stringify({ isEnabled: enabled })
       });

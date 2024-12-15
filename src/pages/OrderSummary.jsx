@@ -52,7 +52,7 @@ function OrderSummary() {
           return;
         }
     
-        const response = await fetch('https://smart-server-menu-database-default-rtdb.firebaseio.com/restaurants.json'); // Add .json
+        const response = await fetch('https://smart-server-stage-database-default-rtdb.firebaseio.com/restaurants.json'); // Add .json
         if (!response.ok) {
           throw new Error('Failed to fetch restaurant data');
         }
@@ -101,7 +101,7 @@ function OrderSummary() {
     const fetchCharges = async () => {
       try {
         const orgId = localStorage.getItem('orgId');
-        const response = await fetch(`https://smart-server-menu-database-default-rtdb.firebaseio.com/restaurants/${orgId}/charges.json`);
+        const response = await fetch(`https://smart-server-stage-database-default-rtdb.firebaseio.com/restaurants/${orgId}/charges.json`);
         const data = await response.json();
         if (data) {
           const chargesArray = Object.entries(data).map(([id, charge]) => ({
@@ -144,7 +144,7 @@ function OrderSummary() {
       setLoading(true);
 
       // 1. Get restaurant location from Firebase
-      const response = await fetch('https://smart-server-menu-database-default-rtdb.firebaseio.com/restaurants.json');
+      const response = await fetch('https://smart-server-stage-database-default-rtdb.firebaseio.com/restaurants.json');
       if (!response.ok) {
         throw new Error('Failed to fetch restaurant data');
       }
@@ -221,7 +221,7 @@ function OrderSummary() {
         description: description
       };
 
-      const orderResponse = await fetch(`https://smart-server-menu-database-default-rtdb.firebaseio.com/history/${orderId}.json`, {
+      const orderResponse = await fetch(`https://smart-server-stage-database-default-rtdb.firebaseio.com/history/${orderId}.json`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

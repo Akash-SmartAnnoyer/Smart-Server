@@ -78,7 +78,7 @@ const RestaurantManagement = () => {
     try {
       setLoading(true);
       const orgId = localStorage.getItem('orgId');
-      const response = await fetch('https://smart-server-menu-database-default-rtdb.firebaseio.com/restaurants.json');
+      const response = await fetch('https://smart-server-stage-database-default-rtdb.firebaseio.com/restaurants.json');
   
       if (response.ok) {
         const data = await response.json();
@@ -110,7 +110,7 @@ const RestaurantManagement = () => {
     
     try {
       const { id, ...restaurantData } = restaurant;
-      const response = await fetch(`https://smart-server-menu-database-default-rtdb.firebaseio.com/restaurants/${id}.json`, {
+      const response = await fetch(`https://smart-server-stage-database-default-rtdb.firebaseio.com/restaurants/${id}.json`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -185,7 +185,7 @@ const RestaurantManagement = () => {
         
         // Save to database
         const { id, ...restaurantData } = restaurant;
-        await fetch(`https://smart-server-menu-database-default-rtdb.firebaseio.com/restaurants/${id}.json`, {
+        await fetch(`https://smart-server-stage-database-default-rtdb.firebaseio.com/restaurants/${id}.json`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -503,7 +503,7 @@ const RestaurantManagement = () => {
     setLoading(true);
     try {
       const { id } = restaurant;
-      const response = await fetch(`https://smart-server-menu-database-default-rtdb.firebaseio.com/restaurants/${id}.json`, {
+      const response = await fetch(`https://smart-server-stage-database-default-rtdb.firebaseio.com/restaurants/${id}.json`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

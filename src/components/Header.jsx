@@ -63,7 +63,7 @@ function Header({ onSearch }) {
       const orgId = localStorage.getItem('orgId');
       // Your existing fetch logic here
       // This is just a placeholder
-      const response = await fetch('https://smart-server-menu-database-default-rtdb.firebaseio.com/restaurants.json');
+      const response = await fetch('https://smart-server-stage-database-default-rtdb.firebaseio.com/restaurants.json');
       const data = await response.json();
       setRestaurantDetails(data);
       if (data) {
