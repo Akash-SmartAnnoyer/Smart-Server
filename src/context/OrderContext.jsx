@@ -14,7 +14,7 @@ export const OrderProvider = ({ children }) => {
       return;
     }
 
-    try {
+    try { 
       setLoading(true);
       const response = await fetch(`https://smart-server-stage-database-default-rtdb.firebaseio.com/history.json`);
       if (!response.ok) throw new Error('Failed to fetch orders');

@@ -26,7 +26,8 @@ const AdminOrderComponent = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredOrders, setFilteredOrders] = useState([]);
   const ws = useRef(null);
-  const audioRef = useRef(new Audio(notificationSound));
+  const audioRef = useRef(null);
+  const audioTimeout = useRef(null);
   const orgId = localStorage.getItem('orgId');
 
   // Filter out cancelled and completed orders
@@ -99,7 +100,7 @@ const AdminOrderComponent = () => {
 
         // Play sound notification if enabled
         if (soundEnabled) {
-          audioRef.current.play().catch(error => console.error('Error playing audio:', error));
+          playNotificationSound();
         }
 
         // Show visual notification
@@ -117,7 +118,7 @@ const AdminOrderComponent = () => {
         );
 
         if (soundEnabled) {
-          audioRef.current.play().catch(error => console.error('Error playing audio:', error));
+          playNotificationSound();
         }
 
         notification.open({
@@ -288,6 +289,51 @@ const AdminOrderComponent = () => {
       setFilteredOrders([]);
     }
   }, [activeOrders, searchQuery]);
+
+  // Initialize audio on component mount
+  useEffect(() => {
+    audioRef.current = new Audio(notificationSound);
+    
+    // Cleanup function
+    return () => {
+      if (audioTimeout.current) {
+        clearTimeout(audioTimeout.current);
+      }
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
+
+  // Debounced play function
+  const playNotificationSound = () => {
+    if (!soundEnabled || !audioRef.current) return;
+
+    // Clear any existing timeout
+    if (audioTimeout.current) {
+      clearTimeout(audioTimeout.current);
+    }
+
+    // Try to play the sound with error handling
+    try {
+      audioRef.current.currentTime = 0;
+      const playPromise = audioRef.current.play();
+      
+      if (playPromise !== undefined) {
+        playPromise.catch(error => {
+          console.warn('Audio playback failed:', error);
+        });
+      }
+
+      // Set a timeout before allowing next play
+      audioTimeout.current = setTimeout(() => {
+        audioTimeout.current = null;
+      }, 1000); // 1 second cooldown
+    } catch (error) {
+      console.warn('Audio playback failed:', error);
+    }
+  };
 
   if (loading) {
     return (
