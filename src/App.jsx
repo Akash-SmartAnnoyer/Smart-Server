@@ -24,6 +24,8 @@ import MenuSuggestionManager from './components/MenuSuggestionManager';
 import { MenuProvider } from './contexts/MenuProvider';
 import ChargesManagement from './components/ChargesManagement';
 import { OrderProvider } from './context/OrderContext';
+import { AdminOrderProvider } from './context/AdminOrderContext';
+import NewAdminPage from './components/NewAdminPage';
 
 const App = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -72,7 +74,14 @@ const App = () => {
                               }
                             />
                             <Route path="/cart" element={<Cart />} />
-                            <Route path="/admin" element={<AdminPage />} />
+                            <Route 
+                              path="/admin" 
+                              element={
+                                <AdminOrderProvider>
+                                  <NewAdminPage />
+                                </AdminOrderProvider>
+                              } 
+                            />
                             <Route path="/order-summary" element={<OrderSummary />} />
                             <Route path="/summary-view" element={<SummaryView />} />
                             <Route path="/order-history" element={<OrderHistory />} />
