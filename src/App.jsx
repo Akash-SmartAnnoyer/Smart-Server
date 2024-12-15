@@ -26,6 +26,7 @@ import ChargesManagement from './components/ChargesManagement';
 import { OrderProvider } from './context/OrderContext';
 import { AdminOrderProvider } from './context/AdminOrderContext';
 import NewAdminPage from './components/NewAdminPage';
+import { NewOrderHistory } from './components/NewOrderHistory';
 
 const App = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -84,7 +85,11 @@ const App = () => {
                             />
                             <Route path="/order-summary" element={<OrderSummary />} />
                             <Route path="/summary-view" element={<SummaryView />} />
-                            <Route path="/order-history" element={<OrderHistory />} />
+                            <Route path="/order-history"  element={
+                                <AdminOrderProvider>
+                                  <NewOrderHistory />
+                                </AdminOrderProvider>
+                              }  />
                             <Route path="/order-confirmation" element={<OrderConfirmation />} />
                             <Route path="/menu-management" element={<MenuManagement />} />
                             <Route path="/waiting/:orderId" element={<WaitingScreen />} /> 

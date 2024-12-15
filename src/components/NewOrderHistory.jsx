@@ -359,4 +359,4 @@ function NewOrderHistory() {
   );
 }
 
-export default NewOrderHistory;
+export { NewOrderHistory }; 
