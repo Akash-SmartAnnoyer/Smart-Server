@@ -1,8 +1,11 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 
+console.log('OrderContext is being loaded');
+
 const OrderContext = createContext();
 
 export const OrderProvider = ({ children }) => {
+  console.log('OrderProvider is being rendered');
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [lastFetchTime, setLastFetchTime] = useState(null);

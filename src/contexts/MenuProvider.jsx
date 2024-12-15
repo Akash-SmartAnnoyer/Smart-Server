@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
+console.log('MenuProvider is being loaded');
+
 const MenuContext = createContext();
 
 export function MenuProvider({ children }) {
