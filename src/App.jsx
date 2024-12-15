@@ -24,8 +24,8 @@ import MenuSuggestionManager from './components/MenuSuggestionManager';
 import { MenuProvider } from './contexts/MenuProvider';
 import ChargesManagement from './components/ChargesManagement';
 import { OrderProvider } from './context/OrderContext';
-import NewOrderHistory from './components/NewOrderHistory';
 import { AdminOrderProvider } from './context/AdminOrderContext';
+import NewAdminPage from './components/NewAdminPage';
 
 const App = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -74,17 +74,17 @@ const App = () => {
                               }
                             />
                             <Route path="/cart" element={<Cart />} />
-                            <Route path="/admin" element={<AdminPage />} />
-                            <Route path="/order-summary" element={<OrderSummary />} />
-                            <Route path="/summary-view" element={<SummaryView />} />
                             <Route 
-                              path="/order-history" 
+                              path="/admin" 
                               element={
                                 <AdminOrderProvider>
-                                  <NewOrderHistory />
+                                  <NewAdminPage />
                                 </AdminOrderProvider>
                               } 
                             />
+                            <Route path="/order-summary" element={<OrderSummary />} />
+                            <Route path="/summary-view" element={<SummaryView />} />
+                            <Route path="/order-history" element={<OrderHistory />} />
                             <Route path="/order-confirmation" element={<OrderConfirmation />} />
                             <Route path="/menu-management" element={<MenuManagement />} />
                             <Route path="/waiting/:orderId" element={<WaitingScreen />} /> 
