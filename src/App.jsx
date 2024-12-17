@@ -45,67 +45,58 @@ const App = () => {
         <MenuProvider>
           <CartProvider>
             <CartIconProvider>
-              <div className="App">
-                <Routes>
-                  <Route path="/" element={<LandingPage />} />
-                  <Route path="/qr-entry/:orgId/:tableNumber" element={<QREntry />} />
-                  <Route
-                    path="*"
-                    element={
-                      <>
-                        <Header onSearch={handleSearch} />
-                        <div className="container pb-16"> {/* Added padding bottom for footer */}
-                          <Routes>
-                            <Route 
-                              path="/home" 
-                              element={
-                                <Home 
-                                  onItemAdded={handleItemAdded}
-                                  searchTerm={searchTerm}
-                                />
-                              } 
-                            />
-                            <Route 
-                              path="/home/menu/:subcategoryId" 
-                              element={
-                                <MenuItem 
-                                  onItemAdded={handleItemAdded}
-                                  searchTerm={searchTerm}
-                                />
-                              }
-                            />
-                            <Route path="/cart" element={<Cart />} />
-                            <Route 
-                              path="/admin" 
-                              element={
-                                <AdminOrderProvider>
-                                  <NewAdminPage />
-                                </AdminOrderProvider>
-                              } 
-                            />
-                            <Route path="/order-summary" element={<OrderSummary />} />
-                            <Route path="/summary-view" element={<SummaryView />} />
-                            <Route path="/order-history"  element={
-                                <AdminOrderProvider>
-                                  <NewOrderHistory />
-                                </AdminOrderProvider>
-                              }  />
-                            <Route path="/order-confirmation" element={<OrderConfirmation />} />
-                            <Route path="/menu-management" element={<MenuManagement />} />
-                            <Route path="/waiting/:orderId" element={<WaitingScreen />} /> 
-                            <Route path="/management" element={<RestaurantManagement />} /> 
-                            <Route path="/dashboard" element={<RestaurantDashBoard />} />
-                            <Route path="/my-orders" element={<MyOrders />} />
-                            <Route path="/menu-suggestion" element={<MenuSuggestionManager />} />
-                            <Route path='/charges-management' element={<ChargesManagement />} />
-                          </Routes>
-                        </div>
-                        <FooterNavigation />
-                      </>
-                    }
-                  />
-                </Routes>
-              </div>
+              <AdminOrderProvider>
+                <div className="App">
+                  <Routes>
+                    <Route path="/" element={<LandingPage />} />
+                    <Route path="/qr-entry/:orgId/:tableNumber" element={<QREntry />} />
+                    <Route
+                      path="*"
+                      element={
+                        <>
+                          <Header onSearch={handleSearch} />
+                          <div className="container pb-16">
+                            <Routes>
+                              <Route 
+                                path="/home" 
+                                element={
+                                  <Home 
+                                    onItemAdded={handleItemAdded}
+                                    searchTerm={searchTerm}
+                                  />
+                                } 
+                              />
+                              <Route 
+                                path="/home/menu/:subcategoryId" 
+                                element={
+                                  <MenuItem 
+                                    onItemAdded={handleItemAdded}
+                                    searchTerm={searchTerm}
+                                  />
+                                }
+                              />
+                              <Route path="/cart" element={<Cart />} />
+                              <Route path="/admin" element={<NewAdminPage />} />
+                              <Route path="/order-summary" element={<OrderSummary />} />
+                              <Route path="/summary-view" element={<SummaryView />} />
+                              <Route path="/order-history" element={<NewOrderHistory />} />
+                              <Route path="/order-confirmation" element={<OrderConfirmation />} />
+                              <Route path="/menu-management" element={<MenuManagement />} />
+                              <Route path="/waiting/:orderId" element={<WaitingScreen />} /> 
+                              <Route path="/management" element={<RestaurantManagement />} /> 
+                              <Route path="/dashboard" element={<RestaurantDashBoard />} />
+                              <Route path="/my-orders" element={<MyOrders />} />
+                              <Route path="/menu-suggestion" element={<MenuSuggestionManager />} />
+                              <Route path='/charges-management' element={<ChargesManagement />} />
+                            </Routes>
+                          </div>
+                          <FooterNavigation />
+                        </>
+                      }
+                    />
+                  </Routes>
+                </div>
+              </AdminOrderProvider>
             </CartIconProvider>
           </CartProvider>
         </MenuProvider>
