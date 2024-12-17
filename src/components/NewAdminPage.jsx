@@ -39,50 +39,69 @@ const NewAdminPage = () => {
   );
 
   useEffect(() => {
-    // WebSocket setup
-    ws.current = new WebSocket('wss://legend-sulfuric-ruby.glitch.me');
+    // Function to establish WebSocket connection
+    const connectWebSocket = () => {
+      ws.current = new WebSocket('wss://legend-sulfuric-ruby.glitch.me');
 
-    ws.current.onopen = () => {
-      console.log('WebSocket connected');
-    };
+      ws.current.onopen = () => {
+        console.log('WebSocket connected');
+      };
 
-    ws.current.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      
-      if (data.type === 'newOrder' && data.order.orgId === orgId) {
-        setOrders(prevOrders => [data.order, ...prevOrders]);
-        setNewOrders(prev => [...prev, data.order.id]);
+      ws.current.onmessage = (event) => {
+        const data = JSON.parse(event.data);
         
-        if (soundEnabled) {
-          playNotificationSound();
+        if (data.type === 'newOrder' && data.order.orgId === orgId) {
+          setOrders(prevOrders => [data.order, ...prevOrders]);
+          setNewOrders(prev => [...prev, data.order.id]);
+          
+          if (soundEnabled) {
+            playNotificationSound();
+          }
+
+          message.success({
+            content: `New order #${data.order.id} from Table ${data.order.tableNumber}`,
+            icon: <BellOutlined style={{ color: '#ff4d4f' }} />
+          });
+        } else if (data.type === 'statusUpdate' && data.orgId === orgId) {
+          setOrders(prevOrders =>
+            prevOrders.map(order =>
+              order.id === data.orderId 
+                ? { ...order, status: data.status, statusMessage: data.statusMessage }
+                : order
+            )
+          );
+
+          if (soundEnabled) {
+            playNotificationSound();
+          }
+
+          message.info({
+            content: `Order #${data.orderId} status updated to ${data.status}`,
+            icon: <SyncOutlined spin style={{ color: '#1890ff' }} />
+          });
         }
+      };
 
-        message.success({
-          content: `New order #${data.order.id} from Table ${data.order.tableNumber}`,
-          icon: <BellOutlined style={{ color: '#ff4d4f' }} />
-        });
-      } else if (data.type === 'statusUpdate' && data.orgId === orgId) {
-        setOrders(prevOrders =>
-          prevOrders.map(order =>
-            order.id === data.orderId 
-              ? { ...order, status: data.status, statusMessage: data.statusMessage }
-              : order
-          )
-        );
+      ws.current.onclose = () => {
+        console.log('WebSocket disconnected. Attempting to reconnect...');
+        setTimeout(connectWebSocket, 3000);
+      };
 
-        if (soundEnabled) {
-          playNotificationSound();
-        }
-
-        message.info({
-          content: `Order #${data.orderId} status updated to ${data.status}`,
-          icon: <SyncOutlined spin style={{ color: '#1890ff' }} />
-        });
-      }
+      ws.current.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        ws.current.close();
+      };
     };
+
+    if (orgId) {
+      connectWebSocket();
+    }
 
     return () => {
       if (ws.current) {
+        ws.current.onclose = () => {
+          console.log('WebSocket closed due to component unmount');
+        };
         ws.current.close();
       }
     };
