@@ -143,49 +143,49 @@ function OrderSummary() {
     try {
       setLoading(true);
 
-      // 1. Get restaurant location from Firebase
-      const response = await fetch('https://smart-server-stage-database-default-rtdb.firebaseio.com/restaurants.json');
-      if (!response.ok) {
-        throw new Error('Failed to fetch restaurant data');
-      }
+      // // 1. Get restaurant location from Firebase
+      // const response = await fetch('https://smart-server-stage-database-default-rtdb.firebaseio.com/restaurants.json');
+      // if (!response.ok) {
+      //   throw new Error('Failed to fetch restaurant data');
+      // }
 
-      const restaurants = await response.json();
+      // const restaurants = await response.json();
       const orgId = localStorage.getItem('orgId');
-      const restaurantArray = Object.values(restaurants);
-      const restaurant = restaurantArray.find(r => r.orgId === orgId);
+      // const restaurantArray = Object.values(restaurants);
+      // const restaurant = restaurantArray.find(r => r.orgId === orgId);
 
-      if (!restaurant || !restaurant.position) {
-        throw new Error('Restaurant location not found');
-      }
+      // if (!restaurant || !restaurant.position) {
+      //   throw new Error('Restaurant location not found');
+      // }
 
-      // 2. Get user's current location
-      const position = await new Promise((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 5000,
-          maximumAge: 0
-        });
-      });
+      // // 2. Get user's current location
+      // const position = await new Promise((resolve, reject) => {
+      //   navigator.geolocation.getCurrentPosition(resolve, reject, {
+      //     enableHighAccuracy: true,
+      //     timeout: 5000,
+      //     maximumAge: 0
+      //   });
+      // });
 
-      // 3. Calculate distance
-      const distance = calculateDistance(
-        position.coords.latitude,
-        position.coords.longitude,
-        restaurant.position[0],
-        restaurant.position[1]
-      );
+      // // 3. Calculate distance
+      // const distance = calculateDistance(
+      //   position.coords.latitude,
+      //   position.coords.longitude,
+      //   restaurant.position[0],
+      //   restaurant.position[1]
+      // );
 
-      // 4. Verify distance
-      if (distance > MAX_DISTANCE_KM) {
-        showErrorModal(
-          <div style={{ textAlign: 'center' }}>
-            <MapPin style={{ fontSize: '24px', marginBottom: '10px' }} />
-            <p>You appear to be {distance.toFixed(2)}km away from {restaurant.name}.</p>
-            <p>Please place your order when you're at the restaurant.</p>
-          </div>
-        );
-        return;
-      }
+      // // 4. Verify distance
+      // if (distance > MAX_DISTANCE_KM) {
+      //   showErrorModal(
+      //     <div style={{ textAlign: 'center' }}>
+      //       <MapPin style={{ fontSize: '24px', marginBottom: '10px' }} />
+      //       <p>You appear to be {distance.toFixed(2)}km away from {restaurant.name}.</p>
+      //       <p>Please place your order when you're at the restaurant.</p>
+      //     </div>
+      //   );
+      //   return;
+      // }
 
       // Continue with existing order placement logic
       if (!tableNumber) {

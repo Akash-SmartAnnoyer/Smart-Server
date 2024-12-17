@@ -20,7 +20,7 @@ const { Option } = Select;
 const { Text } = Typography;
 
 const NewAdminPage = () => {
-  const { orders, loading, updateOrder } = useAdminOrders();
+  const { orders, loading, updateOrder, setOrders } = useAdminOrders();
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [newOrders, setNewOrders] = useState([]);
@@ -50,9 +50,34 @@ const NewAdminPage = () => {
       const data = JSON.parse(event.data);
       
       if (data.type === 'newOrder' && data.order.orgId === orgId) {
-        handleNewOrder(data.order);
+        setOrders(prevOrders => [data.order, ...prevOrders]);
+        setNewOrders(prev => [...prev, data.order.id]);
+        
+        if (soundEnabled) {
+          playNotificationSound();
+        }
+
+        message.success({
+          content: `New order #${data.order.id} from Table ${data.order.tableNumber}`,
+          icon: <BellOutlined style={{ color: '#ff4d4f' }} />
+        });
       } else if (data.type === 'statusUpdate' && data.orgId === orgId) {
-        handleStatusUpdate(data);
+        setOrders(prevOrders =>
+          prevOrders.map(order =>
+            order.id === data.orderId 
+              ? { ...order, status: data.status, statusMessage: data.statusMessage }
+              : order
+          )
+        );
+
+        if (soundEnabled) {
+          playNotificationSound();
+        }
+
+        message.info({
+          content: `Order #${data.orderId} status updated to ${data.status}`,
+          icon: <SyncOutlined spin style={{ color: '#1890ff' }} />
+        });
       }
     };
 
@@ -61,31 +86,7 @@ const NewAdminPage = () => {
         ws.current.close();
       }
     };
-  }, [orgId]);
-
-  const handleNewOrder = (order) => {
-    setNewOrders(prev => [...prev, order.id]);
-    
-    if (soundEnabled) {
-      playNotificationSound();
-    }
-
-    message.success({
-      content: `New order #${order.id} from Table ${order.tableNumber}`,
-      icon: <BellOutlined style={{ color: '#ff4d4f' }} />
-    });
-  };
-
-  const handleStatusUpdate = (data) => {
-    if (soundEnabled) {
-      playNotificationSound();
-    }
-
-    message.info({
-      content: `Order #${data.orderId} status updated to ${data.status}`,
-      icon: <SyncOutlined spin style={{ color: '#1890ff' }} />
-    });
-  };
+  }, [orgId, soundEnabled, setOrders]);
 
   const playNotificationSound = () => {
     try {

@@ -74,16 +74,16 @@ export const AdminOrderProvider = ({ children }) => {
     if (orgId) {
       fetchOrders();
       // Set up periodic refresh
-      const intervalId = setInterval(fetchOrders, 30000); // Refresh every 30 seconds
-      return () => clearInterval(intervalId);
+      // const intervalId = setInterval(fetchOrders, 30000); // Refresh every 30 seconds
+      // return () => clearInterval(intervalId);
     }
   }, [orgId]);
 
   return (
     <AdminOrderContext.Provider value={{
       orders,
-      loading,
       setOrders,
+      loading,
       updateOrder,
       fetchOrders
     }}>
