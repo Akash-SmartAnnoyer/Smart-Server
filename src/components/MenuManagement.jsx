@@ -53,6 +53,7 @@ import { MdOutlineSort } from 'react-icons/md';
 import { ScrollMenu } from 'react-horizontal-scrolling-menu';
 import FoodLoader from './FoodLoader';
 import StylishButton from './common/StylishButton';
+import { useMenu } from '../contexts/MenuProvider';
 
 const { Content, Sider } = Layout;
 const { Option } = Select;
@@ -310,98 +311,55 @@ const ModernMenuManagement = () => {
    // Get orgId from localStorage
   const orgId = localStorage.getItem('orgId');
 
+  const { 
+    categories: cachedCategories, 
+    subcategories: cachedSubcategories, 
+    menuItems: cachedMenuItems,
+    loading: menuLoading,
+    dataInitialized,
+    refreshData
+  } = useMenu();
+
+  // Initialize state with cached data
   useEffect(() => {
-    fetchData();
-    const handleResize = () => {
-      setSiderCollapsed(window.innerWidth <= 768);
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  const fetchData = async () => {
-
-    setLoading(true);
-
-    try {
-
-      const [categoriesRes, subcategoriesRes, menuItemsRes] = await Promise.all(
-
-        [
-
-          fetch(`${API_URL}/categories.json`),
-
-          fetch(`${API_URL}/subcategories.json`),
-
-          fetch(`${API_URL}/menu_items.json`),
-
-        ]
-
-      );
-
-      const [categoriesData, subcategoriesData, menuItemsData] =
-
-        await Promise.all([
-
-          categoriesRes.json(),
-
-          subcategoriesRes.json(),
-
-          menuItemsRes.json(),
-
-        ]);
-
-
-
-      const categoriesArray = categoriesData
-
-        ? Object.entries(categoriesData)
-
-            .map(([firebaseId, data]) => ({ firebaseId, ...data }))
-
-            .filter(item => item && item.orgId === parseInt(orgId))
-
-        : [];
-
-      const subcategoriesArray = subcategoriesData
-
-        ? Object.entries(subcategoriesData)
-
-            .map(([firebaseId, data]) => ({ firebaseId, ...data }))
-
-            .filter(item => item && item.orgId === parseInt(orgId))
-
-        : [];
-
-      const menuItemsArray = menuItemsData
-
-        ? Object.entries(menuItemsData)
-
-            .map(([firebaseId, data]) => ({ firebaseId, ...data }))
-
-            .filter(item => item && item.orgId === parseInt(orgId))
-
-        : [];
-
-
-
-      setCategories(categoriesArray);
-
-      setSubcategories(subcategoriesArray);
-
-      setMenuItems(menuItemsArray);
-
-    } catch (error) {
-
-      console.error('Error fetching data:', error);
-
-      message.error('Failed to fetch data');
-
+    if (dataInitialized) {
+      setCategories(cachedCategories);
+      setSubcategories(cachedSubcategories);
+      setMenuItems(cachedMenuItems);
+      setLoading(false);
+    } else {
+      refreshData(); // This will trigger data fetch in MenuProvider
     }
+  }, [dataInitialized, cachedCategories, cachedSubcategories, cachedMenuItems]);
 
-    setLoading(false);
-
-  };
+  // Update loading check
+  if (menuLoading.overall || !dataInitialized) {
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255, 255, 255, 0.8)',
+        zIndex: 1000,
+      }}>
+        <FoodLoader />
+        <div style={{
+          marginTop: '1rem',
+          color: '#FF0000',
+          fontWeight: 'bold',
+          fontSize: '1.2rem',
+        }}>
+          Loading menu items...
+        </div>
+      </div>
+    );
+  }
 
 // Also update the handleCreate function to properly handle both image types
 // Update the renderFormItems function to include image upload for categories and subcategories

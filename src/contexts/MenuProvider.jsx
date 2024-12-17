@@ -1,10 +1,12 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 console.log('MenuProvider is being loaded');
 
 const MenuContext = createContext();
 
 export function MenuProvider({ children }) {
+  const [dataInitialized, setDataInitialized] = useState(false);
+  
   const [menuData, setMenuData] = useState({
     categories: [],
     subcategories: [],
@@ -20,7 +22,6 @@ export function MenuProvider({ children }) {
   });
   
   const [error, setError] = useState(null);
-  const [dataInitialized, setDataInitialized] = useState(false);
   const orgId = localStorage.getItem('orgId');
 
   const fetchData = async (url) => {
@@ -35,7 +36,7 @@ export function MenuProvider({ children }) {
   };
 
   useEffect(() => {
-    if (!orgId) return;
+    if (!orgId || dataInitialized) return;
 
     const loadData = async () => {
       setLoading(prev => ({
@@ -118,7 +119,7 @@ export function MenuProvider({ children }) {
     };
 
     loadData();
-  }, [orgId]);
+  }, [orgId, dataInitialized]);
 
   const updateSuggestions = async (updatedSuggestions) => {
     try {
@@ -142,22 +143,22 @@ export function MenuProvider({ children }) {
     }
   };
 
+  const refreshData = useCallback(() => {
+    setDataInitialized(false);
+    setLoading({
+      categories: true,
+      subcategories: true,
+      menuItems: true,
+      overall: true
+    });
+  }, []);
+
   const value = {
     ...menuData,
     loading,
     error,
     dataInitialized,
-    refreshData: () => {
-      setDataInitialized(false);
-      setLoading({
-        categories: true,
-        subcategories: true,
-        menuItems: true,
-        overall: true
-      });
-      const event = new Event('refresh-menu-data');
-      window.dispatchEvent(event);
-    },
+    refreshData,
     updateSuggestions,
     suggestions: menuData.recommendations
   };
