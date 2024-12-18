@@ -198,6 +198,20 @@ const NewAdminPage = () => {
     return messages[status] || 'Order status unknown';
   };
 
+  const getTagLabel = (tagId) => {
+    const tagMap = {
+      1: 'Extra Spicy',
+      2: 'Less Spicy',
+      3: 'Double Spicy',
+      4: 'Non Spicy',
+      5: 'No Onion',
+      6: 'No Garlic',
+      7: 'Gluten-free',
+      8: 'Dairy-free'
+    };
+    return tagMap[tagId] || 'Unknown';
+  };
+
   if (loading) {
     return (
       <div style={{
@@ -382,16 +396,50 @@ const NewAdminPage = () => {
                     marginBottom: '15px'
                   }}>
                     {order?.items?.map((item, index) => (
-                      <Tag
-                        key={index}
-                        style={{
-                          margin: '4px',
-                          padding: '4px 8px',
-                          borderRadius: '4px'
-                        }}
-                      >
-                        {item.quantity}x {item.name}
-                      </Tag>
+                      <div key={index} style={{
+                        background: '#fff',
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        marginBottom: '8px'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                          <Tag color="#ff4d4f">
+                            {item.quantity}x {item.name}
+                          </Tag>
+                          {item.specialInstructions && (
+                            <Tag color="#722ed1">Custom</Tag>
+                          )}
+                        </div>
+                        
+                        {(item.specialInstructions || item.selectedTags?.length > 0) && (
+                          <div style={{
+                            fontSize: '0.9rem',
+                            color: '#666',
+                            background: '#f9f9f9',
+                            padding: '8px',
+                            borderRadius: '6px',
+                            marginTop: '4px'
+                          }}>
+                            {item.specialInstructions && (
+                              <div style={{ marginBottom: '4px' }}>
+                                <Text type="secondary" strong>Instructions: </Text>
+                                {item.specialInstructions}
+                              </div>
+                            )}
+                            
+                            {item.selectedTags?.length > 0 && (
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                                <Text type="secondary" strong>Preferences: </Text>
+                                {item.selectedTags.map((tagId) => (
+                                  <Tag key={tagId} color="#108ee9">
+                                    {getTagLabel(tagId)}
+                                  </Tag>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     ))}
                   </div>
 
