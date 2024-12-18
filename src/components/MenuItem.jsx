@@ -33,17 +33,27 @@ const MenuItem = ({ item, onItemAdded, recommendations }) => {
       padding: 8,
       cursor: 'pointer',
       boxShadow: '0 2px 6px rgba(0, 0, 0, 0.15)',
+      zIndex: 2,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: 36,
+      height: 36,
+      transition: 'all 0.3s ease',
+      '&:hover': {
+        transform: 'scale(1.1)',
+        boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
+      },
     },
     card: {
       display: 'flex',
       background: '#fff',
       borderRadius: '12px',
-      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
       overflow: 'hidden',
       height: '220px',
       marginBottom: '24px',
       border: '1px solid #f0f0f0',
-      position: 'relative',
       '@media (max-width: 767px)': {
         height: 'auto',
         flexDirection: 'column',
@@ -51,50 +61,40 @@ const MenuItem = ({ item, onItemAdded, recommendations }) => {
     },
     contentSection: {
       flex: 1,
-      padding: '20px',
+      padding: '24px',
       display: 'flex',
       flexDirection: 'column',
       position: 'relative',
       minHeight: '220px',
       justifyContent: 'space-between',
-      gap: '12px',
     },
     mainContent: {
       flex: 1,
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '8px',
     },
     description: {
       fontSize: '14px',
       color: '#666',
-      margin: '0',
+      margin: '8px 0 12px 0',
       position: 'relative',
       maxHeight: isDescriptionExpanded ? 'none' : '36px',
       overflow: 'hidden',
       transition: 'max-height 0.3s ease-out',
-      lineHeight: '1.5',
     },
     bottomSection: {
+      marginTop: 'auto',
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
-      borderTop: '1px solid #f0f0f0',
-      paddingTop: '12px',
-      marginTop: 'auto',
     },
     price: {
-      fontSize: '18px',
+      fontSize: '16px',
       fontWeight: 'bold',
       color: '#333',
-      marginRight: '16px',
     },
     quantityControls: {
       display: 'flex',
       alignItems: 'center',
-      gap: '8px',
-      minWidth: '120px',
-      justifyContent: 'flex-end',
+      gap: '12px',
     },
     addToCartButton: {
       padding: '8px 24px',
@@ -110,8 +110,7 @@ const MenuItem = ({ item, onItemAdded, recommendations }) => {
     titleWrapper: {
       display: 'flex',
       alignItems: 'center',
-      gap: '12px',
-      marginBottom: '8px',
+      marginBottom: '12px',
     },
     foodTypeIcon: {
       width: '28px',
@@ -290,17 +289,6 @@ const MenuItem = ({ item, onItemAdded, recommendations }) => {
       width: '100%',
       height: '100%',
       objectFit: 'cover',
-    },
-    editIcon: {
-      position: 'absolute',
-      top: 12,
-      right: 12,
-      backgroundColor: '#fff',
-      borderRadius: '50%',
-      padding: 8,
-      cursor: 'pointer',
-      boxShadow: '0 2px 6px rgba(0, 0, 0, 0.15)',
-      zIndex: 2,
     },
   };
 
@@ -503,9 +491,11 @@ const MenuItem = ({ item, onItemAdded, recommendations }) => {
             }}
           />
           {quantity > 0 && (
-            <div style={styles.editIcon} onClick={handleEditIconClick}>
-              <EditOutlined />
-            </div>
+            <Tooltip title="Customize your order">
+              <div style={styles.editIcon} onClick={handleEditIconClick}>
+                <EditOutlined style={{ fontSize: '20px', color: '#e5004b' }} />
+              </div>
+            </Tooltip>
           )}
         </div>
       </div>
