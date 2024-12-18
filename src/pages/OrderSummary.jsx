@@ -42,6 +42,7 @@ function OrderSummary() {
   const [description, setDescription] = useState('');
   const ws = useRef(null);
   const [charges, setCharges] = useState([]);
+  const [isSeatingCapacityLoaded, setIsSeatingCapacityLoaded] = useState(false);
 
   useEffect(() => {
     const fetchSeatingCapacity = async () => {
@@ -70,6 +71,8 @@ function OrderSummary() {
         }
       } catch (error) {
         console.error('Error fetching restaurant data:', error);
+      } finally {
+        setIsSeatingCapacityLoaded(true); // Set loading state to complete
       }
     };
     
@@ -143,6 +146,9 @@ function OrderSummary() {
     try {
       setLoading(true);
 
+
+
+      
       // // 1. Get restaurant location from Firebase
       // const response = await fetch('https://smart-server-stage-database-default-rtdb.firebaseio.com/restaurants.json');
       // if (!response.ok) {
@@ -150,14 +156,11 @@ function OrderSummary() {
       // }
 
       // const restaurants = await response.json();
-      const orgId = localStorage.getItem('orgId');
       // const restaurantArray = Object.values(restaurants);
       // const restaurant = restaurantArray.find(r => r.orgId === orgId);
-
       // if (!restaurant || !restaurant.position) {
       //   throw new Error('Restaurant location not found');
       // }
-
       // // 2. Get user's current location
       // const position = await new Promise((resolve, reject) => {
       //   navigator.geolocation.getCurrentPosition(resolve, reject, {
@@ -166,7 +169,6 @@ function OrderSummary() {
       //     maximumAge: 0
       //   });
       // });
-
       // // 3. Calculate distance
       // const distance = calculateDistance(
       //   position.coords.latitude,
@@ -174,7 +176,6 @@ function OrderSummary() {
       //   restaurant.position[0],
       //   restaurant.position[1]
       // );
-
       // // 4. Verify distance
       // if (distance > MAX_DISTANCE_KM) {
       //   showErrorModal(
@@ -188,13 +189,23 @@ function OrderSummary() {
       // }
 
       // Continue with existing order placement logic
-      if (!tableNumber) {
-        showErrorModal('Please enter your table number');
+      // if (!tableNumber) {
+      //   showErrorModal('Please enter your table number');
+      //   return;
+      // }
+      const orgId = localStorage.getItem('orgId');
+
+      // Wait for seating capacity to be loaded before validation
+      if (!isSeatingCapacityLoaded) {
+        showErrorModal('Please wait while we load restaurant information...');
         return;
       }
 
+
+
+      // Validate table number only if seating capacity is loaded
       const tableNum = parseInt(tableNumber);
-      if (isNaN(tableNum) || tableNum < 1 || tableNum > seatingCapacity) {
+      if (isNaN(tableNum) || tableNum < 1 || (seatingCapacity > 0 && tableNum > seatingCapacity)) {
         showErrorModal(`Please enter a valid table number between 1 and ${seatingCapacity}`);
         return;
       }
