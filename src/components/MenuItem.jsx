@@ -290,6 +290,17 @@ const MenuItem = ({ item, onItemAdded, recommendations }) => {
       height: '100%',
       objectFit: 'cover',
     },
+    editIcon: {
+      position: 'absolute',
+      top: 12,
+      right: 12,
+      backgroundColor: '#fff',
+      borderRadius: '50%',
+      padding: 8,
+      cursor: 'pointer',
+      boxShadow: '0 2px 6px rgba(0, 0, 0, 0.15)',
+      zIndex: 2,
+    },
   };
 
   // Function to check if description needs truncation
@@ -491,11 +502,11 @@ const MenuItem = ({ item, onItemAdded, recommendations }) => {
             }}
           />
           {quantity > 0 && (
-            <Tooltip title="Customize your order">
-              <div style={styles.editIcon} onClick={handleEditIconClick}>
+                        <Tooltip title="Customize your order">
+            <div style={styles.editIcon} onClick={handleEditIconClick}>
                 <EditOutlined style={{ fontSize: '20px', color: '#e5004b' }} />
-              </div>
-            </Tooltip>
+                </div>
+                </Tooltip>
           )}
         </div>
       </div>
@@ -504,7 +515,7 @@ const MenuItem = ({ item, onItemAdded, recommendations }) => {
         visible={showCookingRequest}
         onClose={() => setShowCookingRequest(false)}
         onSubmit={handleCookingRequestSubmit}
-        onTagClick={handleTagClick}
+        onTagClick={setSelectedTags}
         selectedTags={selectedTags}
         cookingRequest={cookingRequest}
         onCookingRequestChange={handleCookingRequestChange}

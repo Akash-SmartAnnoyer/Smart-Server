@@ -212,6 +212,13 @@ const NewAdminPage = () => {
     return tagMap[tagId] || 'Unknown';
   };
 
+  const getTagColor = (tagId) => {
+    // Spice-related tags (1-4)
+    if (tagId >= 1 && tagId <= 4) return '#f50';
+    // Dietary preferences (5-8)
+    return '#108ee9';
+  };
+
   if (loading) {
     return (
       <div style={{
@@ -431,7 +438,7 @@ const NewAdminPage = () => {
                               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
                                 <Text type="secondary" strong>Preferences: </Text>
                                 {item.selectedTags.map((tagId) => (
-                                  <Tag key={tagId} color="#108ee9">
+                                  <Tag key={tagId} color={getTagColor(tagId)}>
                                     {getTagLabel(tagId)}
                                   </Tag>
                                 ))}

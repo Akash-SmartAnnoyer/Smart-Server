@@ -3,9 +3,82 @@ import { Button, Drawer, Input, Tag } from 'antd';
 import { CloseOutlined } from '@ant-design/icons';
 import { useCart } from '../contexts/CartContext';
 
-const CookingRequestDrawer = ({ item, visible, onClose, onSubmit, onTagClick, selectedTags, cookingRequest, onCookingRequestChange }) => {
-    const { addToCart, updateQuantity } = useCart();
-    const { cart } = useCart();
+// Define customization rules outside the component
+const CUSTOMIZATION_RULES = {
+  SPICE_LEVELS: ['Extra Spicy', 'Less Spicy', 'Double Spicy', 'Non Spicy'],
+  DIETARY: ['No Onion', 'No Garlic', 'Gluten-free', 'Dairy-free'],
+  
+  categories: {
+    'dessert': {
+      allowedTags: ['Dairy-free', 'Gluten-free'],
+      disallowedTags: ['Extra Spicy', 'Less Spicy', 'Double Spicy', 'Non Spicy', 'No Onion', 'No Garlic'],
+    },
+    'beverage': {
+      allowedTags: ['Dairy-free'],
+      disallowedTags: ['Extra Spicy', 'Less Spicy', 'Double Spicy', 'Non Spicy', 'No Onion', 'No Garlic', 'Gluten-free'],
+    },
+    'spicy': {
+      allowedTags: ['Extra Spicy', 'Less Spicy', 'Double Spicy', 'Non Spicy', 'No Onion', 'No Garlic', 'Gluten-free'],
+      disallowedTags: ['Dairy-free'],
+    }
+  }
+};
+
+const CookingRequestDrawer = ({ 
+  item, 
+  visible, 
+  onClose, 
+  onSubmit, 
+  selectedTags,
+  onTagClick, // Renamed from handleTagClick to match parent component
+  cookingRequest, 
+  onCookingRequestChange 
+}) => {
+  const { addToCart, updateQuantity, cart } = useCart();
+
+  const getAvailableCustomizations = (item) => {
+    const category = item.category || 'spicy';
+    const rules = CUSTOMIZATION_RULES.categories[category];
+    
+    if (!rules) return [];
+
+    return [
+      { id: 1, label: 'Extra Spicy', group: 'spice' },
+      { id: 2, label: 'Less Spicy', group: 'spice' },
+      { id: 3, label: 'Double Spicy', group: 'spice' },
+      { id: 4, label: 'Non Spicy', group: 'spice' },
+      { id: 5, label: 'No Onion', group: 'dietary' },
+      { id: 6, label: 'No Garlic', group: 'dietary' },
+      { id: 7, label: 'Gluten-free', group: 'dietary' },
+      { id: 8, label: 'Dairy-free', group: 'dietary' },
+    ].filter(option => rules.allowedTags.includes(option.label));
+  };
+
+  const handleTagSelection = (tagId) => {
+    const clickedTag = getAvailableCustomizations(item).find(t => t.id === tagId);
+    if (!clickedTag) return;
+
+    const currentTags = [...selectedTags];
+    let newTags = [...currentTags];
+    
+    // If clicking a spice level tag, remove other spice level tags
+    if (clickedTag.group === 'spice') {
+      const spiceTags = getAvailableCustomizations(item)
+        .filter(t => t.group === 'spice')
+        .map(t => t.id);
+      newTags = newTags.filter(id => !spiceTags.includes(id));
+    }
+
+    // Toggle the clicked tag
+    if (newTags.includes(tagId)) {
+      newTags = newTags.filter(id => id !== tagId);
+    } else {
+      newTags.push(tagId);
+    }
+
+    onTagClick(newTags); // Call the parent's onTagClick with new tags
+  };
+
   const styles = {
     selectedItemHeader: {
       backgroundColor: '#fff',
@@ -182,23 +255,14 @@ const CookingRequestDrawer = ({ item, visible, onClose, onSubmit, onTagClick, se
 
         <div style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '20px', color: '#333' }}>Customization Preferences</div>
         <div style={styles.cookingRequestTags}>
-          {[
-            { id: 1, label: 'Extra Spicy' },
-            { id: 2, label: 'Less Spicy' },
-            { id: 3, label: 'Double Spicy' },
-            { id: 4, label: 'Non Spicy' },
-            { id: 5, label: 'No Onion' },
-            { id: 6, label: 'No Garlic' },
-            { id: 7, label: 'Gluten-free' },
-            { id: 8, label: 'Dairy-free' },
-          ].map((option) => (
+          {getAvailableCustomizations(item).map((option) => (
             <div
               key={option.id}
               style={{
                 ...styles.cookingRequestTagItem,
                 ...(selectedTags.includes(option.id) ? styles.selectedTagItem : {}),
               }}
-              onClick={() => onTagClick(option.id)}
+              onClick={() => handleTagSelection(option.id)}
             >
               {option.label}
             </div>
