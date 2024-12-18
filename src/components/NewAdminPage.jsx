@@ -256,7 +256,7 @@ const NewAdminPage = () => {
             margin: 0,
             textTransform: 'uppercase',
             letterSpacing: '1px'
-          }}>
+        }}>
             Live Orders
           </h1>
           <p style={{ 

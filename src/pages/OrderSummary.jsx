@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Modal, Button, Checkbox, Input, Typography } from 'antd';
+import { Modal, Button, Checkbox, Input, Typography, message } from 'antd';
 import { CoffeeOutlined, SmileOutlined,ExclamationCircleOutlined, PlusCircleOutlined, CheckOutlined, } from '@ant-design/icons';
 import { useCart } from '../contexts/CartContext';
 import { useNavigate } from 'react-router-dom';
@@ -7,6 +7,7 @@ import { MapPin } from 'lucide-react';
 import './OrderSummary.css'; // Assuming you're using CSS modules or a custom CSS file
 import FoodLoader from '../components/FoodLoader';
 import { calculateCharges } from '../utils/calculateCharges';
+import { useOrders } from '../context/OrderContext';
 const { Text, Title } = Typography;
 
 const MAX_DISTANCE_KM = 0.5; // Maximum allowed distance in kilometers
@@ -42,7 +43,7 @@ function OrderSummary() {
   const [description, setDescription] = useState('');
   const ws = useRef(null);
   const [charges, setCharges] = useState([]);
-  const [isSeatingCapacityLoaded, setIsSeatingCapacityLoaded] = useState(false);
+  const { restaurantDetails, charges: contextCharges, addOrder } = useOrders();
 
   useEffect(() => {
     const fetchSeatingCapacity = async () => {
@@ -71,8 +72,6 @@ function OrderSummary() {
         }
       } catch (error) {
         console.error('Error fetching restaurant data:', error);
-      } finally {
-        setIsSeatingCapacityLoaded(true); // Set loading state to complete
       }
     };
     
@@ -100,30 +99,10 @@ function OrderSummary() {
 
     return () => clearInterval(interval);
   }, []);
-  useEffect(() => {
-    const fetchCharges = async () => {
-      try {
-        const orgId = localStorage.getItem('orgId');
-        const response = await fetch(`https://smart-server-stage-database-default-rtdb.firebaseio.com/restaurants/${orgId}/charges.json`);
-        const data = await response.json();
-        if (data) {
-          const chargesArray = Object.entries(data).map(([id, charge]) => ({
-            id,
-            ...charge
-          }));
-          setCharges(chargesArray);
-        }
-      } catch (error) {
-        console.error('Error fetching charges:', error);
-      }
-    };
-
-    fetchCharges();
-  }, []);
 
   // Calculate totals with charges
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const enabledCharges = charges.filter(charge => charge.isEnabled);
+  const enabledCharges = contextCharges.filter(charge => charge.isEnabled);
   const { total: calculatedTotal, breakdown } = calculateCharges(subtotal, enabledCharges);
 
   const handleTableNumberChange = (e) => {
@@ -145,83 +124,13 @@ function OrderSummary() {
   const handlePayClick = async () => {
     try {
       setLoading(true);
-
-
-
-      
-      // // 1. Get restaurant location from Firebase
-      // const response = await fetch('https://smart-server-stage-database-default-rtdb.firebaseio.com/restaurants.json');
-      // if (!response.ok) {
-      //   throw new Error('Failed to fetch restaurant data');
-      // }
-
-      // const restaurants = await response.json();
-      // const restaurantArray = Object.values(restaurants);
-      // const restaurant = restaurantArray.find(r => r.orgId === orgId);
-      // if (!restaurant || !restaurant.position) {
-      //   throw new Error('Restaurant location not found');
-      // }
-      // // 2. Get user's current location
-      // const position = await new Promise((resolve, reject) => {
-      //   navigator.geolocation.getCurrentPosition(resolve, reject, {
-      //     enableHighAccuracy: true,
-      //     timeout: 5000,
-      //     maximumAge: 0
-      //   });
-      // });
-      // // 3. Calculate distance
-      // const distance = calculateDistance(
-      //   position.coords.latitude,
-      //   position.coords.longitude,
-      //   restaurant.position[0],
-      //   restaurant.position[1]
-      // );
-      // // 4. Verify distance
-      // if (distance > MAX_DISTANCE_KM) {
-      //   showErrorModal(
-      //     <div style={{ textAlign: 'center' }}>
-      //       <MapPin style={{ fontSize: '24px', marginBottom: '10px' }} />
-      //       <p>You appear to be {distance.toFixed(2)}km away from {restaurant.name}.</p>
-      //       <p>Please place your order when you're at the restaurant.</p>
-      //     </div>
-      //   );
-      //   return;
-      // }
-
-      // Continue with existing order placement logic
-      // if (!tableNumber) {
-      //   showErrorModal('Please enter your table number');
-      //   return;
-      // }
-      const orgId = localStorage.getItem('orgId');
-
-      // Wait for seating capacity to be loaded before validation
-      if (!isSeatingCapacityLoaded) {
-        showErrorModal('Please wait while we load restaurant information...');
-        return;
-      }
-
-
-
-      // Validate table number only if seating capacity is loaded
-      const tableNum = parseInt(tableNumber);
-      if (isNaN(tableNum) || tableNum < 1 || (seatingCapacity > 0 && tableNum > seatingCapacity)) {
-        showErrorModal(`Please enter a valid table number between 1 and ${seatingCapacity}`);
-        return;
-      }
-
       const orderId = generateOrderId();
+      
       const orderDetails = {
         id: orderId,
-        orgId: orgId,
-        items: cart.map((item) => ({
-          ...item,
-          customization: {
-            specialInstructions: item.specialInstructions,
-            selectedTags: item.selectedTags,
-          },
-        })),
-        subtotal: subtotal,
+        orgId: localStorage.getItem('orgId'),
+        items: cart,
+        subtotal,
         charges: enabledCharges,
         chargesBreakdown: breakdown,
         total: calculatedTotal,
@@ -229,14 +138,16 @@ function OrderSummary() {
         timestamp: new Date().toISOString(),
         status: 'pending',
         statusMessage: 'Your order is being processed',
-        description: description
+        description
       };
 
+      // Add to context first for immediate UI update
+      addOrder(orderDetails);
+
+      // Then save to Firebase
       const orderResponse = await fetch(`https://smart-server-stage-database-default-rtdb.firebaseio.com/history/${orderId}.json`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(orderDetails),
       });
 
@@ -244,21 +155,17 @@ function OrderSummary() {
         throw new Error('Failed to save order');
       }
 
-      ws.current = new WebSocket('wss://legend-sulfuric-ruby.glitch.me');
-      ws.current.onopen = () => {
+      // WebSocket notification
+      if (ws.current?.readyState === WebSocket.OPEN) {
         ws.current.send(JSON.stringify({ type: 'newOrder', order: orderDetails }));
-      };
-      
+      }
+
       clearCart();
       navigate(`/waiting/${orderId}`);
 
     } catch (error) {
       console.error('Error:', error);
-      if (error.code === 1) { // GeolocationPositionError.PERMISSION_DENIED
-        showErrorModal('Please enable location services to place your order.');
-      } else {
-        showErrorModal('Failed to place order. Please try again.');
-      }
+      message.error('Failed to place order. Please try again.');
     } finally {
       setLoading(false);
     }

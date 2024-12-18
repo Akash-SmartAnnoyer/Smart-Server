@@ -52,10 +52,10 @@ const WaitingScreen = () => {
   const { orderId } = useParams();
   const navigate = useNavigate();
   const { clearCart } = useCart();
-  const { getOrderById, updateOrder } = useOrders();
+  const { orders, updateOrder } = useOrders();
   
-  // Initialize order from context
-  const [order, setOrder] = useState(getOrderById(orderId));
+  // Get order from context instead of API
+  const [order, setOrder] = useState(() => orders.find(o => o.id === orderId));
   const [feedback, setFeedback] = useState('');
   const [rating, setRating] = useState(0);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -71,17 +71,10 @@ const WaitingScreen = () => {
     if (!order) {
       const fetchOrder = async () => {
         try {
-          const orgId = localStorage.getItem('orgId');
-          const response = await fetch(`https://smart-server-stage-database-default-rtdb.firebaseio.com/history.json?orgId=${orgId}`);
-    
+          const response = await fetch(`https://smart-server-stage-database-default-rtdb.firebaseio.com/history/${orderId}.json`);
           if (!response.ok) throw new Error('Failed to fetch order');
-    
-          const data = await response.json();
-          const ordersArray = Object.values(data || {});
-          const fetchedOrder = ordersArray.find(order => order.id === orderId);
-    
+          const fetchedOrder = await response.json();
           if (!fetchedOrder) throw new Error('Order not found');
-    
           setOrder({ ...fetchedOrder, displayOrderId: fetchedOrder.id || orderId });
         } catch (error) {
           console.error('Failed to fetch order', error);

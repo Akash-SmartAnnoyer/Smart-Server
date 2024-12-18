@@ -7,94 +7,52 @@ const OrderContext = createContext();
 export const OrderProvider = ({ children }) => {
   console.log('OrderProvider is being rendered');
   const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [lastFetchTime, setLastFetchTime] = useState(null);
+  const [restaurantDetails, setRestaurantDetails] = useState(null);
+  const [charges, setCharges] = useState([]);
   const orgId = localStorage.getItem('orgId');
-  const tableNumber = localStorage.getItem('tableNumber');
 
-  const fetchOrders = async (force = false) => {
-    if (!force && lastFetchTime && Date.now() - lastFetchTime < 30000) {
-      return;
-    }
-
-    try { 
-      setLoading(true);
-      const response = await fetch(`https://smart-server-stage-database-default-rtdb.firebaseio.com/history.json`);
-      if (!response.ok) throw new Error('Failed to fetch orders');
-      
-      const data = await response.json();
-      const ordersArray = Object.entries(data || {})
-        .map(([key, order]) => ({
-          ...order,
-          id: order.id || key
-        }))
-        .filter(order => 
-          order.orgId === orgId && 
-          order.tableNumber === tableNumber
-        );
-
-      const sortedOrders = ordersArray.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-      setOrders(sortedOrders);
-      setLastFetchTime(Date.now());
-    } catch (error) {
-      console.error('Failed to fetch orders:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const updateOrder = async (orderId, updates) => {
-    try {
-      await fetch(`https://smart-server-stage-database-default-rtdb.firebaseio.com/history/${orderId}.json`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates),
-      });
-
-      setOrders(prevOrders =>
-        prevOrders.map(order =>
-          order.id === orderId ? { ...order, ...updates } : order
-        )
-      );
-      return true;
-    } catch (error) {
-      console.error('Failed to update order:', error);
-      return false;
-    }
-  };
-
-  // Memoize helper functions to prevent unnecessary re-renders
-  const getActiveOrders = useCallback(() => 
-    orders.filter(order => !['completed', 'cancelled'].includes(order.status))
-  , [orders]);
-
-  const getOrderById = useCallback((orderId) => 
-    orders.find(order => order.id === orderId)
-  , [orders]);
-
-  const getLastActiveOrder = useCallback(() => 
-    orders.find(order => 
-      order.status !== 'cancelled' && 
-      order.status !== 'completed'
-    )
-  , [orders]);
-
+  // Fetch restaurant details and charges once when provider mounts
   useEffect(() => {
-    if (orgId && tableNumber) {
-      fetchOrders();
+    const fetchInitialData = async () => {
+      try {
+        // Fetch restaurant details
+        const restaurantResponse = await fetch('https://smart-server-stage-database-default-rtdb.firebaseio.com/restaurants.json');
+        const restaurantData = await restaurantResponse.json();
+        const restaurant = Object.values(restaurantData).find(r => r.orgId === orgId);
+        setRestaurantDetails(restaurant);
+
+        // Fetch charges
+        const chargesResponse = await fetch(`https://smart-server-stage-database-default-rtdb.firebaseio.com/restaurants/${orgId}/charges.json`);
+        const chargesData = await chargesResponse.json();
+        if (chargesData) {
+          const chargesArray = Object.entries(chargesData).map(([id, charge]) => ({
+            id,
+            ...charge
+          }));
+          setCharges(chargesArray);
+        }
+      } catch (error) {
+        console.error('Error fetching initial data:', error);
+      }
+    };
+
+    if (orgId) {
+      fetchInitialData();
     }
-  }, [orgId, tableNumber]);
+  }, [orgId]);
+
+  // Add new order to context immediately
+  const addOrder = (order) => {
+    setOrders(prev => [order, ...prev]);
+  };
 
   return (
-    <OrderContext.Provider value={{ 
+    <OrderContext.Provider value={{
       orders,
-      loading,
       setOrders,
-      updateOrder,
-      fetchOrders,
-      getActiveOrders,
-      getOrderById,
-      getLastActiveOrder
+      restaurantDetails,
+      charges,
+      addOrder
     }}>
       {children}
     </OrderContext.Provider>
