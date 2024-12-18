@@ -411,8 +411,8 @@ const NewAdminPage = () => {
                       }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                           <Tag color="#ff4d4f">
-                            {item.quantity}x {item.name}
-                          </Tag>
+                        {item.quantity}x {item.name}
+                      </Tag>
                           {item.specialInstructions && (
                             <Tag color="#722ed1">Custom</Tag>
                           )}

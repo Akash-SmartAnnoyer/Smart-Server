@@ -49,11 +49,12 @@ const MenuItem = ({ item, onItemAdded, recommendations }) => {
       display: 'flex',
       background: '#fff',
       borderRadius: '12px',
-      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
       overflow: 'hidden',
       height: '220px',
       marginBottom: '24px',
       border: '1px solid #f0f0f0',
+      position: 'relative',
       '@media (max-width: 767px)': {
         height: 'auto',
         flexDirection: 'column',
@@ -61,7 +62,7 @@ const MenuItem = ({ item, onItemAdded, recommendations }) => {
     },
     contentSection: {
       flex: 1,
-      padding: '24px',
+      padding: '20px',
       display: 'flex',
       flexDirection: 'column',
       position: 'relative',
