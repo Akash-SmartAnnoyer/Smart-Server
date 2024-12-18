@@ -9,15 +9,18 @@ import {
   ShopOutlined 
 } from '@ant-design/icons';
 import FoodLoader from './FoodLoader';
-import { useOrders } from '../context/OrderContext';
+import { useAdminOrders } from '../context/AdminOrderContext';
 
 const { Title, Text } = Typography;
 
 const MyOrders = () => {
-  const { getActiveOrders, loading } = useOrders();
+  const { orders, loading } = useAdminOrders();
   const navigate = useNavigate();
 
-  const activeOrders = getActiveOrders();
+  const activeOrders = orders.filter(order => 
+    !['cancelled', 'completed'].includes(order.status) && 
+    order.tableNumber === localStorage.getItem('tableNumber')
+  );
 
   const handleViewDetails = (order) => {
     navigate(`/waiting/${order.id}`, { 

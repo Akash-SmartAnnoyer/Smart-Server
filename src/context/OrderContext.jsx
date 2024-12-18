@@ -46,13 +46,28 @@ export const OrderProvider = ({ children }) => {
     setOrders(prev => [order, ...prev]);
   };
 
+  const getLastActiveOrder = useCallback(() => {
+    return orders.find(order => order.status !== 'completed' && order.status !== 'cancelled') || null;
+  }, [orders]);
+
+  // Add this new function to get all active orders
+  const getActiveOrders = useCallback(() => {
+    return orders.filter(order => 
+      order.status !== 'completed' && 
+      order.status !== 'cancelled'
+    ) || [];
+  }, [orders]);
+
   return (
     <OrderContext.Provider value={{
       orders,
       setOrders,
       restaurantDetails,
       charges,
-      addOrder
+      addOrder,
+      getLastActiveOrder,
+      getActiveOrders,
+      loading: false
     }}>
       {children}
     </OrderContext.Provider>
