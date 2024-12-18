@@ -10,7 +10,10 @@ import {
   SoundOutlined,
   CloseCircleOutlined,
   DollarOutlined,
-  TableOutlined
+  TableOutlined,
+  EditOutlined,
+  MessageOutlined,
+  TagsOutlined
 } from '@ant-design/icons';
 import { useAdminOrders } from '../context/AdminOrderContext';
 import FoodLoader from './FoodLoader';
@@ -196,7 +199,7 @@ const NewAdminPage = () => {
       cancelled: 'Your order is cancelled'
     };
     return messages[status] || 'Order status unknown';
-  };
+  };  
 
   const getTagLabel = (tagId) => {
     const tagMap = {
@@ -405,16 +408,36 @@ const NewAdminPage = () => {
                     {order?.items?.map((item, index) => (
                       <div key={index} style={{
                         background: '#fff',
-                        padding: '8px 12px',
-                        borderRadius: '8px',
-                        marginBottom: '8px'
+                        padding: '12px',
+                        borderRadius: '12px',
+                        marginBottom: '12px',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
                       }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                          <Tag color="#ff4d4f">
-                        {item.quantity}x {item.name}
-                      </Tag>
+                        <div style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: '8px',
+                          marginBottom: '8px'
+                        }}>
+                          <div style={{
+                            background: '#ff4d4f',
+                            color: 'white',
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '0.9rem',
+                            fontWeight: 'bold'
+                          }}>
+                            {item.quantity}
+                          </div>
+                          <Text strong style={{ flex: 1 }}>{item.name}</Text>
                           {item.specialInstructions && (
-                            <Tag color="#722ed1">Custom</Tag>
+                            <Tag color="#722ed1" style={{ margin: 0 }}>
+                              <EditOutlined /> Custom
+                            </Tag>
                           )}
                         </div>
                         
@@ -422,26 +445,58 @@ const NewAdminPage = () => {
                           <div style={{
                             fontSize: '0.9rem',
                             color: '#666',
-                            background: '#f9f9f9',
-                            padding: '8px',
-                            borderRadius: '6px',
-                            marginTop: '4px'
+                            background: '#f8f8f8',
+                            padding: '10px',
+                            borderRadius: '8px',
+                            marginTop: '8px'
                           }}>
                             {item.specialInstructions && (
-                              <div style={{ marginBottom: '4px' }}>
-                                <Text type="secondary" strong>Instructions: </Text>
-                                {item.specialInstructions}
+                              <div style={{ 
+                                display: 'flex', 
+                                alignItems: 'flex-start',
+                                gap: '6px',
+                                marginBottom: item.selectedTags?.length > 0 ? '8px' : 0
+                              }}>
+                                <MessageOutlined style={{ 
+                                  color: '#722ed1',
+                                  marginTop: '3px'
+                                }} />
+                                <Text type="secondary" style={{ flex: 1 }}>
+                                  {item.specialInstructions}
+                                </Text>
                               </div>
                             )}
                             
                             {item.selectedTags?.length > 0 && (
-                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                                <Text type="secondary" strong>Preferences: </Text>
-                                {item.selectedTags.map((tagId) => (
-                                  <Tag key={tagId} color={getTagColor(tagId)}>
-                                    {getTagLabel(tagId)}
-                                  </Tag>
-                                ))}
+                              <div style={{ 
+                                display: 'flex',
+                                alignItems: 'flex-start',
+                                gap: '6px'
+                              }}>
+                                <TagsOutlined style={{ 
+                                  color: '#108ee9',
+                                  marginTop: '3px'
+                                }} />
+                                <div style={{ 
+                                  display: 'flex', 
+                                  flexWrap: 'wrap', 
+                                  gap: '4px',
+                                  flex: 1
+                                }}>
+                                  {item.selectedTags.map((tagId) => (
+                                    <Tag 
+                                      key={tagId} 
+                                      color={getTagColor(tagId)}
+                                      style={{ 
+                                        margin: 0,
+                                        padding: '2px 8px',
+                                        fontSize: '0.8rem'
+                                      }}
+                                    >
+                                      {getTagLabel(tagId)}
+                                    </Tag>
+                                  ))}
+                                </div>
                               </div>
                             )}
                           </div>
