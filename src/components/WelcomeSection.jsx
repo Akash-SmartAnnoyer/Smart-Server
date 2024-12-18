@@ -6,7 +6,7 @@ import { useCart } from '../contexts/CartContext';
 const { Text } = Typography;
 
 const WelcomeSection = ({ menuItems, title, caption, emojis }) => {
-  const { addToCart } = useCart();
+  const { addToCart, cart } = useCart();
 
   const getImageUrl = (imageData) => {
     if (!imageData) return '';
@@ -29,6 +29,10 @@ const WelcomeSection = ({ menuItems, title, caption, emojis }) => {
     addToCart(item);
   };
 
+  const isItemInCart = (itemId) => {
+    return cart.some(cartItem => cartItem.id === itemId);
+  };
+
   return (
     <div className="welcome-section">
       <div className="welcome-header">
@@ -49,10 +53,10 @@ const WelcomeSection = ({ menuItems, title, caption, emojis }) => {
                   className="menu-card-image"
                 />
                 <button 
-                  className="add-to-cart-button"
+                  className={`add-to-cart-button ${isItemInCart(item.id) ? 'added' : ''}`}
                   onClick={(e) => handleAddToCart(item, e)}
                 >
-                  ADD
+                  {isItemInCart(item.id) ? 'ADDED' : 'ADD'}
                 </button>
                 <div className="menu-card-content">
                   <h3 className="menu-card-title">{item.name}</h3>

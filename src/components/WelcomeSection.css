@@ -195,3 +195,8 @@
     right: 0;
     background: linear-gradient(to left, rgba(255,255,255,1), rgba(255,255,255,0));
 }
+
+.add-to-cart-button.added {
+  background-color: #4CAF50; /* or any color you prefer for the added state */
+  cursor: default;
+}
