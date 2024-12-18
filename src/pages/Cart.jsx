@@ -331,8 +331,8 @@ function Cart() {
                     gap: '2px',
                     lineHeight: '1'
                   }}>
-                    <span role="img" aria-label="scroll indicator">🍕</span>
-                    <span role="img" aria-label="scroll indicator">🍔</span>
+                    {/* <span role="img" aria-label="scroll indicator">🍕</span>
+                    <span role="img" aria-label="scroll indicator">🍔</span> */}
                     <span role="img" aria-label="scroll down">⬇️</span>
                   </div>
                   <span style={{
