@@ -223,103 +223,143 @@ function OrderSummary() {
   }
 
   return (
-    <div className="order-summary-container" style={{ marginTop: '145px' ,           marginBottom: '200px',
+    <div className="order-summary-container" style={{ 
+      marginTop: '145px',
+      marginBottom: '200px',
+      padding: '20px',
+      background: 'linear-gradient(to bottom, #fff8f8, #fff)',
+      boxShadow: '0 4px 15px rgba(255, 0, 0, 0.1)',
+      borderRadius: '15px',
+      maxWidth: '800px',
+      margin: '145px auto 200px'
     }}>
-      <h2 className="order-summary-title">Confirm Order</h2>
-      {cart.map((item) => (
-        
-        <div
-        style={{
-          maxHeight: '150px',
-          overflowY: 'auto',
-          paddingRight: '10px',
-          marginTop: '20px',
-          scrollbarColor: 'red transparent',
-        }}
-      
-     
-        key={item.id} className="order-item">
-          
-        <style>
-          {`
-            ::-webkit-scrollbar {
-              width: 6px;
-            }
-            ::-webkit-scrollbar-thumb {
-              background-color: red;
-              border-radius: 4px;
-            }
-            ::-webkit-scrollbar-track {
-              background: transparent;
-            }
-          `}
-        </style>
-          <span className="item-name">{item.name} x {item.quantity}</span>
-          <span className="item-price">₹{(item.price * item.quantity).toFixed(2)}</span>
-        </div>
-      ))}
-            <div className="cart-summary" style={{ 
-        background: '#f9f9f9', 
+      <h2 className="order-summary-title" style={{
+        textAlign: 'center',
+        color: '#ff4d4f',
+        fontSize: '28px',
+        fontWeight: 'bold',
+        marginBottom: '25px',
+        borderBottom: '2px dashed #ffcccb',
+        paddingBottom: '15px'
+      }}>
+        <CoffeeOutlined style={{ marginRight: '10px' }} />
+        Confirm Order
+      </h2>
+
+      {/* Order Items Section */}
+      <div style={{
+        background: '#fff',
+        borderRadius: '12px',
         padding: '15px',
-        borderRadius: '8px',
+        boxShadow: '0 2px 8px rgba(255, 77, 79, 0.1)',
+        marginBottom: '20px'
+      }}>
+        {cart.map((item) => (
+          <div key={item.id} className="order-item" style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '12px',
+            margin: '8px 0',
+            borderBottom: '1px solid #ffe6e6',
+            transition: 'transform 0.2s',
+            ':hover': {
+              transform: 'translateX(5px)'
+            }
+          }}>
+            <span className="item-name" style={{
+              color: '#333',
+              fontSize: '16px',
+              display: 'flex',
+              alignItems: 'center'
+            }}>
+              <span style={{
+                background: '#ff4d4f',
+                color: 'white',
+                borderRadius: '50%',
+                width: '24px',
+                height: '24px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginRight: '10px',
+                fontSize: '14px'
+              }}>{item.quantity}</span>
+              {item.name}
+            </span>
+            <span className="item-price" style={{
+              color: '#ff4d4f',
+              fontWeight: 'bold',
+              fontSize: '16px'
+            }}>₹{(item.price * item.quantity).toFixed(2)}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Cart Summary Section */}
+      <div className="cart-summary" style={{ 
+        background: '#fff',
+        padding: '20px',
+        borderRadius: '12px',
+        boxShadow: '0 2px 8px rgba(255, 77, 79, 0.1)',
         marginTop: '20px'
       }}>
         <div className="subtotal" style={{
           display: 'flex',
           justifyContent: 'space-between',
-          marginBottom: '10px',
-          borderBottom: '1px dashed #ddd',
-          paddingBottom: '10px'
+          marginBottom: '15px',
+          borderBottom: '2px dashed #ffcccb',
+          paddingBottom: '15px'
         }}>
-          <span>Subtotal:</span>
-          <span>₹{subtotal.toFixed(2)}</span>
+          <span style={{ fontSize: '18px', color: '#666' }}>Subtotal</span>
+          <span style={{ fontSize: '18px', color: '#ff4d4f', fontWeight: 'bold' }}>
+            ₹{subtotal.toFixed(2)}
+          </span>
         </div>
         
+        {/* Charges Breakdown */}
         {Object.entries(breakdown).map(([name, detail]) => (
           <div key={name} className="charge-item" style={{
             display: 'flex',
             justifyContent: 'space-between',
-            margin: '5px 0',
+            margin: '10px 0',
             color: '#666'
           }}>
-            <span>
+            <span style={{ fontSize: '16px' }}>
               {name} 
-              {detail.type === 'percentage' ? 
-                <small style={{ color: '#999' }}> ({detail.value}%)</small> : 
-                null
+              {detail.type === 'percentage' && 
+                <small style={{ color: '#999' }}> ({detail.value}%)</small>
               }
             </span>
-            <span>₹{detail.amount.toFixed(2)}</span>
+            <span style={{ color: '#ff4d4f' }}>₹{detail.amount.toFixed(2)}</span>
           </div>
         ))}
 
+        {/* Total Amount */}
         <div className="total" style={{
           display: 'flex',
           justifyContent: 'space-between',
-          marginTop: '10px',
-          borderTop: '2px solid #ddd',
-          paddingTop: '10px',
+          marginTop: '20px',
+          borderTop: '2px solid #ff4d4f',
+          paddingTop: '20px',
           fontWeight: 'bold',
-          fontSize: '1.1em'
+          fontSize: '22px'
         }}>
-          <span>Total:</span>
-          <span>₹{calculatedTotal.toFixed(2)}</span>
+          <span>Grand Total</span>
+          <span style={{ color: '#ff4d4f' }}>₹{calculatedTotal.toFixed(2)}</span>
         </div>
       </div>
 
-      {/* <Input
-        placeholder={`Enter Table Number (1-${seatingCapacity})`}
-        value={tableNumber}
-        onChange={handleTableNumberChange}
-        style={{ marginBottom: '10px' }}
-      /> */}
 
-      <button className="pay-button" onClick={handlePayClick}>
-        Confirm Order
-      </button>
 
-         {/* Suggestion Bubble */}
-         {showBubble && (
+
+      
+
+
+
+     
+      {/* Suggestion Bubble */}
+      {showBubble && (
         <div
           className={`suggestion-bubble ${animationClass}`}
           onClick={handleBubbleClick}
@@ -340,7 +380,6 @@ function OrderSummary() {
           <p style={{ margin: 0 }}></p>
         </div>
       )}
-
       {/* <Modal
       title="Add Extra Items for Dining"
       visible={isModalVisible}
@@ -456,28 +495,35 @@ function OrderSummary() {
         
 </Modal>
 
-      <Modal
-        title={
-          <div style={{ display: 'flex', alignItems: 'center', color: '#ff4d4f' }}>
-            <ExclamationCircleOutlined style={{ marginRight: '8px' }} />
-            Error
-          </div>
-        }
-        visible={errorModalVisible}
-        onOk={() => setErrorModalVisible(false)}
-        onCancel={() => setErrorModalVisible(false)}
-        footer={[
-          <Button key="ok" type="primary" onClick={() => setErrorModalVisible(false)} style={{ backgroundColor: '#ff4d4f', borderColor: '#ff4d4f' }}>
-            OK
-          </Button>,
-        ]}
-        centered
-        bodyStyle={{ backgroundColor: '#fff5f5', color: '#ff4d4f', textAlign: 'center' }}
-      >
-        <p style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '16px' }}>{errorMessage}</p>
-      </Modal>
 
-      {/* Feedback Modal remains unchanged */}
+      {/* Confirm Order Button */}
+      <button 
+        className="pay-button" 
+        onClick={handlePayClick}
+        style={{
+          width: '100%',
+          padding: '15px',
+          backgroundColor: '#ff4d4f',
+          color: 'white',
+          border: 'none',
+          borderRadius: '8px',
+          fontSize: '18px',
+          fontWeight: 'bold',
+          marginTop: '25px',
+          cursor: 'pointer',
+          transition: 'all 0.3s ease',
+          boxShadow: '0 4px 12px rgba(255, 77, 79, 0.2)',
+          ':hover': {
+            backgroundColor: '#ff7875',
+            transform: 'translateY(-2px)'
+          }
+        }}
+      >
+        <CheckOutlined style={{ marginRight: '10px' }} />
+        Confirm Order
+      </button>
+
+      {/* ... rest of the existing modals and components ... */}
     </div>
   );
 }
