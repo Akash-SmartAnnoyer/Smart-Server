@@ -55,7 +55,10 @@ const WaitingScreen = () => {
   const { orders, updateOrder } = useOrders();
   
   // Get order from context instead of API
-  const [order, setOrder] = useState(() => orders.find(o => o.id === orderId));
+  const [order, setOrder] = useState(() => {
+    const foundOrder = orders.find(o => o.id === orderId);
+    return foundOrder ? { ...foundOrder, displayOrderId: orderId } : null;
+  });
   const [feedback, setFeedback] = useState('');
   const [rating, setRating] = useState(0);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -75,7 +78,10 @@ const WaitingScreen = () => {
           if (!response.ok) throw new Error('Failed to fetch order');
           const fetchedOrder = await response.json();
           if (!fetchedOrder) throw new Error('Order not found');
-          setOrder({ ...fetchedOrder, displayOrderId: fetchedOrder.id || orderId });
+          setOrder({ 
+            ...fetchedOrder, 
+            displayOrderId: orderId // Use the URL parameter directly as displayOrderId
+          });
         } catch (error) {
           console.error('Failed to fetch order', error);
           message.error('Failed to fetch order');
