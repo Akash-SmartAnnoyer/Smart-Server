@@ -166,7 +166,7 @@ function Cart() {
             className="cart-items-container"
             onScroll={handleScroll}
             style={{
-              maxHeight: '400px',
+              maxHeight: '500px',
               overflowY: 'auto',
               padding: '10px',
               marginBottom: '20px',
