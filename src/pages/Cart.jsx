@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react'; 
 import { useCart } from '../contexts/CartContext';
 import { useNavigate } from 'react-router-dom';
-import { calculateCharges } from '../utils/calculateCharges';
 import { message } from 'antd';
 
 function Cart() {
   const { cart, updateQuantity, removeFromCart, clearCart } = useCart();
   const [orderPlaced, setOrderPlaced] = useState(false);
   const navigate = useNavigate();
-  const [charges, setCharges] = useState([]);
   const [showScrollIndicator, setShowScrollIndicator] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -54,49 +52,8 @@ function Cart() {
     return () => styleSheet.remove();
   }, []);
 
-  useEffect(() => {
-    const fetchCharges = async () => {
-      const orgId = localStorage.getItem('orgId');
-      try {
-        const response = await fetch(`https://smart-server-stage-database-default-rtdb.firebaseio.com/restaurants/${orgId}/charges.json`);
-        const data = await response.json();
-        if (data) {
-          const chargesArray = Object.entries(data).map(([id, charge]) => ({
-            id,
-            ...charge
-          }));
-          setCharges(chargesArray);
-        }
-      } catch (error) {
-        console.error('Error fetching charges:', error);
-      }
-    };
-
-    fetchCharges();
-  }, []);
-
-  const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const enabledCharges = charges.filter(charge => charge.isEnabled);
-  const { total: calculatedTotal, breakdown } = calculateCharges(total, enabledCharges);
-
   const handlePlaceOrder = () => {
-    const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const enabledCharges = charges.filter(charge => charge.isEnabled);
-    const { total, breakdown } = calculateCharges(subtotal, enabledCharges);
-
-    const orderData = {
-      items: cart,
-      status: 'pending',
-      timestamp: new Date().toISOString(),
-      tableNumber: localStorage.getItem('tableNumber'),
-      orgId: localStorage.getItem('orgId'),
-      subtotal: subtotal,
-      charges: enabledCharges,
-      chargesBreakdown: breakdown,
-      total: total
-    };
-
-    navigate('/order-summary', { state: { orderData } });
+    navigate('/order-summary');
   };
 
   const handleBrowseMenu = () => {
@@ -349,52 +306,6 @@ function Cart() {
           </div>
 
           <div style={{
-            background: 'linear-gradient(to bottom, #f8f9fa, #fff)',
-            borderRadius: '20px',
-            padding: '20px',
-            marginTop: '20px'
-          }}>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              marginBottom: '15px',
-              color: '#666'
-            }}>
-              <span>Subtotal</span>
-              <span>₹{total.toFixed(2)}</span>
-            </div>
-
-            {Object.entries(breakdown).map(([name, detail]) => (
-              <div key={name} style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                margin: '10px 0',
-                color: '#666',
-                fontSize: '0.9rem'
-              }}>
-                <span>{name} {detail.type === 'percentage' && 
-                  <small>({detail.value}%)</small>
-                }</span>
-                <span>₹{detail.amount.toFixed(2)}</span>
-              </div>
-            ))}
-
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              marginTop: '15px',
-              paddingTop: '15px',
-              borderTop: '2px dashed #ddd',
-              fontSize: '1.2rem',
-              fontWeight: 'bold',
-              color: '#FF4742'
-            }}>
-              <span>Total</span>
-              <span>₹{calculatedTotal.toFixed(2)}</span>
-            </div>
-          </div>
-
-          <div style={{
             position: 'fixed',
             bottom: '70px',
             left: 0,
@@ -443,7 +354,7 @@ function Cart() {
                 opacity: isLoading ? 0.7 : 1,
               }}
             >
-              {isLoading ? 'Placing Order...' : `Place Order • ₹${calculatedTotal.toFixed(2)}`}
+              {isLoading ? 'Placing Order...' : 'Review Order'}
             </button>
           </div>
         </>
