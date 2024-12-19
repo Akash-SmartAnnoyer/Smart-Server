@@ -295,6 +295,7 @@ const ModernMenuManagement = () => {
                 borderRadius: '8px',
                 backgroundColor: '#f5f5f5',
                 border: 'none',
+                top: '40px',
                 padding: '8px 12px',
               }}
             />
