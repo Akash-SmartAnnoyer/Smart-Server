@@ -55,10 +55,7 @@ const WaitingScreen = () => {
   const { orders, updateOrder } = useOrders();
   
   // Get order from context instead of API
-  const [order, setOrder] = useState(() => {
-    const foundOrder = orders.find(o => o.id === orderId);
-    return foundOrder ? { ...foundOrder, displayOrderId: orderId } : null;
-  });
+  const [order, setOrder] = useState(() => orders.find(o => o.id === orderId));
   const [feedback, setFeedback] = useState('');
   const [rating, setRating] = useState(0);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -78,10 +75,7 @@ const WaitingScreen = () => {
           if (!response.ok) throw new Error('Failed to fetch order');
           const fetchedOrder = await response.json();
           if (!fetchedOrder) throw new Error('Order not found');
-          setOrder({ 
-            ...fetchedOrder, 
-            displayOrderId: orderId // Use the URL parameter directly as displayOrderId
-          });
+          setOrder({ ...fetchedOrder, displayOrderId: fetchedOrder.id || orderId });
         } catch (error) {
           console.error('Failed to fetch order', error);
           message.error('Failed to fetch order');
@@ -171,38 +165,90 @@ const WaitingScreen = () => {
   const handleConfirmCancelOrder = async () => {
     setConfirmCancelVisible(false);
     try {
-      const success = await updateOrder(orderId, {
-        status: 'cancelled',
-        statusMessage: 'Your order has been cancelled'
+      // First update in Firebase
+      const response = await fetch(`https://smart-server-stage-database-default-rtdb.firebaseio.com/history/${orderId}.json`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          status: 'cancelled',
+          statusMessage: 'Your order has been cancelled'
+        }),
       });
 
-      if (success) {
-        clearCart();
-        setCancelModalVisible(true);
-      } else {
-        throw new Error('Failed to cancel the order');
+      if (!response.ok) {
+        throw new Error('Failed to update order in Firebase');
       }
+
+      // Update local state
+      setOrder(prev => ({
+        ...prev,
+        status: 'cancelled',
+        statusMessage: 'Your order has been cancelled'
+      }));
+
+      // Send WebSocket notification
+      if (ws.current?.readyState === WebSocket.OPEN) {
+        ws.current.send(JSON.stringify({
+          type: 'statusUpdate',
+          orderId: orderId,
+          status: 'cancelled',
+          statusMessage: 'Your order has been cancelled',
+          orgId: localStorage.getItem('orgId')
+        }));
+      }
+
+      clearCart();
+      setCancelModalVisible(true);
+
     } catch (error) {
-      console.error('Failed to cancel the order', error);
+      console.error('Failed to cancel the order:', error);
       message.error('Failed to cancel the order. Please try again.');
     }
   };
 
   const handleCompleteOrder = async () => {
     try {
-      const success = await updateOrder(orderId, {
-        status: 'completed',
-        statusMessage: 'Your order has been completed'
+      // First update in Firebase
+      const response = await fetch(`https://smart-server-stage-database-default-rtdb.firebaseio.com/history/${orderId}.json`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          status: 'completed',
+          statusMessage: 'Your order has been completed'
+        }),
       });
 
-      if (success) {
-        clearCart();
-        setIsModalVisible(true);
-      } else {
-        throw new Error('Failed to complete the order');
+      if (!response.ok) {
+        throw new Error('Failed to update order in Firebase');
       }
+
+      // Update local state
+      setOrder(prev => ({
+        ...prev,
+        status: 'completed',
+        statusMessage: 'Your order has been completed'
+      }));
+
+      // Send WebSocket notification
+      if (ws.current?.readyState === WebSocket.OPEN) {
+        ws.current.send(JSON.stringify({
+          type: 'statusUpdate',
+          orderId: orderId,
+          status: 'completed',
+          statusMessage: 'Your order has been completed',
+          orgId: localStorage.getItem('orgId')
+        }));
+      }
+
+      clearCart();
+      setIsModalVisible(true);
+
     } catch (error) {
-      console.error('Failed to complete the order', error);
+      console.error('Failed to complete the order:', error);
       message.error('Failed to complete the order. Please try again.');
     }
   };
