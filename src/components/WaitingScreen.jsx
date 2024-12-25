@@ -71,7 +71,7 @@ const WaitingScreen = () => {
     if (!order) {
       const fetchOrder = async () => {
         try {
-          const response = await fetch(`https://smart-server-stage-database-default-rtdb.firebaseio.com/history/${orderId}.json`);
+          const response = await fetch(`https://smartdb-175f4-default-rtdb.firebaseio.com/history/${orderId}.json`);
           if (!response.ok) throw new Error('Failed to fetch order');
           const fetchedOrder = await response.json();
           if (!fetchedOrder) throw new Error('Order not found');
@@ -166,7 +166,7 @@ const WaitingScreen = () => {
     setConfirmCancelVisible(false);
     try {
       // First update in Firebase
-      const response = await fetch(`https://smart-server-stage-database-default-rtdb.firebaseio.com/history/${orderId}.json`, {
+      const response = await fetch(`https://smartdb-175f4-default-rtdb.firebaseio.com/history/${orderId}.json`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -211,7 +211,7 @@ const WaitingScreen = () => {
   const handleCompleteOrder = async () => {
     try {
       // First update in Firebase
-      const response = await fetch(`https://smart-server-stage-database-default-rtdb.firebaseio.com/history/${orderId}.json`, {
+      const response = await fetch(`https://smartdb-175f4-default-rtdb.firebaseio.com/history/${orderId}.json`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -298,7 +298,7 @@ const WaitingScreen = () => {
     };
   
     try {
-      const response = await fetch('https://smart-server-stage-database-default-rtdb.firebaseio.com/feedback.json', {
+      const response = await fetch('https://smartdb-175f4-default-rtdb.firebaseio.com/feedback.json', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

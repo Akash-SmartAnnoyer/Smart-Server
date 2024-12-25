@@ -20,7 +20,7 @@ function OrderConfirmation() {
     const fetchOrderAndCharges = async () => {
       try {
         // Fetch order details
-        const orderResponse = await fetch(`https://smart-server-stage-database-default-rtdb.firebaseio.com/history/${orderId}.json`);
+        const orderResponse = await fetch(`https://smartdb-175f4-default-rtdb.firebaseio.com/history/${orderId}.json`);
         if (!orderResponse.ok) {
           throw new Error('Failed to fetch order status');
         }
@@ -28,7 +28,7 @@ function OrderConfirmation() {
         setOrderData(order);
 
         // Fetch charges
-        const chargesResponse = await fetch(`https://smart-server-stage-database-default-rtdb.firebaseio.com/restaurants/${orgId}/charges.json`);
+        const chargesResponse = await fetch(`https://smartdb-175f4-default-rtdb.firebaseio.com/restaurants/${orgId}/charges.json`);
         const chargesData = await chargesResponse.json();
         if (chargesData) {
           const chargesArray = Object.entries(chargesData).map(([id, charge]) => ({

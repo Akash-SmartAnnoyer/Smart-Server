@@ -16,7 +16,7 @@ const QREntry = () => {
     const [progress, setProgress] = useState(0);
     const [locationVerified, setLocationVerified] = useState(false);
     const [locationError, setLocationError] = useState(null);
-    const API_URL = 'https://smart-server-stage-database-default-rtdb.firebaseio.com/restaurants';
+    const API_URL = 'https://smartdb-175f4-default-rtdb.firebaseio.com/restaurants';
 
     const MAX_DISTANCE_KM = 0.5; // Maximum allowed distance in kilometers
 

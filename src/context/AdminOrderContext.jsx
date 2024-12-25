@@ -17,7 +17,7 @@ export const AdminOrderProvider = ({ children }) => {
       }).toString();
 
       const response = await fetch(
-        `https://smart-server-stage-database-default-rtdb.firebaseio.com/history.json?${queryParams}`
+        `https://smartdb-175f4-default-rtdb.firebaseio.com/history.json?${queryParams}`
       );
 
       if (!response.ok) throw new Error('Failed to fetch orders');
@@ -48,7 +48,7 @@ export const AdminOrderProvider = ({ children }) => {
   const updateOrder = async (orderId, updates) => {
     try {
       const response = await fetch(
-        `https://smart-server-stage-database-default-rtdb.firebaseio.com/history/${orderId}.json`,
+        `https://smartdb-175f4-default-rtdb.firebaseio.com/history/${orderId}.json`,
         {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },

@@ -4,7 +4,7 @@ import { getDatabase } from 'firebase/database';
 const firebaseConfig = {
   apiKey: "AIzaSyARms0nFhoQqtAojws1H4ffJfxKH9MBuJ4",
   authDomain: "your-project-id.firebaseapp.com",
-  databaseURL: "https://smart-server-stage-database-default-rtdb.firebaseio.com",
+  databaseURL: "https://smartdb-175f4-default-rtdb.firebaseio.com",
   projectId: "stage-smart-server",
   storageBucket: "stage-smart-server.appspot.com",
   messagingSenderId: "1234567890",

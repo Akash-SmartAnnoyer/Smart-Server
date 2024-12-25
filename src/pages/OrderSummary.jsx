@@ -54,7 +54,7 @@ function OrderSummary() {
           return;
         }
     
-        const response = await fetch('https://smart-server-stage-database-default-rtdb.firebaseio.com/restaurants.json'); // Add .json
+        const response = await fetch('https://smartdb-175f4-default-rtdb.firebaseio.com/restaurants.json'); // Add .json
         if (!response.ok) {
           throw new Error('Failed to fetch restaurant data');
         }
@@ -145,7 +145,7 @@ function OrderSummary() {
       addOrder(orderDetails);
 
       // Then save to Firebase
-      const orderResponse = await fetch(`https://smart-server-stage-database-default-rtdb.firebaseio.com/history/${orderId}.json`, {
+      const orderResponse = await fetch(`https://smartdb-175f4-default-rtdb.firebaseio.com/history/${orderId}.json`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(orderDetails),

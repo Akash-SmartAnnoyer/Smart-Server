@@ -16,13 +16,13 @@ export const OrderProvider = ({ children }) => {
     const fetchInitialData = async () => {
       try {
         // Fetch restaurant details
-        const restaurantResponse = await fetch('https://smart-server-stage-database-default-rtdb.firebaseio.com/restaurants.json');
+        const restaurantResponse = await fetch('https://smartdb-175f4-default-rtdb.firebaseio.com/restaurants.json');
         const restaurantData = await restaurantResponse.json();
         const restaurant = Object.values(restaurantData).find(r => r.orgId === orgId);
         setRestaurantDetails(restaurant);
 
         // Fetch charges
-        const chargesResponse = await fetch(`https://smart-server-stage-database-default-rtdb.firebaseio.com/restaurants/${orgId}/charges.json`);
+        const chargesResponse = await fetch(`https://smartdb-175f4-default-rtdb.firebaseio.com/restaurants/${orgId}/charges.json`);
         const chargesData = await chargesResponse.json();
         if (chargesData) {
           const chargesArray = Object.entries(chargesData).map(([id, charge]) => ({
