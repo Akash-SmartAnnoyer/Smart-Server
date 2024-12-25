@@ -438,7 +438,7 @@ const renderFormItems = () => {
           >
             <Select onChange={handleCategoryChange}>
               {categories.map((category) => (
-                <Option key={category.firebaseId} value={category.firebaseId}>
+                <Option key={category.id} value={category.id}>
                   {category.name}
                 </Option>
               ))}
@@ -489,7 +489,7 @@ const renderFormItems = () => {
           >
             <Select onChange={handleCategoryChange}>
               {categories.map((category) => (
-                <Option key={category.firebaseId} value={category.firebaseId}>
+                <Option key={category.id} value={category.id}>
                   {category.name}
                 </Option>
               ))}
@@ -504,7 +504,7 @@ const renderFormItems = () => {
               {subcategories
                 .filter((subcat) => subcat.categoryId === selectedCategory)
                 .map((subcategory) => (
-                  <Option key={subcategory.firebaseId} value={subcategory.firebaseId}>
+                  <Option key={subcategory.id} value={subcategory.id}>
                     {subcategory.name}
                   </Option>
                 ))}
@@ -559,7 +559,7 @@ const ModernCategoryCard = ({ item, type }) => (
               </Text>
               {type === 'subcategory' && (
                 <Text type="secondary" style={{ fontSize: '14px', display: 'block' }}>
-                  {categories.find((c) => c.firebaseId === item.categoryId)?.name}
+                  {categories.find((c) => c.id === item.categoryId)?.name}
                 </Text>
               )}
             </div>
@@ -680,7 +680,7 @@ const handleUpdate = async values => {
     : 'menu_items';
     
   try {
-    if (!editingItem || !editingItem.firebaseId) {
+    if (!editingItem || !editingItem.id) {
       throw new Error('No item selected for update');
     }
 
@@ -708,7 +708,7 @@ const handleUpdate = async values => {
     delete dataToUpdate.imageUpload;
 
     const response = await fetch(
-      `${API_URL}/${type}/${editingItem.firebaseId}.json`,
+      `${API_URL}/${type}/${editingItem.id}.json`,
       {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -1270,7 +1270,8 @@ const ModernMenuItem = memo(({ item }) => (
                 const itemToEdit = {
                   ...item,
                   categoryId: item.categoryId,
-                  subcategoryId: item.subcategoryId
+                  subcategoryId: item.subcategoryId,
+                  firebaseId: item.id
                 };
                 setEditingItem(itemToEdit);
                 form.setFieldsValue(itemToEdit);
