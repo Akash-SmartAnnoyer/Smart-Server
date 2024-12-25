@@ -79,6 +79,33 @@ export const AdminOrderProvider = ({ children }) => {
     }
   }, [orgId]);
 
+  useEffect(() => {
+    if (orgId) {
+      const ws = new WebSocket('wss://legend-sulfuric-ruby.glitch.me');
+      
+      ws.onopen = () => {
+        console.log('WebSocket connected in AdminOrderContext');
+      };
+
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type === 'newOrder' && data.order.orgId === orgId) {
+          setOrders(prevOrders => {
+            // Check if order already exists
+            if (prevOrders.some(order => order.id === data.order.id)) {
+              return prevOrders;
+            }
+            return [data.order, ...prevOrders];
+          });
+        }
+      };
+
+      return () => {
+        ws.close();
+      };
+    }
+  }, [orgId]);
+
   return (
     <AdminOrderContext.Provider value={{
       orders,

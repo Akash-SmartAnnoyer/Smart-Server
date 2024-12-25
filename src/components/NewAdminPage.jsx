@@ -54,7 +54,12 @@ const NewAdminPage = () => {
         const data = JSON.parse(event.data);
         
         if (data.type === 'newOrder' && data.order.orgId === orgId) {
-          setOrders(prevOrders => [data.order, ...prevOrders]);
+          setOrders(prevOrders => {
+            if (prevOrders.some(order => order.id === data.order.id)) {
+              return prevOrders;
+            }
+            return [data.order, ...prevOrders];
+          });
           setNewOrders(prev => [...prev, data.order.id]);
           
           if (soundEnabled) {

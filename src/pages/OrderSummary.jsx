@@ -45,6 +45,21 @@ function OrderSummary() {
   const [charges, setCharges] = useState([]);
   const { restaurantDetails, charges: contextCharges, addOrder } = useOrders();
 
+
+  // Add WebSocket connection setup
+useEffect(() => {
+  ws.current = new WebSocket('wss://legend-sulfuric-ruby.glitch.me');
+  
+  ws.current.onopen = () => {
+    console.log('WebSocket connected in OrderSummary');
+  };
+
+  return () => {
+    if (ws.current) {
+      ws.current.close();
+    }
+  };
+}, []);
   useEffect(() => {
     const fetchSeatingCapacity = async () => {
       try {

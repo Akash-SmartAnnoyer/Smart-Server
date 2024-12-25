@@ -234,6 +234,31 @@ function NewOrderHistory() {
     </div>
   );
 
+  useEffect(() => {
+    const ws = new WebSocket('wss://legend-sulfuric-ruby.glitch.me');
+    
+    ws.onopen = () => {
+      console.log('WebSocket connected in OrderHistory');
+    };
+
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === 'newOrder' && data.order.orgId === localStorage.getItem('orgId')) {
+        setOrders(prevOrders => {
+          // Check if order already exists
+          if (prevOrders.some(order => order.id === data.order.id)) {
+            return prevOrders;
+          }
+          return [data.order, ...prevOrders];
+        });
+      }
+    };
+
+    return () => {
+      ws.close();
+    };
+  }, [setOrders]);
+
   if (loading) {
     return (
       <div style={{
