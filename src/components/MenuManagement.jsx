@@ -367,6 +367,12 @@ const ModernMenuManagement = () => {
 const renderFormItems = () => {
   const handleImageInputTypeChange = (e) => {
     setImageInputType(e.target.value);
+    // Clear the other type of image input when switching
+    if (e.target.value === 'url') {
+      form.setFieldsValue({ imageUpload: undefined });
+    } else {
+      form.setFieldsValue({ imageUrl: undefined });
+    }
   };
 
   // Common image upload form items
@@ -383,7 +389,7 @@ const renderFormItems = () => {
         <Form.Item
           name="imageUrl"
           label="Image URL"
-          rules={[{ required: !editingItem, message: 'Please provide the image URL!' }]}
+          rules={[{ required: !editingItem?.image, message: 'Please provide the image URL!' }]}
         >
           <Input />
         </Form.Item>
@@ -393,14 +399,18 @@ const renderFormItems = () => {
           label="Upload Image"
           valuePropName="fileList"
           getValueFromEvent={(e) => (Array.isArray(e) ? e : e?.fileList)}
-          rules={[{ required: !editingItem, message: 'Please upload the image!' }]}
+          rules={[{ required: !editingItem?.image, message: 'Please upload the image!' }]}
         >
           <Upload
             name="image"
-            listType="picture"
+            listType="picture-card"
             beforeUpload={() => false}
+            maxCount={1}
           >
-            <Button>Click to Upload</Button>
+            <div>
+              <PlusOutlined />
+              <div style={{ marginTop: 8 }}>Upload</div>
+            </div>
           </Upload>
         </Form.Item>
       )}
@@ -575,26 +585,51 @@ const ModernCategoryCard = ({ item, type }) => (
                   categoryId: item.categoryId
                 };
                 setEditingItem(itemToEdit);
+                
+                // Handle image data
+                if (item.image) {
+                  if (typeof item.image === 'string') {
+                    setImageInputType('url');
+                    form.setFieldsValue({
+                      ...itemToEdit,
+                      imageUrl: item.image
+                    });
+                  } else if (item.image.file && item.image.file.url) {
+                    setImageInputType('upload');
+                    form.setFieldsValue({
+                      ...itemToEdit,
+                      imageUpload: [{
+                        uid: '-1',
+                        name: item.image.file.name || 'image.jpg',
+                        status: 'done',
+                        url: item.image.file.url,
+                        thumbUrl: item.image.file.url
+                      }]
+                    });
+                  }
+                } else {
+                  form.setFieldsValue(itemToEdit);
+                }
+                
                 if (type === 'subcategory') {
                   setSelectedCategory(item.categoryId);
                 }
-                form.setFieldsValue(itemToEdit);
                 setIsModalVisible(true);
               }}
             />
-            <Popconfirm
-              title="Are you sure you want to delete this item?"
-              onConfirm={() => handleDelete(item.id)}
-              okText="Yes"
-              cancelText="No"
-              placement="topRight"
-            >
-              <Button
-                type="text"
-                danger
-                icon={<DeleteOutlined />}
-              />
-            </Popconfirm>
+             <Popconfirm
+      title="Are you sure you want to delete this item?"
+      onConfirm={() => handleDelete(item.firebaseId)}
+      okText="Yes"
+      cancelText="No"
+      placement="topRight"
+    >
+      <Button
+        type="text"
+        danger
+        icon={<DeleteOutlined />}
+      />
+    </Popconfirm>
           </Space>
         </div>
       </div>
@@ -643,7 +678,7 @@ const handleCreate = async values => {
     if (response.ok) {
       const data = await response.json();
       const newItem = {
-        id: data.name,
+        firebaseId: data.name,
         ...dataToCreate,
       };
       updateLocalState(type, 'add', newItem);
@@ -669,15 +704,16 @@ const handleUpdate = async values => {
       throw new Error('No item selected for update');
     }
 
-    // Handle image data for all types
-    let imageData;
-    if (imageInputType === 'url') {
+    // Handle image data
+    let imageData = editingItem.image; // Keep existing image by default
+    if (imageInputType === 'url' && values.imageUrl) {
       imageData = values.imageUrl;
     } else if (imageInputType === 'upload' && values.imageUpload?.[0]) {
+      const uploadedImage = values.imageUpload[0];
       imageData = {
         file: {
-          url: values.imageUpload[0].url || values.imageUpload[0].thumbUrl,
-          name: values.imageUpload[0].name
+          url: uploadedImage.url || uploadedImage.thumbUrl,
+          name: uploadedImage.name
         }
       };
     }
@@ -734,60 +770,110 @@ const getImageUrl = (imageData) => {
   return '/api/placeholder/80/80'; // Fallback
 };
 
-const handleDelete = async id => {
-  const type = activeTab === 'categories'
-    ? 'categories'
-    : activeTab === 'subcategories'
-    ? 'subcategories'
-    : 'menu_items';
+const handleDelete = async firebaseId => {
+
+  const type =
+
+    activeTab === 'categories'
+
+      ? 'categories'
+
+      : activeTab === 'subcategories'
+
+      ? 'subcategories'
+
+      : 'menu_items';
 
   try {
-    const response = await fetch(`${API_URL}/${type}/${id}.json`, {
+
+    const response = await fetch(`${API_URL}/${type}/${firebaseId}.json`, {
+
       method: 'DELETE',
+
     });
 
+
+
     if (!response.ok) {
+
       const errorData = await response.json();
+
       throw new Error(errorData.error || 'Failed to delete item');
+
     }
 
-    updateLocalState(type, 'delete', { id });
+
+
+    updateLocalState(type, 'delete', { firebaseId });
+
     message.success('Item deleted successfully');
+
   } catch (error) {
+
     console.error(`Error deleting ${type}:`, error);
+
     message.error(`Failed to delete item: ${error.message}`);
+
   }
+
 };
 
 
 
 const updateLocalState = (type, action, item) => {
+
   const updateState = prevState => {
+
     switch (action) {
+
       case 'add':
+
         return [...prevState, item];
+
       case 'update':
+
         return prevState.map(i =>
-          i.id === item.id ? { ...i, ...item } : i
+
+          i.firebaseId === item.firebaseId ? { ...i, ...item } : i
+
         );
+
       case 'delete':
-        return prevState.filter(i => i.id !== item.id);
+
+        return prevState.filter(i => i.firebaseId !== item.firebaseId);
+
       default:
+
         return prevState;
+
     }
+
   };
 
+
+
   switch (type) {
+
     case 'categories':
+
       setCategories(updateState);
+
       break;
+
     case 'subcategories':
+
       setSubcategories(updateState);
+
       break;
+
     case 'menu_items':
+
       setMenuItems(updateState);
+
       break;
+
   }
+
 };
 
 
@@ -1204,12 +1290,37 @@ const ModernMenuItem = memo(({ item }) => (
               onClick={() => {
                 const itemToEdit = {
                   ...item,
+                  id: item.id,
                   categoryId: item.categoryId,
-                  subcategoryId: item.subcategoryId,
-                  firebaseId: item.id
+                  subcategoryId: item.subcategoryId
                 };
                 setEditingItem(itemToEdit);
-                form.setFieldsValue(itemToEdit);
+                
+                // Handle image data
+                if (item.image) {
+                  if (typeof item.image === 'string') {
+                    setImageInputType('url');
+                    form.setFieldsValue({
+                      ...itemToEdit,
+                      imageUrl: item.image
+                    });
+                  } else if (item.image.file && item.image.file.url) {
+                    setImageInputType('upload');
+                    form.setFieldsValue({
+                      ...itemToEdit,
+                      imageUpload: [{
+                        uid: '-1',
+                        name: item.image.file.name || 'image.jpg',
+                        status: 'done',
+                        url: item.image.file.url,
+                        thumbUrl: item.image.file.url
+                      }]
+                    });
+                  }
+                } else {
+                  form.setFieldsValue(itemToEdit);
+                }
+                
                 setSelectedCategory(item.categoryId);
                 setIsModalVisible(true);
               }}
@@ -1741,13 +1852,13 @@ const ModernMenuItem = memo(({ item }) => (
                       <Row gutter={[8, 8]}>
                         {activeTab === 'categories' ? (
                           categories.map((category) => (
-                            <Col xs={24} key={category.id}>
+                            <Col xs={24} key={category.firebaseId}>
                               <ModernCategoryCard item={category} type="category" />
                             </Col>
                           ))
                         ) : (
                           subcategories.map((subcategory) => (
-                            <Col xs={24} key={subcategory.id}>
+                            <Col xs={24} key={subcategory.firebaseId}>
                               <ModernCategoryCard item={subcategory} type="subcategory" />
                             </Col>
                           ))
