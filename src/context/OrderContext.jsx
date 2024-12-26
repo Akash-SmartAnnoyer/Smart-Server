@@ -9,30 +9,44 @@ export const OrderProvider = ({ children }) => {
   const [orders, setOrders] = useState([]);
   const [restaurantDetails, setRestaurantDetails] = useState(null);
   const [charges, setCharges] = useState([]);
+  const [loading, setLoading] = useState(true);
   const orgId = localStorage.getItem('orgId');
 
   // Fetch restaurant details and charges once when provider mounts
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        // Fetch restaurant details
-        const restaurantResponse = await fetch('https://smartdb-175f4-default-rtdb.firebaseio.com/restaurants.json');
+        setLoading(true);
+        // Fetch restaurant details with query parameter
+        const restaurantResponse = await fetch(
+          `https://smartdb-175f4-default-rtdb.firebaseio.com/restaurants.json?orderBy="orgId"&equalTo="${orgId}"`
+        );
         const restaurantData = await restaurantResponse.json();
-        const restaurant = Object.values(restaurantData).find(r => r.orgId === orgId);
-        setRestaurantDetails(restaurant);
+        
+        if (restaurantData) {
+          // Since we're filtering by orgId, we'll only get one restaurant
+          const restaurant = Object.values(restaurantData)[0];
+          setRestaurantDetails(restaurant);
 
-        // Fetch charges
-        const chargesResponse = await fetch(`https://smartdb-175f4-default-rtdb.firebaseio.com/restaurants/${orgId}/charges.json`);
-        const chargesData = await chargesResponse.json();
-        if (chargesData) {
-          const chargesArray = Object.entries(chargesData).map(([id, charge]) => ({
-            id,
-            ...charge
-          }));
-          setCharges(chargesArray);
+          // Fetch charges directly using the restaurant key
+          const restaurantKey = Object.keys(restaurantData)[0];
+          const chargesResponse = await fetch(
+            `https://smartdb-175f4-default-rtdb.firebaseio.com/restaurants/${restaurantKey}/charges.json`
+          );
+          const chargesData = await chargesResponse.json();
+          
+          if (chargesData) {
+            const chargesArray = Object.entries(chargesData).map(([id, charge]) => ({
+              id,
+              ...charge
+            }));
+            setCharges(chargesArray);
+          }
         }
       } catch (error) {
         console.error('Error fetching initial data:', error);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -67,7 +81,7 @@ export const OrderProvider = ({ children }) => {
       addOrder,
       getLastActiveOrder,
       getActiveOrders,
-      loading: false
+      loading: loading
     }}>
       {children}
     </OrderContext.Provider>

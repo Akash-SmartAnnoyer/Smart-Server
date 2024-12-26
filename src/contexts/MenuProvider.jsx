@@ -24,9 +24,12 @@ export function MenuProvider({ children }) {
   const [error, setError] = useState(null);
   const orgId = localStorage.getItem('orgId');
 
-  const fetchData = async (url) => {
+  const fetchData = async (url, queryParams = null) => {
     try {
-      const response = await fetch(url);
+      const finalUrl = queryParams 
+        ? `${url}?orderBy="orgId"&equalTo=${orgId}`
+        : url;
+      const response = await fetch(finalUrl);
       const data = await response.json();
       return data;
     } catch (error) {
@@ -45,35 +48,32 @@ export function MenuProvider({ children }) {
       }));
 
       try {
-        // Fetch categories first since they're needed immediately
+        // Fetch categories with query parameter
         setLoading(prev => ({ ...prev, categories: true }));
-        const catData = await fetchData('https://smartdb-175f4-default-rtdb.firebaseio.com/categories.json');
+        const catData = await fetchData('https://smartdb-175f4-default-rtdb.firebaseio.com/categories.json', true);
         const processedCategories = catData ? 
           Object.entries(catData)
-            .map(([id, category]) => ({ id, ...category }))
-            .filter(category => category.orgId === parseInt(orgId)) : 
+            .map(([id, category]) => ({ id, ...category })) : 
           [];
         
         setMenuData(prev => ({ ...prev, categories: processedCategories }));
         setLoading(prev => ({ ...prev, categories: false }));
 
-        // Fetch other data in parallel
+        // Fetch other data in parallel with query parameters
         const [subData, menuData, sugData] = await Promise.all([
-          fetchData('https://smartdb-175f4-default-rtdb.firebaseio.com/subcategories.json'),
-          fetchData('https://smartdb-175f4-default-rtdb.firebaseio.com/menu_items.json'),
-          fetchData('https://smartdb-175f4-default-rtdb.firebaseio.com/menu_suggestions.json')
+          fetchData('https://smartdb-175f4-default-rtdb.firebaseio.com/subcategories.json', true),
+          fetchData('https://smartdb-175f4-default-rtdb.firebaseio.com/menu_items.json', true),
+          fetchData('https://smartdb-175f4-default-rtdb.firebaseio.com/menu_suggestions.json') // No filter for suggestions
         ]);
 
         const processedSubcategories = subData ?
           Object.entries(subData)
-            .map(([id, subcategory]) => ({ id, ...subcategory }))
-            .filter(subcategory => subcategory.orgId === parseInt(orgId)) :
+            .map(([id, subcategory]) => ({ id, ...subcategory })) :
           [];
 
         const menuItemsArray = menuData ?
           Object.entries(menuData)
-            .map(([id, item]) => ({ id, ...item }))
-            .filter(item => item.orgId === parseInt(orgId)) :
+            .map(([id, item]) => ({ id, ...item })) :
           [];
 
         const processedRecommendations = {};

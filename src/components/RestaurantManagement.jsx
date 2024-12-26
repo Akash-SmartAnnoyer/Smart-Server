@@ -78,21 +78,27 @@ const RestaurantManagement = () => {
     try {
       setLoading(true);
       const orgId = localStorage.getItem('orgId');
-      const response = await fetch('https://smartdb-175f4-default-rtdb.firebaseio.com/restaurants.json');
+      const response = await fetch(
+        `https://smartdb-175f4-default-rtdb.firebaseio.com/restaurants.json?orderBy="orgId"&equalTo="${orgId}"`
+      );
   
       if (response.ok) {
         const data = await response.json();
-        const restaurantsArray = Object.entries(data);
-        const [id, restaurantData] = restaurantsArray.find(([_, r]) => r.orgId === orgId) || [];
+        
+        if (data) {
+          // Get the first (and should be only) restaurant
+          const restaurantId = Object.keys(data)[0];
+          const restaurantData = data[restaurantId];
   
-        if (restaurantData) {
-          const restaurantWithId = { ...restaurantData, id };
-          setRestaurant(restaurantWithId);
-          // Cache the data
-          cachedData = restaurantWithId;
-          cacheTimestamp = Date.now();
-        } else {
-          console.error("No restaurant found for this orgId");
+          if (restaurantData) {
+            const restaurantWithId = { ...restaurantData, id: restaurantId };
+            setRestaurant(restaurantWithId);
+            // Cache the data
+            cachedData = restaurantWithId;
+            cacheTimestamp = Date.now();
+          } else {
+            console.error("No restaurant found for this orgId");
+          }
         }
       } else {
         console.error("Failed to fetch restaurant data:", response.status);

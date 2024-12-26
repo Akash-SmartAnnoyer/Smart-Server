@@ -61,16 +61,23 @@ function Header({ onSearch }) {
   const fetchRestaurantDetails = async () => {
     try {
       const orgId = localStorage.getItem('orgId');
-      // Your existing fetch logic here
-      // This is just a placeholder
-      const response = await fetch('https://smartdb-175f4-default-rtdb.firebaseio.com/restaurants.json');
+      const response = await fetch(
+        `https://smartdb-175f4-default-rtdb.firebaseio.com/restaurants.json?orderBy="orgId"&equalTo="${orgId}"`
+      );
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch restaurant details');
+      }
+
       const data = await response.json();
-      setRestaurantDetails(data);
+      
       if (data) {
-        const restaurant = Object.values(data).find(restaurant => restaurant.orgId === orgId);
+        // Since we're filtering by orgId, we'll get only one restaurant
+        const restaurantId = Object.keys(data)[0];
+        const restaurant = data[restaurantId];
         
         if (restaurant) {
-          setRestaurantDetails(restaurant);
+          setRestaurantDetails({ ...restaurant, id: restaurantId });
           setRestaurantLogo(restaurant.logo);
         } else {
           console.error("No restaurant found with the given orgId");
