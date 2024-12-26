@@ -13,7 +13,14 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key')
 users = {
     'royalspice@smartserver.com': {'password': 'R0y@!$p!ce', 'orgId': 3},
     'ammammagarillu': {'password': 'ammammagarillu', 'orgId': 2},
-    'biryanis': {'password': 'biryanis', 'orgId': 1}
+    'biryanis': {'password': 'biryanis', 'orgId': 1},
+    'johndoe@example.com': {'password': 'J0hn!D0e#2024', 'orgId': 4},
+    'janedoe@example.com': {'password': 'J@neD03!24', 'orgId': 5},
+    'spicychicken@restaurant.com': {'password': 'Sp!cyCh!ck3n', 'orgId': 6},
+    'foodlover@mail.com': {'password': 'F00dL0v3r#2024', 'orgId': 7},
+    'tastytreats@delights.com': {'password': 'T@styTreaT$', 'orgId': 8},
+    'deliciousbites@foodies.com': {'password': 'D3l!c10usB!t3s', 'orgId': 9},
+    'spicybiryani@spicydishes.com': {'password': 'Sp!cYB!rY@N!', 'orgId': 10}
 }
 
 # Token verification decorator
