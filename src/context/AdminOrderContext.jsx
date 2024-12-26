@@ -89,6 +89,8 @@ export const AdminOrderProvider = ({ children }) => {
 
       ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
+        
+        // Handle new orders
         if (data.type === 'newOrder' && data.order.orgId === orgId) {
           setOrders(prevOrders => {
             // Check if order already exists
@@ -98,6 +100,26 @@ export const AdminOrderProvider = ({ children }) => {
             return [data.order, ...prevOrders];
           });
         }
+        
+        // Handle status updates
+        else if (data.type === 'statusUpdate' && data.orgId === orgId) {
+          setOrders(prevOrders =>
+            prevOrders.map(order =>
+              order.id === data.orderId
+                ? { ...order, status: data.status, statusMessage: data.statusMessage }
+                : order
+            )
+          );
+        }
+      };
+
+      ws.onclose = () => {
+        console.log('WebSocket disconnected in AdminOrderContext');
+        // Attempt to reconnect after a delay
+        setTimeout(() => {
+          console.log('Attempting to reconnect...');
+          fetchOrders(); // Refresh orders when reconnecting
+        }, 3000);
       };
 
       return () => {

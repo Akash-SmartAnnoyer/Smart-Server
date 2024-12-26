@@ -16,10 +16,60 @@ const { Title, Text } = Typography;
 const MyOrders = () => {
   const { orders, loading } = useAdminOrders();
   const navigate = useNavigate();
+  const [ws, setWs] = useState(null);
+  const tableNumber = localStorage.getItem('tableNumber');
 
+  // WebSocket connection setup
+  useEffect(() => {
+    const websocket = new WebSocket('wss://legend-sulfuric-ruby.glitch.me');
+
+    websocket.onopen = () => {
+      console.log('WebSocket connected in MyOrders');
+    };
+
+    websocket.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      
+      // Handle new orders
+      if (data.type === 'newOrder' && data.order.tableNumber === tableNumber) {
+        // The AdminOrderContext will handle adding the new order to the orders array
+        console.log('New order received:', data.order);
+      }
+      
+      // Handle status updates
+      if (data.type === 'statusUpdate' && orders.some(order => 
+        order.id === data.orderId && order.tableNumber === tableNumber
+      )) {
+        console.log('Status update received:', data);
+      }
+    };
+
+    websocket.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+
+    websocket.onclose = () => {
+      console.log('WebSocket disconnected');
+      // Attempt to reconnect after a delay
+      setTimeout(() => {
+        console.log('Attempting to reconnect...');
+        setWs(new WebSocket('wss://legend-sulfuric-ruby.glitch.me'));
+      }, 3000);
+    };
+
+    setWs(websocket);
+
+    return () => {
+      if (websocket) {
+        websocket.close();
+      }
+    };
+  }, [tableNumber]);
+
+  // Filter active orders for the current table
   const activeOrders = orders.filter(order => 
     !['cancelled', 'completed'].includes(order.status) && 
-    order.tableNumber === localStorage.getItem('tableNumber')
+    order.tableNumber === tableNumber
   );
 
   const handleViewDetails = (order) => {
@@ -137,7 +187,7 @@ const MyOrders = () => {
 
   if (loading) {
     return (
-      <div style={{
+      <div style={{ 
         position: 'fixed',
         top: 0,
         left: 0,
