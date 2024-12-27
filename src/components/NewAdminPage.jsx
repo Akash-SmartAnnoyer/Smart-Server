@@ -24,9 +24,7 @@ const { Text } = Typography;
 
 const NewAdminPage = () => {
   const { orders, loading, updateOrder, setOrders } = useAdminOrders();
-  const [soundEnabled, setSoundEnabled] = useState(() => {
-    return localStorage.getItem('soundEnabled') === 'true';
-  });
+  const [soundEnabled, setSoundEnabled] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [newOrders, setNewOrders] = useState([]);
   const audioRef = useRef(new Audio(notificationSound));
@@ -42,20 +40,6 @@ const NewAdminPage = () => {
       item.name?.toLowerCase().includes(searchQuery.toLowerCase())
     ))
   );
-
-  // Add this effect to request notification permission
-  useEffect(() => {
-    const requestNotificationPermission = async () => {
-      try {
-        const permission = await Notification.requestPermission();
-        console.log('Notification permission:', permission);
-      } catch (error) {
-        console.error('Error requesting notification permission:', error);
-      }
-    };
-
-    requestNotificationPermission();
-  }, []);
 
   useEffect(() => {
     // Function to establish WebSocket connection
@@ -78,25 +62,8 @@ const NewAdminPage = () => {
           });
           setNewOrders(prev => [...prev, data.order.id]);
           
-          if (Notification.permission === 'granted') {
-            const notification = new Notification('New Order Received', {
-              body: `Order #${data.order.id} from Table ${data.order.tableNumber}`,
-              icon: '/assets/logo-transparent-png.png',
-              badge: '/assets/logo-transparent-png.png',
-              tag: `order-${data.order.id}`,
-              renotify: true,
-              vibrate: [200, 100, 200],
-              requireInteraction: true
-            });
-
-            notification.onclick = () => {
-              window.focus();
-              notification.close();
-            };
-
-            if (soundEnabled) {
-              playNotificationSound();
-            }
+          if (soundEnabled) {
+            playNotificationSound();
           }
 
           message.success({
@@ -112,25 +79,8 @@ const NewAdminPage = () => {
             )
           );
 
-          if (Notification.permission === 'granted') {
-            const notification = new Notification('Order Status Updated', {
-              body: `Order #${data.orderId} status: ${data.status}`,
-              icon: '/assets/logo-transparent-png.png',
-              badge: '/assets/logo-transparent-png.png',
-              tag: `status-${data.orderId}`,
-              renotify: true,
-              vibrate: [200, 100, 200],
-              requireInteraction: true
-            });
-
-            notification.onclick = () => {
-              window.focus();
-              notification.close();
-            };
-
-            if (soundEnabled) {
-              playNotificationSound();
-            }
+          if (soundEnabled) {
+            playNotificationSound();
           }
 
           message.info({
