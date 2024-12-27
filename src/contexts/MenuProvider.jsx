@@ -73,7 +73,10 @@ export function MenuProvider({ children }) {
 
         const menuItemsArray = menuData ?
           Object.entries(menuData)
-            .map(([id, item]) => ({ id, ...item })) :
+            .map(([id, item]) => ({ 
+              ...item,
+              id: id  // Ensure the Firebase ID is properly set
+            })) :
           [];
 
         const processedRecommendations = {};

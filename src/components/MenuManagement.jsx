@@ -878,46 +878,49 @@ const updateLocalState = (type, action, item) => {
 
 
 
-const handleAvailabilityChange = async (firebaseId, isAvailable) => {
-
+const handleAvailabilityChange = async (itemId, isAvailable) => {
   try {
+    // Make sure we have a valid ID
+    if (!itemId) {
+      throw new Error('Invalid item ID');
+    }
 
-    await fetch(`${API_URL}/menu_items/${firebaseId}.json`, {
-
+    // First, make the API call with the correct ID
+    const response = await fetch(`${API_URL}/menu_items/${itemId}.json`, {
       method: 'PATCH',
-
       headers: { 'Content-Type': 'application/json' },
-
       body: JSON.stringify({ isAvailable }),
-
     });
 
+    if (!response.ok) {
+      throw new Error('Failed to update availability');
+    }
 
-
-    setMenuItems(prev =>
-
-      prev.map(item =>
-
-        item.firebaseId === firebaseId ? { ...item, isAvailable } : item
-
+    // Update the local state only for the specific item
+    setMenuItems(prevItems =>
+      prevItems.map(item =>
+        item.id === itemId
+          ? { ...item, isAvailable }
+          : item
       )
-
     );
-
-
 
     message.success(
-
       `Item ${isAvailable ? 'available' : 'unavailable'} status updated`
-
     );
-
   } catch (error) {
-
+    console.error('Error updating availability:', error);
     message.error('Failed to update availability status');
-
+    
+    // Revert the switch if the API call fails
+    setMenuItems(prevItems =>
+      prevItems.map(item =>
+        item.id === itemId
+          ? { ...item, isAvailable: !isAvailable }
+          : item
+      )
+    );
   }
-
 };
 
 
@@ -1273,12 +1276,7 @@ const ModernMenuItem = memo(({ item }) => (
         }}>
           <Switch
             checked={item.isAvailable}
-            onChange={(checked) => {
-              // Optimistic update
-              const updatedItem = { ...item, isAvailable: checked };
-              updateLocalState('menu_items', 'update', updatedItem);
-              handleAvailabilityChange(item.firebaseId, checked);
-            }}
+            onChange={(checked) => handleAvailabilityChange(item.id, checked)}
             size="small"
             style={{ backgroundColor: item.isAvailable ? theme.primary : undefined }}
           />
@@ -1346,7 +1344,15 @@ const ModernMenuItem = memo(({ item }) => (
       </div>
     </div>
   </Card>
-));
+), (prevProps, nextProps) => {
+  return (
+    prevProps.item.id === nextProps.item.id &&
+    prevProps.item.isAvailable === nextProps.item.isAvailable &&
+    prevProps.item.name === nextProps.item.name &&
+    prevProps.item.price === nextProps.item.price &&
+    prevProps.item.description === nextProps.item.description
+  );
+});
 
 
 
