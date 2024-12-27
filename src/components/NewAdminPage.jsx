@@ -24,7 +24,9 @@ const { Text } = Typography;
 
 const NewAdminPage = () => {
   const { orders, loading, updateOrder, setOrders } = useAdminOrders();
-  const [soundEnabled, setSoundEnabled] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    return localStorage.getItem('soundEnabled') === 'true';
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [newOrders, setNewOrders] = useState([]);
   const audioRef = useRef(new Audio(notificationSound));
@@ -40,6 +42,20 @@ const NewAdminPage = () => {
       item.name?.toLowerCase().includes(searchQuery.toLowerCase())
     ))
   );
+
+  // Add this effect to request notification permission
+  useEffect(() => {
+    const requestNotificationPermission = async () => {
+      try {
+        const permission = await Notification.requestPermission();
+        console.log('Notification permission:', permission);
+      } catch (error) {
+        console.error('Error requesting notification permission:', error);
+      }
+    };
+
+    requestNotificationPermission();
+  }, []);
 
   useEffect(() => {
     // Function to establish WebSocket connection
@@ -62,22 +78,15 @@ const NewAdminPage = () => {
           });
           setNewOrders(prev => [...prev, data.order.id]);
           
-          // Show system notification with Smart Server logo
+          // Show system notification
           if (Notification.permission === 'granted') {
             const notification = new Notification('New Order Received', {
               body: `Order #${data.order.id} from Table ${data.order.tableNumber}`,
-              icon: '/assets/logo-transparent-png.png', // Using Smart Server logo
-              badge: '/assets/logo-transparent-png.png', // Using same logo as badge
-              tag: `order-${data.order.id}`,
-              renotify: true,
-              vibrate: [200, 100, 200], // Vibration pattern for mobile devices
-              requireInteraction: true // Notification will remain until user interacts with it
+              icon: '/path/to/your/icon.png', // Add your notification icon
+              badge: '/path/to/your/badge.png', // Add your badge icon
+              tag: `order-${data.order.id}`, // Prevents duplicate notifications
+              renotify: true
             });
-
-            notification.onclick = () => {
-              window.focus();
-              notification.close();
-            };
 
             if (soundEnabled) {
               playNotificationSound();
@@ -97,22 +106,24 @@ const NewAdminPage = () => {
             )
           );
 
+          if (soundEnabled) {
+            playNotificationSound();
+          }
+
+          message.info({
+            content: `Order #${data.orderId} status updated to ${data.status}`,
+            icon: <SyncOutlined spin style={{ color: '#1890ff' }} />
+          });
+
           // Show system notification for status updates
           if (Notification.permission === 'granted') {
             const notification = new Notification('Order Status Updated', {
               body: `Order #${data.orderId} status: ${data.status}`,
-              icon: '/assets/logo-transparent-png.png',
-              badge: '/assets/logo-transparent-png.png',
+              icon: '/path/to/your/icon.png',
+              badge: '/path/to/your/badge.png',
               tag: `status-${data.orderId}`,
-              renotify: true,
-              vibrate: [200, 100, 200],
-              requireInteraction: true
+              renotify: true
             });
-
-            notification.onclick = () => {
-              window.focus();
-              notification.close();
-            };
 
             if (soundEnabled) {
               playNotificationSound();
