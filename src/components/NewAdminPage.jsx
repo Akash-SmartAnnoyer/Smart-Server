@@ -78,15 +78,21 @@ const NewAdminPage = () => {
           });
           setNewOrders(prev => [...prev, data.order.id]);
           
-          // Show system notification
           if (Notification.permission === 'granted') {
             const notification = new Notification('New Order Received', {
               body: `Order #${data.order.id} from Table ${data.order.tableNumber}`,
-              icon: '/path/to/your/icon.png', // Add your notification icon
-              badge: '/path/to/your/badge.png', // Add your badge icon
-              tag: `order-${data.order.id}`, // Prevents duplicate notifications
-              renotify: true
+              icon: '/assets/logo-transparent-png.png',
+              badge: '/assets/logo-transparent-png.png',
+              tag: `order-${data.order.id}`,
+              renotify: true,
+              vibrate: [200, 100, 200],
+              requireInteraction: true
             });
+
+            notification.onclick = () => {
+              window.focus();
+              notification.close();
+            };
 
             if (soundEnabled) {
               playNotificationSound();
@@ -106,29 +112,31 @@ const NewAdminPage = () => {
             )
           );
 
-          if (soundEnabled) {
-            playNotificationSound();
+          if (Notification.permission === 'granted') {
+            const notification = new Notification('Order Status Updated', {
+              body: `Order #${data.orderId} status: ${data.status}`,
+              icon: '/assets/logo-transparent-png.png',
+              badge: '/assets/logo-transparent-png.png',
+              tag: `status-${data.orderId}`,
+              renotify: true,
+              vibrate: [200, 100, 200],
+              requireInteraction: true
+            });
+
+            notification.onclick = () => {
+              window.focus();
+              notification.close();
+            };
+
+            if (soundEnabled) {
+              playNotificationSound();
+            }
           }
 
           message.info({
             content: `Order #${data.orderId} status updated to ${data.status}`,
             icon: <SyncOutlined spin style={{ color: '#1890ff' }} />
           });
-
-          // Show system notification for status updates
-          if (Notification.permission === 'granted') {
-            const notification = new Notification('Order Status Updated', {
-              body: `Order #${data.orderId} status: ${data.status}`,
-              icon: '/path/to/your/icon.png',
-              badge: '/path/to/your/badge.png',
-              tag: `status-${data.orderId}`,
-              renotify: true
-            });
-
-            if (soundEnabled) {
-              playNotificationSound();
-            }
-          }
         }
       };
 
