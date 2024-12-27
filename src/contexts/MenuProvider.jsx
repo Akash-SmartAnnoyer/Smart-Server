@@ -73,10 +73,7 @@ export function MenuProvider({ children }) {
 
         const menuItemsArray = menuData ?
           Object.entries(menuData)
-            .map(([id, item]) => ({ 
-              ...item,
-              id: id  // Ensure the Firebase ID is properly set
-            })) :
+            .map(([id, item]) => ({ id, ...item })) :
           [];
 
         const processedRecommendations = {};
@@ -146,7 +143,7 @@ export function MenuProvider({ children }) {
     }
   };
 
-  const refreshData = useCallback(() => {
+  const refreshData = useCallback(async () => {
     setDataInitialized(false);
     setLoading({
       categories: true,
@@ -154,6 +151,12 @@ export function MenuProvider({ children }) {
       menuItems: true,
       overall: true
     });
+    
+    // Force a small delay to ensure state updates properly
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // This will trigger the useEffect to fetch fresh data
+    setDataInitialized(false);
   }, []);
 
   const value = {

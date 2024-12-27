@@ -98,6 +98,10 @@ const ModernMenuManagement = () => {
   const [sortBy, setSortBy] = useState('name');
   const [sortOrder, setSortOrder] = useState('asc');
 
+  // Add these state variables to track loading states
+  const [updatingItemId, setUpdatingItemId] = useState(null);
+  const [processingAction, setProcessingAction] = useState(false);
+
   // Add constant for footer height
   const FOOTER_HEIGHT = 64; // Adjust this value to match your footer height
 
@@ -324,12 +328,19 @@ const ModernMenuManagement = () => {
   // Initialize state with cached data
   useEffect(() => {
     if (dataInitialized) {
-      setCategories(cachedCategories);
-      setSubcategories(cachedSubcategories);
-      setMenuItems(cachedMenuItems);
+      setCategories(cachedCategories.map(item => ({
+        ...item,
+        firebaseId: item.id // Ensure firebaseId is set correctly
+      })));
+      setSubcategories(cachedSubcategories.map(item => ({
+        ...item,
+        firebaseId: item.id // Ensure firebaseId is set correctly
+      })));
+      setMenuItems(cachedMenuItems.map(item => ({
+        ...item,
+        firebaseId: item.id // Ensure firebaseId is set correctly
+      })));
       setLoading(false);
-    } else {
-      refreshData(); // This will trigger data fetch in MenuProvider
     }
   }, [dataInitialized, cachedCategories, cachedSubcategories, cachedMenuItems]);
 
@@ -693,27 +704,27 @@ const handleCreate = async values => {
 };
 
 const handleUpdate = async values => {
+  if (processingAction) return;
+  setProcessingAction(true);
+
   const type = activeTab === 'categories'
     ? 'categories'
     : activeTab === 'subcategories'
     ? 'subcategories'
     : 'menu_items';
-    
+
   try {
-    if (!editingItem || !editingItem.id) {
-      throw new Error('No item selected for update');
-    }
+    if (!editingItem?.firebaseId) throw new Error('No item selected for update');
 
     // Handle image data
-    let imageData = editingItem.image; // Keep existing image by default
+    let imageData = editingItem.image;
     if (imageInputType === 'url' && values.imageUrl) {
       imageData = values.imageUrl;
     } else if (imageInputType === 'upload' && values.imageUpload?.[0]) {
-      const uploadedImage = values.imageUpload[0];
       imageData = {
         file: {
-          url: uploadedImage.url || uploadedImage.thumbUrl,
-          name: uploadedImage.name
+          url: values.imageUpload[0].url || values.imageUpload[0].thumbUrl,
+          name: values.imageUpload[0].name
         }
       };
     }
@@ -724,12 +735,12 @@ const handleUpdate = async values => {
       orgId: parseInt(orgId)
     };
 
-    // Remove unnecessary fields
     delete dataToUpdate.imageUrl;
     delete dataToUpdate.imageUpload;
 
+    // Make the API call
     const response = await fetch(
-      `${API_URL}/${type}/${editingItem.id}.json`,
+      `${API_URL}/${type}/${editingItem.firebaseId}.json`,
       {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -737,20 +748,21 @@ const handleUpdate = async values => {
       }
     );
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to update item');
-    }
+    if (!response.ok) throw new Error('Failed to update item');
 
-    const updatedItem = { ...editingItem, ...dataToUpdate };
-    updateLocalState(type, 'update', updatedItem);
+    // Close modal and reset form
     setIsModalVisible(false);
     setEditingItem(null);
     form.resetFields();
+
+    // Refresh data after successful update
+    await refreshData();
     message.success('Item updated successfully');
   } catch (error) {
-    console.error(`Error updating ${type}:`, error);
-    message.error(`Failed to update item: ${error.message}`);
+    console.error('Error updating item:', error);
+    message.error('Failed to update item');
+  } finally {
+    setProcessingAction(false);
   }
 };
 
@@ -770,52 +782,32 @@ const getImageUrl = (imageData) => {
   return '/api/placeholder/80/80'; // Fallback
 };
 
-const handleDelete = async firebaseId => {
+const handleDelete = async (firebaseId) => {
+  if (processingAction) return;
+  setProcessingAction(true);
 
-  const type =
-
-    activeTab === 'categories'
-
-      ? 'categories'
-
-      : activeTab === 'subcategories'
-
-      ? 'subcategories'
-
-      : 'menu_items';
+  const type = activeTab === 'categories'
+    ? 'categories'
+    : activeTab === 'subcategories'
+    ? 'subcategories'
+    : 'menu_items';
 
   try {
-
     const response = await fetch(`${API_URL}/${type}/${firebaseId}.json`, {
-
       method: 'DELETE',
-
     });
 
+    if (!response.ok) throw new Error('Failed to delete item');
 
-
-    if (!response.ok) {
-
-      const errorData = await response.json();
-
-      throw new Error(errorData.error || 'Failed to delete item');
-
-    }
-
-
-
-    updateLocalState(type, 'delete', { firebaseId });
-
+    // Refresh data after successful deletion
+    await refreshData();
     message.success('Item deleted successfully');
-
   } catch (error) {
-
-    console.error(`Error deleting ${type}:`, error);
-
-    message.error(`Failed to delete item: ${error.message}`);
-
+    console.error('Error deleting item:', error);
+    message.error('Failed to delete item');
+  } finally {
+    setProcessingAction(false);
   }
-
 };
 
 
@@ -879,47 +871,43 @@ const updateLocalState = (type, action, item) => {
 
 
 const handleAvailabilityChange = async (itemId, isAvailable) => {
-  try {
-    // Make sure we have a valid ID
-    if (!itemId) {
-      throw new Error('Invalid item ID');
-    }
+  if (updatingItemId === itemId) return; // Prevent double updates
+  setUpdatingItemId(itemId);
 
-    // First, make the API call with the correct ID
+  try {
+    const menuItem = menuItems.find(item => item.firebaseId === itemId);
+    if (!menuItem) throw new Error('Menu item not found');
+
+    // Optimistic update
+    setMenuItems(prevItems =>
+      prevItems.map(item =>
+        item.firebaseId === itemId ? { ...item, isAvailable } : item
+      )
+    );
+
     const response = await fetch(`${API_URL}/menu_items/${itemId}.json`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ isAvailable }),
     });
 
-    if (!response.ok) {
-      throw new Error('Failed to update availability');
-    }
+    if (!response.ok) throw new Error('Failed to update availability');
 
-    // Update the local state only for the specific item
-    setMenuItems(prevItems =>
-      prevItems.map(item =>
-        item.id === itemId
-          ? { ...item, isAvailable }
-          : item
-      )
-    );
-
-    message.success(
-      `Item ${isAvailable ? 'available' : 'unavailable'} status updated`
-    );
+    // Refresh menu data after successful update
+    await refreshData();
+    message.success(`Item ${isAvailable ? 'available' : 'unavailable'}`);
   } catch (error) {
     console.error('Error updating availability:', error);
-    message.error('Failed to update availability status');
+    message.error('Failed to update availability');
     
-    // Revert the switch if the API call fails
+    // Revert the change on error
     setMenuItems(prevItems =>
       prevItems.map(item =>
-        item.id === itemId
-          ? { ...item, isAvailable: !isAvailable }
-          : item
+        item.firebaseId === itemId ? { ...item, isAvailable: !isAvailable } : item
       )
     );
+  } finally {
+    setUpdatingItemId(null);
   }
 };
 
@@ -1200,7 +1188,8 @@ const ModernMenuItem = memo(({ item }) => (
       overflow: 'hidden',
       boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
       backgroundColor: theme.cardBg,
-      border: 'none'
+      border: 'none',
+      opacity: updatingItemId === item.firebaseId ? 0.7 : 1,
     }}
   >
     <div style={{ display: 'flex', gap: '12px' }}>
@@ -1276,7 +1265,8 @@ const ModernMenuItem = memo(({ item }) => (
         }}>
           <Switch
             checked={item.isAvailable}
-            onChange={(checked) => handleAvailabilityChange(item.id, checked)}
+            onChange={(checked) => handleAvailabilityChange(item.firebaseId, checked)}
+            disabled={updatingItemId === item.firebaseId}
             size="small"
             style={{ backgroundColor: item.isAvailable ? theme.primary : undefined }}
           />
@@ -1344,15 +1334,7 @@ const ModernMenuItem = memo(({ item }) => (
       </div>
     </div>
   </Card>
-), (prevProps, nextProps) => {
-  return (
-    prevProps.item.id === nextProps.item.id &&
-    prevProps.item.isAvailable === nextProps.item.isAvailable &&
-    prevProps.item.name === nextProps.item.name &&
-    prevProps.item.price === nextProps.item.price &&
-    prevProps.item.description === nextProps.item.description
-  );
-});
+));
 
 
 
