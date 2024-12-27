@@ -60,11 +60,18 @@ const WaitingScreen = () => {
   const [rating, setRating] = useState(0);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
-  const [soundEnabled, setSoundEnabled] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    return localStorage.getItem('waitingScreenSound') === 'true';
+  });
   const [confirmCancelVisible, setConfirmCancelVisible] = useState(false);
   const ws = useRef(null);
   const audioRef = useRef(new Audio(notificationSound));
   const [currentGifIndex, setCurrentGifIndex] = useState(0);
+
+  const handleSoundToggle = (enabled) => {
+    setSoundEnabled(enabled);
+    localStorage.setItem('waitingScreenSound', enabled);
+  };
 
   useEffect(() => {
     // Only fetch if order is not in context
@@ -341,7 +348,7 @@ const WaitingScreen = () => {
           checkedChildren={<SoundOutlined />}
           unCheckedChildren={<IoVolumeMuteOutline />}
           checked={soundEnabled}
-          onChange={setSoundEnabled}
+          onChange={handleSoundToggle}
           style={{ backgroundColor: soundEnabled ? '#52c41a' : '#ff4d4f', borderColor: soundEnabled ? '#52c41a' : '#ff4d4f' }}
         />
         <Text style={{ marginLeft: '8px', color: '#343a40' }}>Sound Notifications</Text>

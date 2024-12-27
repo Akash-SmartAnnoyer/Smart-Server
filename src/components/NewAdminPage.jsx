@@ -62,8 +62,26 @@ const NewAdminPage = () => {
           });
           setNewOrders(prev => [...prev, data.order.id]);
           
-          if (soundEnabled) {
-            playNotificationSound();
+          // Show system notification with Smart Server logo
+          if (Notification.permission === 'granted') {
+            const notification = new Notification('New Order Received', {
+              body: `Order #${data.order.id} from Table ${data.order.tableNumber}`,
+              icon: '/assets/logo-transparent-png.png', // Using Smart Server logo
+              badge: '/assets/logo-transparent-png.png', // Using same logo as badge
+              tag: `order-${data.order.id}`,
+              renotify: true,
+              vibrate: [200, 100, 200], // Vibration pattern for mobile devices
+              requireInteraction: true // Notification will remain until user interacts with it
+            });
+
+            notification.onclick = () => {
+              window.focus();
+              notification.close();
+            };
+
+            if (soundEnabled) {
+              playNotificationSound();
+            }
           }
 
           message.success({
@@ -79,14 +97,27 @@ const NewAdminPage = () => {
             )
           );
 
-          if (soundEnabled) {
-            playNotificationSound();
-          }
+          // Show system notification for status updates
+          if (Notification.permission === 'granted') {
+            const notification = new Notification('Order Status Updated', {
+              body: `Order #${data.orderId} status: ${data.status}`,
+              icon: '/assets/logo-transparent-png.png',
+              badge: '/assets/logo-transparent-png.png',
+              tag: `status-${data.orderId}`,
+              renotify: true,
+              vibrate: [200, 100, 200],
+              requireInteraction: true
+            });
 
-          message.info({
-            content: `Order #${data.orderId} status updated to ${data.status}`,
-            icon: <SyncOutlined spin style={{ color: '#1890ff' }} />
-          });
+            notification.onclick = () => {
+              window.focus();
+              notification.close();
+            };
+
+            if (soundEnabled) {
+              playNotificationSound();
+            }
+          }
         }
       };
 
