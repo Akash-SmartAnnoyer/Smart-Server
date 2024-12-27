@@ -44,7 +44,6 @@ import {
   ShopOutlined,
   CheckOutlined
 } from '@ant-design/icons';
-import { debounce } from 'lodash';
 import VirtualList from 'rc-virtual-list';
 import { motion, AnimatePresence } from 'framer-motion';
 import { IoFilterSharp, IoSearch } from 'react-icons/io5';
@@ -104,14 +103,6 @@ const ModernMenuManagement = () => {
 
   // Add constant for footer height
   const FOOTER_HEIGHT = 64; // Adjust this value to match your footer height
-
-  // Add debounced search
-  const debouncedSearch = useCallback(
-    debounce((value) => {
-      setSearchTerm(value);
-    }, 300),
-    []
-  );
 
   // Filter and sort functions
   const filterAndSortItems = (items) => {
@@ -257,6 +248,11 @@ const ModernMenuManagement = () => {
    // Search and Filter component
   const SearchAndFilters = memo(() => {
     const [filterDrawerVisible, setFilterDrawerVisible] = useState(false);
+    const [searchInput, setSearchInput] = useState('');
+
+    const handleSearch = () => {
+      setSearchTerm(searchInput);
+    };
 
     return (
       <AnimatePresence>
@@ -266,7 +262,6 @@ const ModernMenuManagement = () => {
           exit={{ opacity: 0, y: -20 }}
           transition={{ duration: 0.2 }}
         >
-          {/* Modern Search Bar */}
           <div className="search-container" style={{
             position: 'sticky',
             top: 72,
@@ -278,7 +273,7 @@ const ModernMenuManagement = () => {
             boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
             margin: '8px 0'
           }}>
-            <Input
+            <Input.Search
               prefix={<IoSearch style={{ fontSize: '20px', color: theme.primary }} />}
               suffix={
                 <Badge count={
@@ -294,7 +289,10 @@ const ModernMenuManagement = () => {
                 </Badge>
               }
               placeholder="Search menu items..."
-              onChange={(e) => debouncedSearch(e.target.value)}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onSearch={handleSearch}
+              enterButton
               style={{
                 borderRadius: '8px',
                 backgroundColor: '#f5f5f5',
@@ -1804,7 +1802,7 @@ const ModernMenuItem = memo(({ item }) => (
             </Drawer>
 
             <Layout style={{ 
-              marginTop: '72px',
+              marginTop: '112px',
               background: theme.background,
               height: `calc(100vh - 72px)`,
               width: '100%',
