@@ -44,7 +44,6 @@ import {
   ShopOutlined,
   CheckOutlined
 } from '@ant-design/icons';
-import { debounce } from 'lodash';
 import VirtualList from 'rc-virtual-list';
 import { motion, AnimatePresence } from 'framer-motion';
 import { IoFilterSharp, IoSearch } from 'react-icons/io5';
@@ -98,20 +97,13 @@ const ModernMenuManagement = () => {
   const [sortBy, setSortBy] = useState('name');
   const [sortOrder, setSortOrder] = useState('asc');
 
-  // Add these state variables to track loading states
-  const [updatingItemId, setUpdatingItemId] = useState(null);
-  const [processingAction, setProcessingAction] = useState(false);
-
   // Add constant for footer height
   const FOOTER_HEIGHT = 64; // Adjust this value to match your footer height
 
-  // Add debounced search
-  const debouncedSearch = useCallback(
-    debounce((value) => {
-      setSearchTerm(value);
-    }, 300),
-    []
-  );
+  // Add this new function to handle search
+  const handleSearch = (value) => {
+    setSearchTerm(value);
+  };
 
   // Filter and sort functions
   const filterAndSortItems = (items) => {
@@ -257,6 +249,11 @@ const ModernMenuManagement = () => {
    // Search and Filter component
   const SearchAndFilters = memo(() => {
     const [filterDrawerVisible, setFilterDrawerVisible] = useState(false);
+    const [inputValue, setInputValue] = useState('');
+
+    const onSearch = () => {
+      handleSearch(inputValue);
+    };
 
     return (
       <AnimatePresence>
@@ -266,7 +263,6 @@ const ModernMenuManagement = () => {
           exit={{ opacity: 0, y: -20 }}
           transition={{ duration: 0.2 }}
         >
-          {/* Modern Search Bar */}
           <div className="search-container" style={{
             position: 'sticky',
             top: 72,
@@ -281,20 +277,34 @@ const ModernMenuManagement = () => {
             <Input
               prefix={<IoSearch style={{ fontSize: '20px', color: theme.primary }} />}
               suffix={
-                <Badge count={
-                  (selectedCategories.length > 0 ? 1 : 0) +
-                  (availabilityFilter !== 'all' ? 1 : 0) +
-                  (priceRange[0] !== 0 || priceRange[1] !== 10000 ? 1 : 0)
-                }>
+                <Space>
                   <Button
-                    type="text"
-                    icon={<IoFilterSharp style={{ fontSize: '20px' }} />}
-                    onClick={() => setFilterDrawerVisible(true)}
-                  />
-                </Badge>
+                    type="primary"
+                    onClick={onSearch}
+                    style={{
+                      background: theme.primary,
+                      border: 'none'
+                    }}
+                  >
+                    Search
+                  </Button>
+                  <Badge count={
+                    (selectedCategories.length > 0 ? 1 : 0) +
+                    (availabilityFilter !== 'all' ? 1 : 0) +
+                    (priceRange[0] !== 0 || priceRange[1] !== 10000 ? 1 : 0)
+                  }>
+                    <Button
+                      type="text"
+                      icon={<IoFilterSharp style={{ fontSize: '20px' }} />}
+                      onClick={() => setFilterDrawerVisible(true)}
+                    />
+                  </Badge>
+                </Space>
               }
               placeholder="Search menu items..."
-              onChange={(e) => debouncedSearch(e.target.value)}
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onPressEnter={() => handleSearch(inputValue)}
               style={{
                 borderRadius: '8px',
                 backgroundColor: '#f5f5f5',
@@ -328,19 +338,12 @@ const ModernMenuManagement = () => {
   // Initialize state with cached data
   useEffect(() => {
     if (dataInitialized) {
-      setCategories(cachedCategories.map(item => ({
-        ...item,
-        firebaseId: item.id // Ensure firebaseId is set correctly
-      })));
-      setSubcategories(cachedSubcategories.map(item => ({
-        ...item,
-        firebaseId: item.id // Ensure firebaseId is set correctly
-      })));
-      setMenuItems(cachedMenuItems.map(item => ({
-        ...item,
-        firebaseId: item.id // Ensure firebaseId is set correctly
-      })));
+      setCategories(cachedCategories);
+      setSubcategories(cachedSubcategories);
+      setMenuItems(cachedMenuItems);
       setLoading(false);
+    } else {
+      refreshData(); // This will trigger data fetch in MenuProvider
     }
   }, [dataInitialized, cachedCategories, cachedSubcategories, cachedMenuItems]);
 
@@ -704,27 +707,27 @@ const handleCreate = async values => {
 };
 
 const handleUpdate = async values => {
-  if (processingAction) return;
-  setProcessingAction(true);
-
   const type = activeTab === 'categories'
     ? 'categories'
     : activeTab === 'subcategories'
     ? 'subcategories'
     : 'menu_items';
-
+    
   try {
-    if (!editingItem?.firebaseId) throw new Error('No item selected for update');
+    if (!editingItem || !editingItem.id) {
+      throw new Error('No item selected for update');
+    }
 
     // Handle image data
-    let imageData = editingItem.image;
+    let imageData = editingItem.image; // Keep existing image by default
     if (imageInputType === 'url' && values.imageUrl) {
       imageData = values.imageUrl;
     } else if (imageInputType === 'upload' && values.imageUpload?.[0]) {
+      const uploadedImage = values.imageUpload[0];
       imageData = {
         file: {
-          url: values.imageUpload[0].url || values.imageUpload[0].thumbUrl,
-          name: values.imageUpload[0].name
+          url: uploadedImage.url || uploadedImage.thumbUrl,
+          name: uploadedImage.name
         }
       };
     }
@@ -735,12 +738,12 @@ const handleUpdate = async values => {
       orgId: parseInt(orgId)
     };
 
+    // Remove unnecessary fields
     delete dataToUpdate.imageUrl;
     delete dataToUpdate.imageUpload;
 
-    // Make the API call
     const response = await fetch(
-      `${API_URL}/${type}/${editingItem.firebaseId}.json`,
+      `${API_URL}/${type}/${editingItem.id}.json`,
       {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -748,21 +751,20 @@ const handleUpdate = async values => {
       }
     );
 
-    if (!response.ok) throw new Error('Failed to update item');
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to update item');
+    }
 
-    // Close modal and reset form
+    const updatedItem = { ...editingItem, ...dataToUpdate };
+    updateLocalState(type, 'update', updatedItem);
     setIsModalVisible(false);
     setEditingItem(null);
     form.resetFields();
-
-    // Refresh data after successful update
-    await refreshData();
     message.success('Item updated successfully');
   } catch (error) {
-    console.error('Error updating item:', error);
-    message.error('Failed to update item');
-  } finally {
-    setProcessingAction(false);
+    console.error(`Error updating ${type}:`, error);
+    message.error(`Failed to update item: ${error.message}`);
   }
 };
 
@@ -782,32 +784,52 @@ const getImageUrl = (imageData) => {
   return '/api/placeholder/80/80'; // Fallback
 };
 
-const handleDelete = async (firebaseId) => {
-  if (processingAction) return;
-  setProcessingAction(true);
+const handleDelete = async firebaseId => {
 
-  const type = activeTab === 'categories'
-    ? 'categories'
-    : activeTab === 'subcategories'
-    ? 'subcategories'
-    : 'menu_items';
+  const type =
+
+    activeTab === 'categories'
+
+      ? 'categories'
+
+      : activeTab === 'subcategories'
+
+      ? 'subcategories'
+
+      : 'menu_items';
 
   try {
+
     const response = await fetch(`${API_URL}/${type}/${firebaseId}.json`, {
+
       method: 'DELETE',
+
     });
 
-    if (!response.ok) throw new Error('Failed to delete item');
 
-    // Refresh data after successful deletion
-    await refreshData();
+
+    if (!response.ok) {
+
+      const errorData = await response.json();
+
+      throw new Error(errorData.error || 'Failed to delete item');
+
+    }
+
+
+
+    updateLocalState(type, 'delete', { firebaseId });
+
     message.success('Item deleted successfully');
+
   } catch (error) {
-    console.error('Error deleting item:', error);
-    message.error('Failed to delete item');
-  } finally {
-    setProcessingAction(false);
+
+    console.error(`Error deleting ${type}:`, error);
+
+    message.error(`Failed to delete item: ${error.message}`);
+
   }
+
 };
 
 
@@ -870,45 +892,46 @@ const updateLocalState = (type, action, item) => {
 
 
 
-const handleAvailabilityChange = async (itemId, isAvailable) => {
-  if (updatingItemId === itemId) return; // Prevent double updates
-  setUpdatingItemId(itemId);
+const handleAvailabilityChange = async (firebaseId, isAvailable) => {
 
   try {
-    const menuItem = menuItems.find(item => item.firebaseId === itemId);
-    if (!menuItem) throw new Error('Menu item not found');
 
-    // Optimistic update
-    setMenuItems(prevItems =>
-      prevItems.map(item =>
-        item.firebaseId === itemId ? { ...item, isAvailable } : item
-      )
-    );
+    await fetch(`${API_URL}/menu_items/${firebaseId}.json`, {
 
-    const response = await fetch(`${API_URL}/menu_items/${itemId}.json`, {
       method: 'PATCH',
+
       headers: { 'Content-Type': 'application/json' },
+
       body: JSON.stringify({ isAvailable }),
+
     });
 
-    if (!response.ok) throw new Error('Failed to update availability');
 
-    // Refresh menu data after successful update
-    await refreshData();
-    message.success(`Item ${isAvailable ? 'available' : 'unavailable'}`);
-  } catch (error) {
-    console.error('Error updating availability:', error);
-    message.error('Failed to update availability');
-    
-    // Revert the change on error
-    setMenuItems(prevItems =>
-      prevItems.map(item =>
-        item.firebaseId === itemId ? { ...item, isAvailable: !isAvailable } : item
+
+    setMenuItems(prev =>
+
+      prev.map(item =>
+
+        item.firebaseId === firebaseId ? { ...item, isAvailable } : item
+
       )
+
     );
-  } finally {
-    setUpdatingItemId(null);
+
+
+
+    message.success(
+
+      `Item ${isAvailable ? 'available' : 'unavailable'} status updated`
+
+    );
+
+  } catch (error) {
+
+    message.error('Failed to update availability status');
+
   }
+
 };
 
 
@@ -1188,8 +1211,7 @@ const ModernMenuItem = memo(({ item }) => (
       overflow: 'hidden',
       boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
       backgroundColor: theme.cardBg,
-      border: 'none',
-      opacity: updatingItemId === item.firebaseId ? 0.7 : 1,
+      border: 'none'
     }}
   >
     <div style={{ display: 'flex', gap: '12px' }}>
@@ -1265,8 +1287,12 @@ const ModernMenuItem = memo(({ item }) => (
         }}>
           <Switch
             checked={item.isAvailable}
-            onChange={(checked) => handleAvailabilityChange(item.firebaseId, checked)}
-            disabled={updatingItemId === item.firebaseId}
+            onChange={(checked) => {
+              // Optimistic update
+              const updatedItem = { ...item, isAvailable: checked };
+              updateLocalState('menu_items', 'update', updatedItem);
+              handleAvailabilityChange(item.firebaseId, checked);
+            }}
             size="small"
             style={{ backgroundColor: item.isAvailable ? theme.primary : undefined }}
           />
