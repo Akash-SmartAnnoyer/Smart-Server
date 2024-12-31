@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Modal, Button, Checkbox, Input, Typography, message } from 'antd';
-import { CoffeeOutlined, SmileOutlined,ExclamationCircleOutlined, PlusCircleOutlined, CheckOutlined, } from '@ant-design/icons';
+import { CoffeeOutlined, SmileOutlined,ExclamationCircleOutlined, PlusCircleOutlined, CheckOutlined, ShoppingCartOutlined, GifOutlined, ThunderboltFilled, } from '@ant-design/icons';
 import { useCart } from '../contexts/CartContext';
 import { useNavigate } from 'react-router-dom';
 import { MapPin } from 'lucide-react';
@@ -257,7 +257,7 @@ useEffect(() => {
         borderBottom: '2px dashed #ffcccb',
         paddingBottom: '15px'
       }}>
-        <CoffeeOutlined style={{ marginRight: '10px' }} />
+        <ThunderboltFilled style={{ marginRight: '10px' }} />
         Confirm Order
       </h2>
 
