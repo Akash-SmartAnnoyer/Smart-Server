@@ -6,3 +6,30 @@
     transform: scale(1.1);
   }
   
+  .phone-modal {
+    @media (max-width: 480px) {
+      width: 95% !important;
+      margin: 0 auto;
+    }
+  }
+  
+  .phone-modal .ant-modal-content {
+    border-radius: 20px;
+    overflow: hidden;
+  }
+  
+  .phone-modal .ant-input-affix-wrapper {
+    transition: all 0.3s ease;
+  }
+  
+  .phone-modal .ant-input-affix-wrapper:hover,
+  .phone-modal .ant-input-affix-wrapper:focus {
+    border-color: #FF0000;
+    box-shadow: 0 0 0 2px rgba(255, 0, 0, 0.1);
+  }
+  
+  .phone-modal .ant-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(255, 0, 0, 0.2);
+  }
+  

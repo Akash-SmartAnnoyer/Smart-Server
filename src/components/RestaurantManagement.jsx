@@ -22,7 +22,8 @@ import {
   ChevronRight, 
   ChevronLeft, 
   Package, 
-  Save 
+  Save, 
+  ShieldCheck 
 } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, useMap, Popup } from 'react-leaflet';
 import L from 'leaflet';
@@ -32,6 +33,7 @@ import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 import FoodLoader from './FoodLoader';
+import { Switch } from 'antd';
 
 const versionInfo = {
   version: "1.0.0",
@@ -679,6 +681,70 @@ const RestaurantManagement = () => {
                         placeholder="Enter email address"
                       />
                     </div>
+                  </div>
+                </div>
+
+                <div style={{
+                  background: '#F8F9FA',
+                  padding: '1rem',
+                  borderRadius: '1rem',
+                  marginTop: '1rem'
+                }}>
+                  <label style={{
+                    display: 'block',
+                    color: '#666',
+                    fontSize: '0.9rem',
+                    marginBottom: '0.5rem'
+                  }}>
+                    Customer Phone Settings
+                  </label>
+                  
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '1rem',
+                    background: 'white',
+                    border: '2px solid #FFE5E5',
+                    borderRadius: '0.75rem',
+                    padding: '0.75rem',
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem'
+                    }}>
+                      <Phone size={18} color="#FF0000" />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: '500' }}>Collect Customer Phone</div>
+                        <div style={{ fontSize: '0.8rem', color: '#666' }}>Ask customers for their phone number during checkout</div>
+                      </div>
+                      <Switch
+                        checked={restaurant?.phoneRequired || false}
+                        onChange={(checked) => handleInputChange({ target: { name: 'phoneRequired', value: checked }})}
+                        style={{ backgroundColor: restaurant?.phoneRequired ? '#FF0000' : '#ccc' }}
+                      />
+                    </div>
+
+                    {restaurant?.phoneRequired && (
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        paddingTop: '0.5rem',
+                        borderTop: '1px solid #FFE5E5'
+                      }}>
+                        <ShieldCheck size={18} color="#FF0000" />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: '500' }}>Mandatory Phone Number</div>
+                          <div style={{ fontSize: '0.8rem', color: '#666' }}>Require phone number to complete order</div>
+                        </div>
+                        <Switch
+                          checked={restaurant?.phoneMandatory || false}
+                          onChange={(checked) => handleInputChange({ target: { name: 'phoneMandatory', value: checked }})}
+                          style={{ backgroundColor: restaurant?.phoneMandatory ? '#FF0000' : '#ccc' }}
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
