@@ -24,12 +24,21 @@ const { Text } = Typography;
 
 const NewAdminPage = () => {
   const { orders, loading, updateOrder, setOrders } = useAdminOrders();
-  const [soundEnabled, setSoundEnabled] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    // Initialize soundEnabled from localStorage
+    const savedSoundSetting = localStorage.getItem('soundEnabled');
+    return savedSoundSetting ? JSON.parse(savedSoundSetting) : false;
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [newOrders, setNewOrders] = useState([]);
   const audioRef = useRef(new Audio(notificationSound));
   const ws = useRef(null);
   const orgId = localStorage.getItem('orgId');
+
+  // Update localStorage whenever soundEnabled changes
+  useEffect(() => {
+    localStorage.setItem('soundEnabled', JSON.stringify(soundEnabled));
+  }, [soundEnabled]);
 
   // Filter orders based on search query
   const filteredOrders = orders.filter(order => 

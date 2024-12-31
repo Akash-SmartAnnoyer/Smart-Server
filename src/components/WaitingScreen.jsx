@@ -60,31 +60,39 @@ const WaitingScreen = () => {
   const [rating, setRating] = useState(0);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
-  const [soundEnabled, setSoundEnabled] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    // Initialize soundEnabled from localStorage
+    const savedSoundSetting = localStorage.getItem('soundEnabled');
+    return savedSoundSetting ? JSON.parse(savedSoundSetting) : false;
+  });
   const [confirmCancelVisible, setConfirmCancelVisible] = useState(false);
   const ws = useRef(null);
   const audioRef = useRef(new Audio(notificationSound));
   const [currentGifIndex, setCurrentGifIndex] = useState(0);
 
+  // Update localStorage whenever soundEnabled changes
   useEffect(() => {
-    const fetchOrder = async () => {
-      try {
-        const response = await fetch(`https://smartdb-175f4-default-rtdb.firebaseio.com/history/${orderId}.json`);
-        if (!response.ok) throw new Error('Failed to fetch order');
-        const fetchedOrder = await response.json();
-        if (!fetchedOrder) throw new Error('Order not found');
-        setOrder({ ...fetchedOrder, displayOrderId: fetchedOrder.id || orderId });
-      } catch (error) {
-        console.error('Failed to fetch order', error);
-        message.error('Failed to fetch order');
-      }
-    };
+    localStorage.setItem('soundEnabled', JSON.stringify(soundEnabled));
+  }, [soundEnabled]);
 
-    // Fetch order immediately if orderId is available
-    if (orderId) {
+  useEffect(() => {
+    // Only fetch if order is not in context
+    if (!order) {
+      const fetchOrder = async () => {
+        try {
+          const response = await fetch(`https://smartdb-175f4-default-rtdb.firebaseio.com/history/${orderId}.json`);
+          if (!response.ok) throw new Error('Failed to fetch order');
+          const fetchedOrder = await response.json();
+          if (!fetchedOrder) throw new Error('Order not found');
+          setOrder({ ...fetchedOrder, displayOrderId: fetchedOrder.id || orderId });
+        } catch (error) {
+          console.error('Failed to fetch order', error);
+          message.error('Failed to fetch order');
+        }
+      };
       fetchOrder();
     }
-
+    
     // WebSocket setup
     ws.current = new WebSocket('wss://legend-sulfuric-ruby.glitch.me');
 
@@ -114,7 +122,7 @@ const WaitingScreen = () => {
     return () => {
       if (ws.current) ws.current.close();
     };
-  }, [orderId, soundEnabled]);
+  }, [orderId, soundEnabled, order]);
 
   // Replace the existing useEffect for GIF rotation with:
   useEffect(() => {
