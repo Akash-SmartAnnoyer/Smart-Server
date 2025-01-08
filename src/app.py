@@ -14,7 +14,7 @@ users = {
     'royalspice@smartserver.com': {'password': 'R0y@!$p!ce', 'orgId': 3},
     'ammammagarillu': {'password': 'ammammagarillu', 'orgId': 2},
     'biryanis': {'password': 'biryanis', 'orgId': 1},
-    'johndoe@example.com': {'password': 'J0hn!D0e#2024', 'orgId': 4},
+    'hotelmuntaz@smartserver.com': {'password': 'HotelMuntaz', 'orgId': 4},
     'janedoe@example.com': {'password': 'J@neD03!24', 'orgId': 5},
     'spicychicken@restaurant.com': {'password': 'Sp!cyCh!ck3n', 'orgId': 6},
     'foodlover@mail.com': {'password': 'F00dL0v3r#2024', 'orgId': 7},
