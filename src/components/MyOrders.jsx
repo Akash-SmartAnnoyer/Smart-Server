@@ -253,7 +253,7 @@ const MyOrders = () => {
               <Space direction="vertical" size="middle" style={{ width: '100%' }}>
                 <div style={styles.statusContainer}>
                   <Title level={4} style={styles.orderNumber}>Order #{order.id}</Title>
-                  <Tag 
+                  {/* <Tag 
                     style={{
                       borderRadius: '16px',
                       padding: '4px 12px',
@@ -266,7 +266,7 @@ const MyOrders = () => {
                     <span style={{ marginLeft: '4px' }}>
                       {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                     </span>
-                  </Tag>
+                  </Tag> */}
                 </div>
                 
                 <Text style={styles.statusMessage}>{order.statusMessage}</Text>
