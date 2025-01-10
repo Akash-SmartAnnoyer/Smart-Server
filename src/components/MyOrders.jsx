@@ -82,10 +82,10 @@ const MyOrders = () => {
   const styles = {
     container: {
       padding: '16px',
-      maxWidth: '100%',
+      maxWidth: '1200px',
+      margin: '100px auto',
       background: 'linear-gradient(135deg, #fff5f5 0%, #ffffff 100%)',
       minHeight: '100vh',
-      marginTop : "100px"
     },
     header: {
       textAlign: 'center',
@@ -108,10 +108,10 @@ const MyOrders = () => {
     },
     card: {
       borderRadius: '12px',
-      marginBottom: '16px',
       border: 'none',
       boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
       background: '#ffffff',
+      height: '100%',
     },
     orderNumber: {
       color: 'red',
@@ -160,6 +160,12 @@ const MyOrders = () => {
       textAlign: 'center',
       padding: '40px 20px',
       color: '#666',
+    },
+    orderGrid: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
+      gap: '20px',
+      padding: '0 16px',
     },
   };
 
@@ -223,6 +229,15 @@ const MyOrders = () => {
       </div>
 
       <List
+        grid={{ 
+          gutter: 20,
+          xs: 1,
+          sm: 2,
+          md: 2,
+          lg: 3,
+          xl: 3,
+          xxl: 4,
+        }}
         dataSource={activeOrders}
         locale={{ 
           emptyText: (
@@ -233,7 +248,7 @@ const MyOrders = () => {
           ) 
         }}
         renderItem={(order) => (
-          <List.Item style={{ padding: 0, marginBottom: '16px' }}>
+          <List.Item style={{ marginBottom: '16px' }}>
             <Card style={styles.card} bodyStyle={{ padding: '16px' }}>
               <Space direction="vertical" size="middle" style={{ width: '100%' }}>
                 <div style={styles.statusContainer}>
