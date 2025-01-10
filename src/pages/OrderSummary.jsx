@@ -178,7 +178,8 @@ useEffect(() => {
         timestamp: new Date().toISOString(),
         status: 'pending',
         statusMessage: 'Your order is being processed',
-        description
+        description,
+        displayOrderId: orderId
       };
 
       // Add to context first for immediate UI update

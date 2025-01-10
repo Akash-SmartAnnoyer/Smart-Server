@@ -69,6 +69,7 @@ const WaitingScreen = () => {
   const ws = useRef(null);
   const audioRef = useRef(new Audio(notificationSound));
   const [currentGifIndex, setCurrentGifIndex] = useState(0);
+  const [isGeneratingOrderId, setIsGeneratingOrderId] = useState(true);
 
   // Update localStorage whenever soundEnabled changes
   useEffect(() => {
@@ -85,12 +86,15 @@ const WaitingScreen = () => {
           const fetchedOrder = await response.json();
           if (!fetchedOrder) throw new Error('Order not found');
           setOrder({ ...fetchedOrder, displayOrderId: fetchedOrder.id || orderId });
+          setIsGeneratingOrderId(false); // Hide loading once we have the order
         } catch (error) {
           console.error('Failed to fetch order', error);
           message.error('Failed to fetch order');
         }
       };
       fetchOrder();
+    } else {
+      setIsGeneratingOrderId(false); // Hide loading if we already have the order
     }
     
     // WebSocket setup
@@ -117,7 +121,7 @@ const WaitingScreen = () => {
           duration: 4.5,
         });
       }
-    };
+    };  
 
     return () => {
       if (ws.current) ws.current.close();
@@ -370,7 +374,16 @@ const WaitingScreen = () => {
     transition: 'transform 0.3s ease',
   }}
 >
-  <Title level={3} style={{ color: '#343a40' }}>Order #{order.displayOrderId}</Title>
+  <Title level={3} style={{ color: '#343a40' }}>
+    {isGeneratingOrderId ? (
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+        <span>Generating Order</span>
+        <Spin size="small" />
+      </div>
+    ) : (
+      `Order #${order.displayOrderId}`
+    )}
+  </Title>
 
   {/* Order Details Section with scroll */}
   <Collapse 
