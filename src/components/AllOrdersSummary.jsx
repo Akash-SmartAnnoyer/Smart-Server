@@ -176,9 +176,9 @@ function AllOrdersSummary() {
     // For each order, add a section
     activeOrders.forEach((order, index) => {
       yPos += 15;
-      doc.setFontSize(12);
+      doc.setFontSize(12);  
       doc.setFont('helvetica', 'bold');
-      doc.text(`Order #${order.id} - ${order.status}`, margin, yPos);
+      doc.text(`Order #${order.id}`, margin, yPos);
 
       // Items table for this order
       yPos += 10;
@@ -322,7 +322,10 @@ function AllOrdersSummary() {
             <Panel 
               header={
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                  <span>Order #{order.id} - {order.status}</span>
+                  <span>Order #{order.id}
+                     {/* - {order.status} */}
+
+                  </span>
                   <span style={{ fontWeight: 'bold' }}>₹{calculateOrderTotal(order.items).toFixed(2)}</span>
                 </div>
               }

@@ -11,7 +11,7 @@ const FooterNavigation = () => {
   const customerLinks = [
     { path: '/home', icon: Home, label: 'Menu' },
     { path: '/cart', icon: ShoppingBag, label: 'Cart' },
-    { path: '/summary-view', icon: FileText, label: 'Summary' },
+    { path: '/all-orders-summary', icon: FileText, label: 'Summary' },
     { path: '/my-orders', icon: History, label: 'My Order' }
   ];
 
