@@ -14,7 +14,7 @@ import { useAdminOrders } from '../context/AdminOrderContext';
 const { Title, Text } = Typography;
 
 const MyOrders = () => {
-  const { orders, loading } = useAdminOrders();
+  const { orders, loading, addOrder, updateOrderStatus } = useAdminOrders();
   const navigate = useNavigate();
   const [ws, setWs] = useState(null);
   const tableNumber = localStorage.getItem('tableNumber');
@@ -32,15 +32,16 @@ const MyOrders = () => {
       
       // Handle new orders
       if (data.type === 'newOrder' && data.order.tableNumber === tableNumber) {
-        // The AdminOrderContext will handle adding the new order to the orders array
-        console.log('New order received:', data.order);
+        // Update the orders array with the new order
+        addOrder(data.order);
       }
       
       // Handle status updates
       if (data.type === 'statusUpdate' && orders.some(order => 
         order.id === data.orderId && order.tableNumber === tableNumber
       )) {
-        console.log('Status update received:', data);
+        // Update the order status
+        updateOrderStatus(data.orderId, data.status, data.statusMessage);
       }
     };
 

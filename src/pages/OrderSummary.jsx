@@ -184,7 +184,18 @@ useEffect(() => {
       // Add to context first for immediate UI update
       addOrder(orderDetails);
 
-      // Then save to Firebase
+      // Send WebSocket notification before navigation
+      if (ws.current?.readyState === WebSocket.OPEN) {
+        await new Promise((resolve) => {
+          ws.current.send(JSON.stringify({ 
+            type: 'newOrder', 
+            order: orderDetails 
+          }));
+          resolve();
+        });
+      }
+
+      // Save to Firebase
       const orderResponse = await fetch(`https://smartdb-175f4-default-rtdb.firebaseio.com/history/${orderId}.json`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -193,11 +204,6 @@ useEffect(() => {
 
       if (!orderResponse.ok) {
         throw new Error('Failed to save order');
-      }
-
-      // WebSocket notification
-      if (ws.current?.readyState === WebSocket.OPEN) {
-        ws.current.send(JSON.stringify({ type: 'newOrder', order: orderDetails }));
       }
 
       clearCart();
