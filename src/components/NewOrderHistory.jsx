@@ -158,8 +158,8 @@ function NewOrderHistory() {
                   borderRadius: '20px',
                   fontWeight: '600'
                 }}>
-                  ₹{order.total}
-                </div>
+                        ₹{parseFloat(order.total).toFixed(2)}
+                        </div>
               </Col>
             </Row>
           </div>
@@ -374,8 +374,8 @@ function NewOrderHistory() {
                               borderRadius: '20px',
                               fontWeight: '600'
                             }}>
-                              ₹{order.total}
-                            </div>
+                        ₹{parseFloat(order.total).toFixed(2)}
+                        </div>
                           </Col>
                         </Row>
                       </div>

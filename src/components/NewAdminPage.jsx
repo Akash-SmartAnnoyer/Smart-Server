@@ -406,9 +406,8 @@ const NewAdminPage = () => {
                       alignItems: 'center',
                       gap: '5px'
                     }}>
-                      <DollarOutlined style={{ color: '#ff4d4f' }} />
                       <Text strong style={{ color: '#ff4d4f' }}>
-                        ₹{order.total}
+                        ₹{parseFloat(order.total).toFixed(2)}
                       </Text>
                     </div>
                   </div>

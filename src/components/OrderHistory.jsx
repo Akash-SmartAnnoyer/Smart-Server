@@ -186,8 +186,8 @@ function OrderHistory() {
                     borderRadius: '20px',
                     fontWeight: '600'
                   }}>
-                    ₹{order.total}
-                  </div>
+                        ₹{parseFloat(order.total).toFixed(2)}
+                        </div>
                 </Col>
               </Row>
             </div>
@@ -447,14 +447,13 @@ function OrderHistory() {
                           alignItems: 'center',
                           gap: '5px'
                         }}>
-                          <DollarOutlined style={{ color: '#ff4d4f' }} />
                           <span style={{ 
                             fontSize: '1.2rem', 
                             fontWeight: '600', 
                             color: '#ff4d4f' 
                           }}>
-                            ₹{order.total}
-                          </span>
+                        ₹{parseFloat(order.total).toFixed(2)}
+                        </span>
                         </div>
                       </div>
 
