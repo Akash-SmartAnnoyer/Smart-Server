@@ -27,6 +27,7 @@ import { OrderProvider } from './context/OrderContext';
 import { AdminOrderProvider } from './context/AdminOrderContext';
 import NewAdminPage from './components/NewAdminPage';
 import { NewOrderHistory } from './components/NewOrderHistory';
+import AllOrdersSummary from './components/AllOrdersSummary';
 
 const App = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -88,6 +89,7 @@ const App = () => {
                               <Route path="/my-orders" element={<MyOrders />} />
                               <Route path="/menu-suggestion" element={<MenuSuggestionManager />} />
                               <Route path='/charges-management' element={<ChargesManagement />} />
+                              <Route path="/all-orders-summary" element={<AllOrdersSummary />} />
                             </Routes>
                           </div>
                           <FooterNavigation />
