@@ -14,7 +14,7 @@ import { useAdminOrders } from '../context/AdminOrderContext';
 const { Title, Text } = Typography;
 
 const MyOrders = () => {
-  const { orders, loading, addOrder, updateOrderStatus } = useAdminOrders();
+  const { orders, loading, addOrder, updateOrderStatus } = useAdminOrders() || {};
   const navigate = useNavigate();
   const [ws, setWs] = useState(null);
   const tableNumber = localStorage.getItem('tableNumber');
@@ -25,6 +25,9 @@ const MyOrders = () => {
 
     websocket.onopen = () => {
       console.log('WebSocket connected in MyOrders');
+      // Send subscription message with orgId
+      const orgId = localStorage.getItem('orgId');
+      websocket.send(JSON.stringify({ type: 'subscribe', orgId }));
     };
 
     websocket.onmessage = (event) => {
@@ -32,15 +35,11 @@ const MyOrders = () => {
       
       // Handle new orders
       if (data.type === 'newOrder' && data.order.tableNumber === tableNumber) {
-        // Update the orders array with the new order
-        addOrder(data.order);
+        addOrder?.(data.order);
       }
       
       // Handle status updates
-      if (data.type === 'statusUpdate' && orders.some(order => 
-        order.id === data.orderId && order.tableNumber === tableNumber
-      )) {
-        // Update the order status
+      if (data.type === 'statusUpdate' && updateOrderStatus) {
         updateOrderStatus(data.orderId, data.status, data.statusMessage);
       }
     };
@@ -65,7 +64,7 @@ const MyOrders = () => {
         websocket.close();
       }
     };
-  }, [tableNumber]);
+  }, [tableNumber, updateOrderStatus, addOrder]);
 
   // Filter active orders for the current table
   const activeOrders = orders.filter(order => 
