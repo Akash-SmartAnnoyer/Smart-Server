@@ -108,6 +108,7 @@ function Header({ onSearch }) {
   const confirmSignOut = () => {
     localStorage.removeItem('adminToken');
     localStorage.removeItem('role');
+    localStorage.removeItem('orgId');
     setIsSignOutModalVisible(false);
     navigate('/');
   };
