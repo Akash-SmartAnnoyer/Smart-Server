@@ -24,12 +24,13 @@ function AllOrdersSummary() {
   const [charges, setCharges] = useState([]);
   const orgId = localStorage.getItem('orgId');
   const tableNumber = localStorage.getItem('tableNumber');
+  const customerId = localStorage.getItem('customerId');
   const [isCalculating, setIsCalculating] = useState(true);
 
-  // Filter active orders for the current table
+  // Filter active orders for the current customer
   const activeOrders = orders?.filter(order => 
     !['cancelled', 'completed'].includes(order.status) && 
-    order.tableNumber === tableNumber
+    order.customerId === customerId
   ) || [];
 
   // Calculate total for all active orders
