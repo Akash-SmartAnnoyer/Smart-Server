@@ -248,9 +248,9 @@ function NewOrderHistory() {
   );
 
   const loadMoreOrders = () => {
-    const lastOrder = orders[orders.length - 1];
-    if (lastOrder) {
-      fetchOrders(lastOrder.timestamp);
+    const oldestOrder = orders[orders.length - 1];
+    if (oldestOrder) {
+      fetchOrders(oldestOrder.timestamp);
     }
   };
 
