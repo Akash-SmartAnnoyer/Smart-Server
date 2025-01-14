@@ -1,6 +1,6 @@
 // src/components/NewAdminPage.jsx
 import React, { useState, useEffect, useRef } from 'react';
-import { Card, Tag, Select, Typography, message, Empty, Badge, Input, Switch } from 'antd';
+import { Card, Tag, Select, Typography, message, Empty, Badge, Input, Switch, Button } from 'antd';
 import {
   CheckOutlined,
   ClockCircleOutlined,
@@ -23,7 +23,7 @@ const { Option } = Select;
 const { Text } = Typography;
 
 const NewAdminPage = () => {
-  const { orders, loading, updateOrder, setOrders } = useAdminOrders();
+  const { orders, loading, updateOrder, setOrders, fetchOrders } = useAdminOrders();
   const [soundEnabled, setSoundEnabled] = useState(() => {
     // Initialize soundEnabled from localStorage
     const savedSoundSetting = localStorage.getItem('soundEnabled');
@@ -35,6 +35,7 @@ const NewAdminPage = () => {
   const audioRef = useRef(new Audio(notificationSound));
   const ws = useRef(null);
   const orgId = localStorage.getItem('orgId');
+  const [lastOrderTimestamp, setLastOrderTimestamp] = useState(null);
 
   // Map customer IDs to sequential numbers
   useEffect(() => {
@@ -247,6 +248,14 @@ const NewAdminPage = () => {
     return '#108ee9';
   };
 
+  const loadMoreOrders = () => {
+    const lastOrder = orders[orders.length - 1];
+    if (lastOrder) {
+      setLastOrderTimestamp(lastOrder.timestamp);
+      fetchOrders(lastOrder.timestamp);
+    }
+  };
+
   if (loading) {
     return (
       <div style={{
@@ -345,6 +354,11 @@ const NewAdminPage = () => {
               />
               <Text>Sound Alerts</Text>
             </div>
+            {filteredOrders.length > 0 && (
+              <Button onClick={loadMoreOrders} style={{ margin: '20px auto', display: 'block' }}>
+                Load More Orders
+              </Button>
+            )}
           </div>
         </div>
 
@@ -529,7 +543,6 @@ const NewAdminPage = () => {
                       </div>
                     ))}
                   </div>
-
                   <Select
                     value={order.status}
                     style={{ width: '100%', marginBottom: '10px' }}
@@ -553,6 +566,11 @@ const NewAdminPage = () => {
               </Badge.Ribbon>
             ))}
           </div>
+        )}
+        {filteredOrders.length > 0 && (
+          <button onClick={loadMoreOrders} style={{ margin: '20px auto', display: 'block' }}>
+            Load More Orders
+          </button>
         )}
       </div>
     </div>

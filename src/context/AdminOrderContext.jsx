@@ -8,12 +8,15 @@ export const AdminOrderProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const orgId = localStorage.getItem('orgId');
 
-  const fetchOrders = async () => {
+  const fetchOrders = async (startAfter = null, limit = 4) => {
     try {
       setLoading(true);
-      const response = await fetch(
-        `https://smartdb-175f4-default-rtdb.firebaseio.com/history.json?orderBy="orgId"&equalTo="${orgId}"`
-      );
+      let url = `https://smartdb-175f4-default-rtdb.firebaseio.com/history.json?orderBy="orgId"&equalTo="${orgId}"&limitToFirst=${limit}`;
+      if (startAfter) {
+        url = `https://smartdb-175f4-default-rtdb.firebaseio.com/history.json?orderBy="timestamp"&startAfter="${startAfter}"&limitToFirst=${limit}`;
+      }
+
+      const response = await fetch(url);
 
       if (!response.ok) throw new Error('Failed to fetch orders');
 
@@ -32,7 +35,7 @@ export const AdminOrderProvider = ({ children }) => {
         // .filter(order => !['cancelled', 'completed'].includes(order.status))
         .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
-      setOrders(ordersArray);
+      setOrders(prevOrders => [...prevOrders, ...ordersArray]);
     } catch (error) {
       console.error('Failed to fetch orders:', error);
     } finally {

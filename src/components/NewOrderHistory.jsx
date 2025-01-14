@@ -15,11 +15,12 @@ import { useAdminOrders } from '../context/AdminOrderContext';
 import FoodLoader from './FoodLoader';
 
 function NewOrderHistory() {
-  const { orders, loading, setOrders } = useAdminOrders();
+  const { orders, loading, setOrders, fetchOrders } = useAdminOrders();
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [customerIdMap, setCustomerIdMap] = useState({});
+  const [lastOrderTimestamp, setLastOrderTimestamp] = useState(null);
 
   const theme = {
     primary: '#ff4d4f',
@@ -246,6 +247,14 @@ function NewOrderHistory() {
     </div>
   );
 
+  const loadMoreOrders = () => {
+    const lastOrder = orders[orders.length - 1];
+    if (lastOrder) {
+      setLastOrderTimestamp(lastOrder.timestamp);
+      fetchOrders(lastOrder.timestamp);
+    }
+  };
+
   if (loading) {
     return (
       <div style={{
@@ -309,8 +318,12 @@ function NewOrderHistory() {
           }}
           allowClear
         />
+        {filteredOrders.length > 0 && (
+          <Button onClick={loadMoreOrders} style={{ margin: '20px auto', display: 'block' }}>
+            Load More Orders
+          </Button>
+        )}
       </div>
-
       <div style={{
         maxWidth: isMobile ? '100%' : '1200px',
         margin: '0 auto',
@@ -331,138 +344,143 @@ function NewOrderHistory() {
             }}
           />
         ) : (
-          isMobile ? renderMobileView() : (
-            <List
-              grid={{
-                gutter: 24,
-                xs: 1,
-                sm: 1,
-                md: 2,
-                lg: 2,
-                xl: 3,
-                xxl: 3,
-              }}
-              dataSource={filteredOrders}
-              renderItem={(order) => (
-                <List.Item>
-                  <Badge.Ribbon 
-                    text={getStatusInfo(order.status).text}
-                    color={getStatusInfo(order.status).color}
-                  >
-                    <Card
-                      hoverable
-                      style={{
-                        borderRadius: '15px',
-                        boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
-                        border: 'none'
-                      }}
+          <>
+            {isMobile ? renderMobileView() : (
+              <List
+                grid={{
+                  gutter: 24,
+                  xs: 1,
+                  sm: 1,
+                  md: 2,
+                  lg: 2,
+                  xl: 3,
+                  xxl: 3,
+                }}
+                dataSource={filteredOrders}
+                renderItem={(order) => (
+                  <List.Item>
+                    <Badge.Ribbon 
+                      text={getStatusInfo(order.status).text}
+                      color={getStatusInfo(order.status).color}
                     >
-                      <div style={{
-                        background: theme.secondary,
-                        margin: '-24px -24px 15px',
-                        padding: '15px 24px',
-                        borderBottom: `1px solid ${theme.border}`
-                      }}>
-                        <Row justify="space-between" align="middle">
-                          <Col>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <span style={{
-                                fontSize: '1.2rem',
-                                fontWeight: '600',
-                                color: theme.primary
-                              }}>
-                                #{order.id}
-                              </span>
-                            </div>
-                            <div style={{ color: theme.textLight, marginTop: '4px' }}>
-                            <TableOutlined /> Table {order.tableNumber}
-                              Customer {customerIdMap[order.customerId]}
-                            </div>
-                          </Col>
-                          <Col>
-                            <div style={{
-                              background: theme.primary,
-                              color: 'white',
-                              padding: '8px 16px',
-                              borderRadius: '20px',
-                              fontWeight: '600'
-                            }}>
-                        ₹{parseFloat(order.total).toFixed(2)}
-                        </div>
-                          </Col>
-                        </Row>
-                      </div>
-
-                      <div style={{ marginBottom: '15px' }}>
-                        {order?.items?.map((item, index) => (
-                          <div
-                            key={index}
-                            style={{
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              padding: '10px 0',
-                              borderBottom: index < order.items.length - 1 ? `1px dashed ${theme.border}` : 'none'
-                            }}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <Card
+                        hoverable
+                        style={{
+                          borderRadius: '15px',
+                          boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+                          border: 'none'
+                        }}
+                      >
+                        <div style={{
+                          background: theme.secondary,
+                          margin: '-24px -24px 15px',
+                          padding: '15px 24px',
+                          borderBottom: `1px solid ${theme.border}`
+                        }}>
+                          <Row justify="space-between" align="middle">
+                            <Col>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span style={{
+                                  fontSize: '1.2rem',
+                                  fontWeight: '600',
+                                  color: theme.primary
+                                }}>
+                                  #{order.id}
+                                </span>
+                              </div>
+                              <div style={{ color: theme.textLight, marginTop: '4px' }}>
+                              <TableOutlined /> Table {order.tableNumber}
+                                Customer {customerIdMap[order.customerId]}
+                              </div>
+                            </Col>
+                            <Col>
                               <div style={{
-                                background: theme.secondary,
-                                color: theme.primary,
-                                width: '28px',
-                                height: '28px',
-                                borderRadius: '50%',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
+                                background: theme.primary,
+                                color: 'white',
+                                padding: '8px 16px',
+                                borderRadius: '20px',
                                 fontWeight: '600'
                               }}>
-                                {item.quantity}
-                              </div>
-                              <span>{item.name}</span>
-                            </div>
-                            <span style={{ color: theme.primary, fontWeight: '600' }}>
-                              ₹{(item.price * item.quantity).toFixed(2)}
-                            </span>
+                          ₹{parseFloat(order.total).toFixed(2)}
                           </div>
-                        ))}
-                      </div>
+                            </Col>
+                          </Row>
+                        </div>
 
-                      <div style={{
-                        borderTop: `1px solid ${theme.border}`,
-                        paddingTop: '15px',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center'
-                      }}>
-                        <small style={{ color: theme.textLight }}>
-                          <ClockCircleOutlined style={{ marginRight: '5px' }} />
-                          {new Date(order.timestamp).toLocaleString()}
-                        </small>
-                        <Popconfirm
-                          title="Delete this order?"
-                          description="This action cannot be undone."
-                          onConfirm={() => handleDelete(order.id)}
-                          okText="Yes"
-                          cancelText="No"
-                          okButtonProps={{ 
-                            style: { background: theme.primary, borderColor: theme.primary }
-                          }}
-                        >
-                          <Button 
-                            type="text"
-                            danger
-                            icon={<DeleteOutlined />}
+                        <div style={{ marginBottom: '15px' }}>
+                          {order?.items?.map((item, index) => (
+                            <div
+                              key={index}
+                              style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                padding: '10px 0',
+                                borderBottom: index < order.items.length - 1 ? `1px dashed ${theme.border}` : 'none'
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div style={{
+                                  background: theme.secondary,
+                                  color: theme.primary,
+                                  width: '28px',
+                                  height: '28px',
+                                  borderRadius: '50%',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontWeight: '600'
+                                }}>
+                                  {item.quantity}
+                                </div>
+                                <span>{item.name}</span>
+                              </div>
+                              <span style={{ color: theme.primary, fontWeight: '600' }}>
+                                ₹{(item.price * item.quantity).toFixed(2)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div style={{
+                          borderTop: `1px solid ${theme.border}`,
+                          paddingTop: '15px',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center'
+                        }}>
+                          <small style={{ color: theme.textLight }}>
+                            <ClockCircleOutlined style={{ marginRight: '5px' }} />
+                            {new Date(order.timestamp).toLocaleString()}
+                          </small>
+                          <Popconfirm
+                            title="Delete this order?"
+                            description="This action cannot be undone."
+                            onConfirm={() => handleDelete(order.id)}
+                            okText="Yes"
+                            cancelText="No"
+                            okButtonProps={{ 
+                              style: { background: theme.primary, borderColor: theme.primary }
+                            }}
                           >
-                            Delete
-                          </Button>
-                        </Popconfirm>
-                      </div>
-                    </Card>
-                  </Badge.Ribbon>
-                </List.Item>
-              )}
-            />
-          )
+                            <Button 
+                              type="text"
+                              danger
+                              icon={<DeleteOutlined />}
+                            >
+                              Delete
+                            </Button>
+                          </Popconfirm>
+                        </div>
+                      </Card>
+                    </Badge.Ribbon>
+                  </List.Item>
+                )}
+              />
+            )}
+            <Button onClick={loadMoreOrders} style={{ margin: '20px auto', display: 'block' }}>
+              Load More Orders
+            </Button>
+          </>
         )}
       </div>
     </div>
