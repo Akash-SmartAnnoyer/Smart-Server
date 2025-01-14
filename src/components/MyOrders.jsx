@@ -287,7 +287,7 @@ const MyOrders = () => {
                 
                 <div style={styles.tableNumber}>
                 <TableOutlined style={{ color: '#ff4d4f' }} /> Table {order.tableNumber}
-                <CustomerServiceOutlined style={{ color: '#ff4d4f' }} /> Customer {customerIdMap[order.customerId]}
+                {/* <CustomerServiceOutlined style={{ color: '#ff4d4f' }} /> Customer {customerIdMap[order.customerId]} */}
                 </div>
 
                 <Button 
