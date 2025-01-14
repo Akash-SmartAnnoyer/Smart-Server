@@ -31,9 +31,20 @@ const NewAdminPage = () => {
   });
   const [searchQuery, setSearchQuery] = useState('');
   const [newOrders, setNewOrders] = useState([]);
+  const [customerIdMap, setCustomerIdMap] = useState({});
   const audioRef = useRef(new Audio(notificationSound));
   const ws = useRef(null);
   const orgId = localStorage.getItem('orgId');
+
+  // Map customer IDs to sequential numbers
+  useEffect(() => {
+    const uniqueCustomerIds = [...new Set(orders.map(order => order.customerId))];
+    const map = uniqueCustomerIds.reduce((acc, id, index) => {
+      acc[id] = index + 1;
+      return acc;
+    }, {});
+    setCustomerIdMap(map);
+  }, [orders]);
 
   // Update localStorage whenever soundEnabled changes
   useEffect(() => {
@@ -396,6 +407,7 @@ const NewAdminPage = () => {
                       }}>
                         <TableOutlined style={{ color: '#ff4d4f' }} />
                         <Text>Table {order.tableNumber}</Text>
+                        Customer {customerIdMap[order.customerId]}
                       </div>
                     </div>
                     <div style={{

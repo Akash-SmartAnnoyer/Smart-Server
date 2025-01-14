@@ -19,6 +19,7 @@ function NewOrderHistory() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [customerIdMap, setCustomerIdMap] = useState({});
 
   const theme = {
     primary: '#ff4d4f',
@@ -54,6 +55,16 @@ function NewOrderHistory() {
       setFilteredOrders(filtered);
     }
   }, [orders, searchQuery]);
+
+  // Map customer IDs to sequential numbers
+  useEffect(() => {
+    const uniqueCustomerIds = [...new Set(orders.map(order => order.customerId))];
+    const map = uniqueCustomerIds.reduce((acc, id, index) => {
+      acc[id] = index + 1;
+      return acc;
+    }, {});
+    setCustomerIdMap(map);
+  }, [orders]);
 
   const handleDelete = async (orderId) => {
     try {
@@ -147,7 +158,8 @@ function NewOrderHistory() {
                   </Tag>
                 </div>
                 <div style={{ color: theme.textLight, marginTop: '4px' }}>
-                  <TableOutlined /> Table {order.tableNumber}
+                <TableOutlined /> Table {order.tableNumber}
+                  Customer {customerIdMap[order.customerId]}
                 </div>
               </Col>
               <Col>
@@ -363,7 +375,8 @@ function NewOrderHistory() {
                               </span>
                             </div>
                             <div style={{ color: theme.textLight, marginTop: '4px' }}>
-                              <TableOutlined /> Table {order.tableNumber}
+                            <TableOutlined /> Table {order.tableNumber}
+                              Customer {customerIdMap[order.customerId]}
                             </div>
                           </Col>
                           <Col>

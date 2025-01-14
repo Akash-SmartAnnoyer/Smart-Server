@@ -6,7 +6,9 @@ import {
   SyncOutlined, 
   CheckOutlined, 
   ExclamationCircleOutlined,
-  ShopOutlined 
+  ShopOutlined, 
+  TableOutlined,
+  CustomerServiceOutlined
 } from '@ant-design/icons';
 import FoodLoader from './FoodLoader';
 import { useAdminOrders } from '../context/AdminOrderContext';
@@ -19,6 +21,17 @@ const MyOrders = () => {
   const [ws, setWs] = useState(null);
   const tableNumber = localStorage.getItem('tableNumber');
   const customerId = localStorage.getItem('customerId');
+  const [customerIdMap, setCustomerIdMap] = useState({});
+
+  // Map customer IDs to sequential numbers
+  useEffect(() => {
+    const uniqueCustomerIds = [...new Set(orders.map(order => order.customerId))];
+    const map = uniqueCustomerIds.reduce((acc, id, index) => {
+      acc[id] = index + 1;
+      return acc;
+    }, {});
+    setCustomerIdMap(map);
+  }, [orders]);
 
   // WebSocket connection setup
   useEffect(() => {
@@ -273,7 +286,8 @@ const MyOrders = () => {
                 <Text style={styles.statusMessage}>{order.statusMessage}</Text>
                 
                 <div style={styles.tableNumber}>
-                  <span>Table {order.tableNumber}</span>
+                <TableOutlined style={{ color: '#ff4d4f' }} /> Table {order.tableNumber}
+                <CustomerServiceOutlined style={{ color: '#ff4d4f' }} /> Customer {customerIdMap[order.customerId]}
                 </div>
 
                 <Button 
