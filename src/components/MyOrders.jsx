@@ -18,6 +18,7 @@ const MyOrders = () => {
   const navigate = useNavigate();
   const [ws, setWs] = useState(null);
   const tableNumber = localStorage.getItem('tableNumber');
+  const customerId = localStorage.getItem('customerId');
 
   // WebSocket connection setup
   useEffect(() => {
@@ -66,10 +67,10 @@ const MyOrders = () => {
     };
   }, [tableNumber, updateOrderStatus, addOrder]);
 
-  // Filter active orders for the current table
+  // Filter active orders for the current customer
   const activeOrders = orders.filter(order => 
     !['cancelled', 'completed'].includes(order.status) && 
-    order.tableNumber === tableNumber
+    order.customerId === customerId
   );
 
   const handleViewDetails = (order) => {

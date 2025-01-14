@@ -175,6 +175,7 @@ useEffect(() => {
         chargesBreakdown: breakdown,
         total: calculatedTotal,
         tableNumber,
+        customerId:localStorage.getItem('customerId'),
         timestamp: new Date().toISOString(),
         status: 'pending',
         statusMessage: 'Your order is being processed',

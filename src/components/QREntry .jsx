@@ -124,6 +124,8 @@ const QREntry = () => {
                     const isLocationVerified = await verifyLocation(restaurantData);
                     
                     if (isLocationVerified) {
+                        const customerId = `cust-${Math.random().toString(36).substr(2, 9)}`;
+                        localStorage.setItem('customerId', customerId);
                         localStorage.setItem('role', 'customer');
                         localStorage.setItem('orgId', orgId);
                         localStorage.setItem('tableNumber', tableNumber);
