@@ -24,6 +24,7 @@ function AllOrdersSummary() {
   const [charges, setCharges] = useState([]);
   const orgId = localStorage.getItem('orgId');
   const tableNumber = localStorage.getItem('tableNumber');
+  const [isCalculating, setIsCalculating] = useState(true);
 
   // Filter active orders for the current table
   const activeOrders = orders?.filter(order => 
@@ -102,6 +103,13 @@ function AllOrdersSummary() {
 
     fetchCharges();
   }, [orgId]);
+
+  useEffect(() => {
+    // Simulate calculation delay
+    setTimeout(() => {
+      setIsCalculating(false);
+    }, 1000); // Adjust the delay as needed
+  }, [activeOrders, charges]);
 
   const getImageUrl = (imageData) => {
     if (!imageData) return '';
@@ -322,11 +330,10 @@ function AllOrdersSummary() {
             <Panel 
               header={
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                  <span>Order #{order.id}
-                     {/* - {order.status} */}
-
+                  <span>Order #{order.id}</span>
+                  <span style={{ fontWeight: 'bold' }}>
+                    {isCalculating ? 'Calculating...' : `₹${calculateOrderTotal(order.items).toFixed(2)}`}
                   </span>
-                  <span style={{ fontWeight: 'bold' }}>₹{calculateOrderTotal(order.items).toFixed(2)}</span>
                 </div>
               }
               key={index}
