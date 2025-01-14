@@ -8,37 +8,50 @@ export const AdminOrderProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const orgId = localStorage.getItem('orgId');
 
-  const fetchOrders = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch(
-        `https://smartdb-175f4-default-rtdb.firebaseio.com/history.json?orderBy="orgId"&equalTo="${orgId}"`
-      );
 
-      if (!response.ok) throw new Error('Failed to fetch orders');
-
-      const data = await response.json();
-      
-      if (!data) {
-        setOrders([]);
-        return;
-      }
-
-      const ordersArray = Object.entries(data)
-        .map(([key, order]) => ({
-          ...order,
-          id: order.id || key
-        }))
-        // .filter(order => !['cancelled', 'completed'].includes(order.status))
-        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
-      setOrders(ordersArray);
-    } catch (error) {
-      console.error('Failed to fetch orders:', error);
-    } finally {
-      setLoading(false);
+const fetchOrders = async (endAt = null, limit = 5) => {
+  try {
+    setLoading(true);
+    let url = `https://smartdb-175f4-default-rtdb.firebaseio.com/history.json?orderBy="timestamp"&limitToLast=${limit}`;
+    if (endAt) {
+      url = `https://smartdb-175f4-default-rtdb.firebaseio.com/history.json?orderBy="timestamp"&endAt="${endAt}"&limitToLast=${limit + 1}`;
     }
-  };
+
+    const response = await fetch(url);
+
+    if (!response.ok) throw new Error('Failed to fetch orders');
+
+    const data = await response.json();
+
+    if (!data) {
+      setOrders([]);
+      return;
+    }
+
+    const ordersArray = Object.entries(data)
+      .map(([key, order]) => ({
+        ...order,
+        id: order.id || key
+      }))
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    // Remove the duplicate order that is the same as endAt
+    if (endAt) {
+      ordersArray.pop();
+    }
+
+    setOrders(prevOrders => {
+      const existingOrderIds = new Set(prevOrders.map(order => order.id));
+      const newOrders = ordersArray.filter(order => !existingOrderIds.has(order.id));
+      return [...prevOrders, ...newOrders];
+    });
+  } catch (error) {
+    console.error('Failed to fetch orders:', error);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const updateOrder = async (orderId, updates) => {
     try {
