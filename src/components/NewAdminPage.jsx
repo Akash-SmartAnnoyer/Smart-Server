@@ -251,7 +251,6 @@ const NewAdminPage = () => {
   const loadMoreOrders = () => {
     const lastOrder = orders[orders.length - 1];
     if (lastOrder) {
-      setLastOrderTimestamp(lastOrder.timestamp);
       fetchOrders(lastOrder.timestamp);
     }
   };
