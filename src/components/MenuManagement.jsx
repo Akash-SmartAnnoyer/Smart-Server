@@ -59,7 +59,7 @@ const { Option } = Select;
 const { Title, Text } = Typography;
 const { TextArea } = Input;
 
-const API_URL = 'https://smartdb-175f4-default-rtdb.firebaseio.com';
+const API_URL = 'https://production-db-993e8-default-rtdb.firebaseio.com';
 
 // Theme colors
 const theme = {

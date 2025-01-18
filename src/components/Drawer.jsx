@@ -40,7 +40,7 @@ const RestaurantDrawer = ({ isOpen, onClose }) => {
       }
   
       // Adding `.json` at the end of the Firebase Realtime Database URL
-      const response = await fetch('https://smartdb-175f4-default-rtdb.firebaseio.com/restaurants.json');
+      const response = await fetch('https://production-db-993e8-default-rtdb.firebaseio.com/restaurants.json');
       
       if (response.ok) {
         const data = await response.json();

@@ -12,9 +12,9 @@ export const AdminOrderProvider = ({ children }) => {
 const fetchOrders = async (endAt = null, limit = 5) => {
   try {
     setLoading(true);
-    let url = `https://smartdb-175f4-default-rtdb.firebaseio.com/history.json?orderBy="timestamp"&limitToLast=${limit}`;
+    let url = `https://production-db-993e8-default-rtdb.firebaseio.com/history.json?orderBy="timestamp"&limitToLast=${limit}`;
     if (endAt) {
-      url = `https://smartdb-175f4-default-rtdb.firebaseio.com/history.json?orderBy="timestamp"&endAt="${endAt}"&limitToLast=${limit + 1}`;
+      url = `https://production-db-993e8-default-rtdb.firebaseio.com/history.json?orderBy="timestamp"&endAt="${endAt}"&limitToLast=${limit + 1}`;
     }
 
     const response = await fetch(url);
@@ -56,7 +56,7 @@ const fetchOrders = async (endAt = null, limit = 5) => {
   const updateOrder = async (orderId, updates) => {
     try {
       const response = await fetch(
-        `https://smartdb-175f4-default-rtdb.firebaseio.com/history/${orderId}.json`,
+        `https://production-db-993e8-default-rtdb.firebaseio.com/history/${orderId}.json`,
         {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },

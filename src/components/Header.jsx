@@ -62,7 +62,7 @@ function Header({ onSearch }) {
     try {
       const orgId = localStorage.getItem('orgId');
       const response = await fetch(
-        `https://smartdb-175f4-default-rtdb.firebaseio.com/restaurants.json?orderBy="orgId"&equalTo="${orgId}"`
+        `https://production-db-993e8-default-rtdb.firebaseio.com/restaurants.json?orderBy="orgId"&equalTo="${orgId}"`
       );
       
       if (!response.ok) {

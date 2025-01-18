@@ -12,8 +12,8 @@ export const MenuProvider = ({ children }) => {
     setLoading(true);
     try {
       const [menuResponse, suggestionsResponse] = await Promise.all([
-        fetch('https://smartdb-175f4-default-rtdb.firebaseio.com/menu_items.json'),
-        fetch('https://smartdb-175f4-default-rtdb.firebaseio.com/menu_suggestions.json')
+        fetch('https://production-db-993e8-default-rtdb.firebaseio.com/menu_items.json'),
+        fetch('https://production-db-993e8-default-rtdb.firebaseio.com/menu_suggestions.json')
       ]);
       const menuData = await menuResponse.json();
       const suggestionsData = await suggestionsResponse.json();
@@ -39,7 +39,7 @@ export const MenuProvider = ({ children }) => {
 
   const updateSuggestions = async (updatedSuggestions) => {
     try {
-      const response = await fetch('https://smartdb-175f4-default-rtdb.firebaseio.com/menu_suggestions.json', {
+      const response = await fetch('https://production-db-993e8-default-rtdb.firebaseio.com/menu_suggestions.json', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

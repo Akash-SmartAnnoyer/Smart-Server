@@ -50,7 +50,7 @@ export function MenuProvider({ children }) {
       try {
         // Fetch categories with query parameter
         setLoading(prev => ({ ...prev, categories: true }));
-        const catData = await fetchData('https://smartdb-175f4-default-rtdb.firebaseio.com/categories.json', true);
+        const catData = await fetchData('https://production-db-993e8-default-rtdb.firebaseio.com/categories.json', true);
         const processedCategories = catData ? 
           Object.entries(catData)
             .map(([id, category]) => ({ id, ...category })) : 
@@ -61,9 +61,9 @@ export function MenuProvider({ children }) {
 
         // Fetch other data in parallel with query parameters
         const [subData, menuData, sugData] = await Promise.all([
-          fetchData('https://smartdb-175f4-default-rtdb.firebaseio.com/subcategories.json', true),
-          fetchData('https://smartdb-175f4-default-rtdb.firebaseio.com/menu_items.json', true),
-          fetchData('https://smartdb-175f4-default-rtdb.firebaseio.com/menu_suggestions.json') // No filter for suggestions
+          fetchData('https://production-db-993e8-default-rtdb.firebaseio.com/subcategories.json', true),
+          fetchData('https://production-db-993e8-default-rtdb.firebaseio.com/menu_items.json', true),
+          fetchData('https://production-db-993e8-default-rtdb.firebaseio.com/menu_suggestions.json') // No filter for suggestions
         ]);
 
         const processedSubcategories = subData ?
@@ -123,7 +123,7 @@ export function MenuProvider({ children }) {
 
   const updateSuggestions = async (updatedSuggestions) => {
     try {
-      const response = await fetch('https://smartdb-175f4-default-rtdb.firebaseio.com/menu_suggestions.json', {
+      const response = await fetch('https://production-db-993e8-default-rtdb.firebaseio.com/menu_suggestions.json', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

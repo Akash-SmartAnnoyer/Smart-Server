@@ -70,7 +70,7 @@ useEffect(() => {
           return;
         }
     
-        const response = await fetch('https://smartdb-175f4-default-rtdb.firebaseio.com/restaurants.json'); // Add .json
+        const response = await fetch('https://production-db-993e8-default-rtdb.firebaseio.com/restaurants.json'); // Add .json
         if (!response.ok) {
           throw new Error('Failed to fetch restaurant data');
         }
@@ -120,7 +120,7 @@ useEffect(() => {
     const fetchCharges = async () => {
       try {
         const orgId = localStorage.getItem('orgId');
-        const response = await fetch(`https://smartdb-175f4-default-rtdb.firebaseio.com/restaurants/${orgId}/charges.json`);
+        const response = await fetch(`https://production-db-993e8-default-rtdb.firebaseio.com/restaurants/${orgId}/charges.json`);
         const data = await response.json();
         if (data) {
           const chargesArray = Object.entries(data).map(([id, charge]) => ({
@@ -198,7 +198,7 @@ useEffect(() => {
       }
 
       // Save to Firebase
-      const orderResponse = await fetch(`https://smartdb-175f4-default-rtdb.firebaseio.com/history/${orderId}.json`, {
+      const orderResponse = await fetch(`https://production-db-993e8-default-rtdb.firebaseio.com/history/${orderId}.json`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(orderDetails),

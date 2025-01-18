@@ -1,7 +1,7 @@
 {
     "project_info": {
       "project_number": "607979767987",
-      "firebase_url": "https://smartdb-175f4-default-rtdb.firebaseio.com",
+      "firebase_url": "https://production-db-993e8-default-rtdb.firebaseio.com",
       "project_id": "stage-smart-server",
       "storage_bucket": "stage-smart-server.appspot.com"
     },

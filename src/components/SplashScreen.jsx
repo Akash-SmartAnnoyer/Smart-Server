@@ -9,7 +9,7 @@
 //     const [loading, setLoading] = useState(true);
 //     const [error, setError] = useState(null);
 //     const [animationPhase, setAnimationPhase] = useState('initial');
-//     const API_URL = 'https://smartdb-175f4-default-rtdb.firebaseio.com/restaurants';
+//     const API_URL = 'https://production-db-993e8-default-rtdb.firebaseio.com/restaurants';
 
 //     // Define keyframes as a string
 //     const keyframes = `

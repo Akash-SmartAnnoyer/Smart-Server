@@ -79,7 +79,7 @@ const RestaurantManagement = () => {
       setLoading(true);
       const orgId = localStorage.getItem('orgId');
       const response = await fetch(
-        `https://smartdb-175f4-default-rtdb.firebaseio.com/restaurants.json?orderBy="orgId"&equalTo="${orgId}"`
+        `https://production-db-993e8-default-rtdb.firebaseio.com/restaurants.json?orderBy="orgId"&equalTo="${orgId}"`
       );
   
       if (response.ok) {
@@ -116,7 +116,7 @@ const RestaurantManagement = () => {
     
     try {
       const { id, ...restaurantData } = restaurant;
-      const response = await fetch(`https://smartdb-175f4-default-rtdb.firebaseio.com/restaurants/${id}.json`, {
+      const response = await fetch(`https://production-db-993e8-default-rtdb.firebaseio.com/restaurants/${id}.json`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -191,7 +191,7 @@ const RestaurantManagement = () => {
         
         // Save to database
         const { id, ...restaurantData } = restaurant;
-        await fetch(`https://smartdb-175f4-default-rtdb.firebaseio.com/restaurants/${id}.json`, {
+        await fetch(`https://production-db-993e8-default-rtdb.firebaseio.com/restaurants/${id}.json`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -509,7 +509,7 @@ const RestaurantManagement = () => {
     setLoading(true);
     try {
       const { id } = restaurant;
-      const response = await fetch(`https://smartdb-175f4-default-rtdb.firebaseio.com/restaurants/${id}.json`, {
+      const response = await fetch(`https://production-db-993e8-default-rtdb.firebaseio.com/restaurants/${id}.json`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

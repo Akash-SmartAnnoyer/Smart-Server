@@ -53,7 +53,7 @@ function OrderHistory() {
 
   const handleDelete = async (orderId) => {
     try {
-      const deleteResponse = await fetch(`https://smartdb-175f4-default-rtdb.firebaseio.com/history/${orderId}.json`, {
+      const deleteResponse = await fetch(`https://production-db-993e8-default-rtdb.firebaseio.com/history/${orderId}.json`, {
         method: 'DELETE',
       });
 
