@@ -142,11 +142,17 @@ function AllOrdersSummary() {
 
     // Header with restaurant logo
     if (restaurantInfo.logo) {
-      const logoWidth = 40;
-      const logoHeight = 20;
-      const logoX = (pageWidth - logoWidth) / 2;
-      doc.addImage(restaurantInfo.logo, 'PNG', logoX, yPos, logoWidth, logoHeight);
-      yPos += logoHeight + 5;
+      try {
+        const logoWidth = 40;
+        const logoHeight = 20;
+        const logoX = (pageWidth - logoWidth) / 2;
+        doc.addImage(restaurantInfo.logo, 'PNG', logoX, yPos, logoWidth, logoHeight);
+        yPos += logoHeight + 5;
+      } catch (error) {
+        console.error('Error adding logo to PDF:', error);
+        showErrorModal('Failed to add restaurant logo to the bill.');
+        return;
+      }
     }
 
     // Restaurant name and details
@@ -402,6 +408,7 @@ function AllOrdersSummary() {
             borderRadius: '5px',
             cursor: 'pointer'
           }}
+          disabled={isCalculating}
         >
           Download Complete Bill
         </Button>
