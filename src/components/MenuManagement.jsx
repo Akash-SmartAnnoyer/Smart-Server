@@ -1813,7 +1813,8 @@ const ModernMenuItem = memo(({ item }) => (
                 overflow: 'hidden',
                 position: 'relative',
                 display: 'flex',
-                flexDirection: 'column'
+                flexDirection: 'column',
+                paddingBottom: '100px', 
               }}>
                 {activeTab === 'menu_items' && showFilters && (
                   <div style={{ flexShrink: 0 }}>
