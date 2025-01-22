@@ -1,12 +1,14 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from flask_socketio import SocketIO, emit
 import jwt
 from datetime import datetime, timedelta
 import os
 from functools import wraps
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "*"}})
+socketio = SocketIO(app, cors_allowed_origins="*")
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key')
 
 # Mock credentials with different orgIds (replace with database in production)
@@ -22,6 +24,9 @@ users = {
     'deliciousbites@foodies.com': {'password': 'D3l!c10usB!t3s', 'orgId': 9},
     'spicybiryani@spicydishes.com': {'password': 'Sp!cYB!rY@N!', 'orgId': 10}
 }
+
+# Keep track of connected clients
+connected_clients = set()
 
 # Token verification decorator
 def token_required(f):
@@ -61,5 +66,29 @@ def protected():
     orgId = jwt.decode(request.headers.get('Authorization'), app.config['SECRET_KEY'], algorithms=["HS256"])['orgId']
     return jsonify({'message': 'This is a protected route for orgId: {}'.format(orgId)})
 
+# WebSocket event handlers
+@socketio.on('connect')
+def handle_connect():
+    print('Client connected')
+    connected_clients.add(request.sid)
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    print('Client disconnected')
+    connected_clients.remove(request.sid)
+
+@socketio.on('newOrder')
+def handle_new_order(data):
+    print('New order received:', data)
+    # Broadcast the new order to all connected clients
+    emit('newOrder', data, broadcast=True)
+
+@socketio.on('statusUpdate')
+def handle_status_update(data):
+    print('Status update received:', data)
+    # Broadcast the status update to all connected clients
+    emit('statusUpdate', data, broadcast=True)
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get('PORT', 8080))
+    socketio.run(app, host='0.0.0.0', port=port)
