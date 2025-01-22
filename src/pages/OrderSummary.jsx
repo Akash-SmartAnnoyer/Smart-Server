@@ -49,7 +49,7 @@ function OrderSummary() {
 
   // Add WebSocket connection setup
 useEffect(() => {
-  ws.current = new WebSocket('wss://legend-sulfuric-ruby.glitch.me');
+  ws.current = new WebSocket('https://websocket-server-i210.onrender.com');
   
   ws.current.onopen = () => {
     console.log('WebSocket connected in OrderSummary');

@@ -65,7 +65,7 @@ const NewAdminPage = () => {
   useEffect(() => {
     // Function to establish WebSocket connection
     const connectWebSocket = () => {
-      const wsUrl = process.env.REACT_APP_WEBSOCKET_URL || 'wss://your-render-app.onrender.com';
+      const wsUrl = process.env.REACT_APP_WEBSOCKET_URL || 'https://websocket-server-i210.onrender.com';
       ws.current = new WebSocket(wsUrl);
 
       ws.current.onopen = () => {
