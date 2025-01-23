@@ -66,7 +66,7 @@ const NewAdminPage = () => {
   useEffect(() => {
     // Function to establish WebSocket connection
     const connectWebSocket = () => {
-ws.current = new WebSocket('ws://localhost:8080');
+ws.current = new WebSocket('wss://https://smart-menu-web-socket-server.onrender.com');
       ws.current.onopen = () => {
         console.log('WebSocket connected');
       };
