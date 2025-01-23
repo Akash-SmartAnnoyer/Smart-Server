@@ -70,7 +70,7 @@ ws.current = new WebSocket('wss://https://smart-menu-web-socket-server.onrender.
       ws.current.onopen = () => {
         console.log('WebSocket connected');
       };
-
+//testing commit
       ws.current.onmessage = (event) => {
         const data = JSON.parse(event.data);
         
