@@ -12,34 +12,39 @@ export const AdminOrderProvider = ({ children }) => {
   const fetchOrders = async (endAt = null, limit = 5) => {
     try {
       setLoading(true);
-      let url = `https://production-db-993e8-default-rtdb.firebaseio.com/history.json?orderBy="orgId"&equalTo="${orgId}"&limitToLast=${limit}`;
+      let url;
+      
       if (endAt) {
-        url = `https://production-db-993e8-default-rtdb.firebaseio.com/history.json?orderBy="orgId"&equalTo="${orgId}"&endAt="${endAt}"&limitToLast=${limit + 1}`;
+        // Query orders before the endAt timestamp for the specific orgId
+        url = `https://production-db-993e8-default-rtdb.firebaseio.com/history.json?orderBy="timestamp"&endAt="${endAt}"&limitToLast=${limit + 1}`;
+      } else {
+        // Initial load - get the most recent orders
+        url = `https://production-db-993e8-default-rtdb.firebaseio.com/history.json?orderBy="timestamp"&limitToLast=${limit}`;
       }
-  
+
       const response = await fetch(url);
-  
       if (!response.ok) throw new Error('Failed to fetch orders');
-  
+
       const data = await response.json();
-  
       if (!data) {
         setOrders([]);
         return;
       }
-  
+
+      // Filter for matching orgId after fetching
       const ordersArray = Object.entries(data)
         .map(([key, order]) => ({
           ...order,
           id: order.id || key
         }))
+        .filter(order => order.orgId === orgId) // Filter for matching orgId
         .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-  
+
       // Remove the duplicate order that is the same as endAt
       if (endAt) {
         ordersArray.pop();
       }
-  
+
       setOrders(prevOrders => {
         const existingOrderIds = new Set(prevOrders.map(order => order.id));
         const newOrders = ordersArray.filter(order => !existingOrderIds.has(order.id));
