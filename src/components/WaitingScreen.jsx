@@ -77,25 +77,23 @@ const WaitingScreen = () => {
   }, [soundEnabled]);
 
   useEffect(() => {
-    // Only fetch if order is not in context
-    if (!order) {
-      const fetchOrder = async () => {
-        try {
-          const response = await fetch(`https://production-db-993e8-default-rtdb.firebaseio.com/history/${orderId}.json`);
-          if (!response.ok) throw new Error('Failed to fetch order');
-          const fetchedOrder = await response.json();
-          if (!fetchedOrder) throw new Error('Order not found');
-          setOrder({ ...fetchedOrder, displayOrderId: fetchedOrder.id || orderId });
-          setIsGeneratingOrderId(false); // Hide loading once we have the order
-        } catch (error) {
-          console.error('Failed to fetch order', error);
-          message.error('Failed to fetch order');
-        }
-      };
-      fetchOrder();
-    } else {
-      setIsGeneratingOrderId(false); // Hide loading if we already have the order
-    }
+    // Always fetch the latest order data when component mounts
+    const fetchOrder = async () => {
+      try {
+        const response = await fetch(`https://production-db-993e8-default-rtdb.firebaseio.com/history/${orderId}.json`);
+        if (!response.ok) throw new Error('Failed to fetch order');
+        const fetchedOrder = await response.json();
+        if (!fetchedOrder) throw new Error('Order not found');
+        setOrder({ ...fetchedOrder, displayOrderId: fetchedOrder.id || orderId });
+        setIsGeneratingOrderId(false);
+      } catch (error) {
+        console.error('Failed to fetch order', error);
+        message.error('Failed to fetch order');
+      }
+    };
+
+    // Always fetch fresh data when component mounts
+    fetchOrder();
     
     // WebSocket setup
     ws.current = new WebSocket('wss://legend-sulfuric-ruby.glitch.me');
@@ -126,7 +124,7 @@ const WaitingScreen = () => {
     return () => {
       if (ws.current) ws.current.close();
     };
-  }, [orderId, soundEnabled, order]);
+  }, [orderId, soundEnabled]);
 
   // Replace the existing useEffect for GIF rotation with:
   useEffect(() => {

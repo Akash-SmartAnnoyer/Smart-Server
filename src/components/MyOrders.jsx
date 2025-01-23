@@ -87,9 +87,7 @@ const MyOrders = () => {
   );
 
   const handleViewDetails = (order) => {
-    navigate(`/waiting/${order.id}`, { 
-      state: { orderDetails: order }
-    });
+    navigate(`/waiting/${order.id}`);
   };
 
   // Main styles object
