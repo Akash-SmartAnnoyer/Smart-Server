@@ -18,6 +18,7 @@ import {
 import { useAdminOrders } from '../context/AdminOrderContext';
 import FoodLoader from './FoodLoader';
 import notificationSound from './notification.mp3';
+import { NotebookPen } from 'lucide-react';
 
 const { Option } = Select;
 const { Text } = Typography;
@@ -436,6 +437,19 @@ const NewAdminPage = () => {
                       </Text>
                     </div>
                   </div>
+                  {order.description && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      marginBottom: '8px'
+                    }}>
+                      <NotebookPen />
+                      <Text>
+                        {order.description}
+                      </Text>
+                    </div>
+                  )}
 
                   <div style={{
                     background: 'rgba(255, 255, 255, 0.8)',

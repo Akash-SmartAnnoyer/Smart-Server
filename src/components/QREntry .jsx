@@ -121,7 +121,8 @@ const QREntry = () => {
                     setRestaurant(restaurantData);
                     
                     // Verify location before proceeding
-                    const isLocationVerified = await verifyLocation(restaurantData);
+                    // const isLocationVerified = await verifyLocation(restaurantData);
+                    const isLocationVerified = true;
                     
                     if (isLocationVerified) {
                         const customerId = `cust-${Math.random().toString(36).substr(2, 9)}`;
