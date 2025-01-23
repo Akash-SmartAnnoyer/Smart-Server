@@ -66,8 +66,7 @@ const NewAdminPage = () => {
   useEffect(() => {
     // Function to establish WebSocket connection
     const connectWebSocket = () => {
-      ws.current = new WebSocket('wss://legend-sulfuric-ruby.glitch.me');
-
+ws.current = new WebSocket('ws://localhost:8080');
       ws.current.onopen = () => {
         console.log('WebSocket connected');
       };
