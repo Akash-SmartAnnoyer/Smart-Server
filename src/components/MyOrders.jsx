@@ -35,6 +35,8 @@ const MyOrders = () => {
 
   // WebSocket connection setup
   useEffect(() => {
+    // ws.current = new WebSocket('wss://legend-sulfuric-ruby.glitch.me');
+
     const websocket = new WebSocket('wss://https://smart-menu-web-socket-server.onrender.com');
 
     websocket.onopen = () => {

@@ -96,6 +96,8 @@ const WaitingScreen = () => {
     fetchOrder();
     
     // WebSocket setup
+    // ws.current = new WebSocket('wss://legend-sulfuric-ruby.glitch.me');
+
     ws.current = new WebSocket('wss://https://smart-menu-web-socket-server.onrender.com');
 
     ws.current.onopen = () => {
