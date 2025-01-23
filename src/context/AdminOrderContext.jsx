@@ -89,7 +89,7 @@ export const AdminOrderProvider = ({ children }) => {
 
   useEffect(() => {
     if (orgId) {
-      const ws = new WebSocket('wss://legend-sulfuric-ruby.glitch.me');
+      const ws = new WebSocket('wss://https://smart-menu-web-socket-server.onrender.com');
       
       ws.onopen = () => {
         console.log('WebSocket connected in AdminOrderContext');

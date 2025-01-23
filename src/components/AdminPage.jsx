@@ -82,7 +82,7 @@ const AdminOrderComponent = () => {
     fetchOrders();
 
     // Set up WebSocket connection
-    ws.current = new WebSocket('wss://legend-sulfuric-ruby.glitch.me');
+    ws.current = new WebSocket('wss://https://smart-menu-web-socket-server.onrender.com');
 
     ws.current.onopen = () => {
       console.log('WebSocket connected');
