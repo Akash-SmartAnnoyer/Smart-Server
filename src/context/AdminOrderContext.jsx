@@ -96,7 +96,7 @@ export const AdminOrderProvider = ({ children }) => {
     if (orgId) {
       // ws.current = new WebSocket('wss://legend-sulfuric-ruby.glitch.me');
 
-      const ws = new WebSocket('wss://https://smart-menu-web-socket-server.onrender.com');
+      const ws = new WebSocket('wss://smart-menu-web-socket-server.onrender.com');
       
       ws.onopen = () => {
         console.log('WebSocket connected in AdminOrderContext');

@@ -37,7 +37,7 @@ const MyOrders = () => {
   useEffect(() => {
     // ws.current = new WebSocket('wss://legend-sulfuric-ruby.glitch.me');
 
-    const websocket = new WebSocket('wss://https://smart-menu-web-socket-server.onrender.com');
+    const websocket = new WebSocket('wss://smart-menu-web-socket-server.onrender.com');
 
     websocket.onopen = () => {
       console.log('WebSocket connected in MyOrders');
@@ -69,7 +69,7 @@ const MyOrders = () => {
       // Attempt to reconnect after a delay
       setTimeout(() => {
         console.log('Attempting to reconnect...');
-        setWs(new WebSocket('wss://https://smart-menu-web-socket-server.onrender.com'));
+        setWs(new WebSocket('wss://smart-menu-web-socket-server.onrender.com'));
       }, 3000);
     };
 

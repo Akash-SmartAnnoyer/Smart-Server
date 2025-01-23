@@ -98,7 +98,7 @@ const WaitingScreen = () => {
     // WebSocket setup
     // ws.current = new WebSocket('wss://legend-sulfuric-ruby.glitch.me');
 
-    ws.current = new WebSocket('wss://https://smart-menu-web-socket-server.onrender.com');
+    ws.current = new WebSocket('wss://smart-menu-web-socket-server.onrender.com');
 
     ws.current.onopen = () => {
       const orgId = localStorage.getItem('orgId');
