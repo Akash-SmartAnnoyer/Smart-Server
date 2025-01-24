@@ -1,6 +1,6 @@
 // src/components/NewOrderHistory.jsx
 import React, { useState, useEffect } from 'react';
-import { List, Card, Button, Popconfirm, Tag, Empty, Badge, Input, Row, Col, message } from 'antd';
+import { List, Card, Button, Popconfirm, Tag, Empty, Badge, Input, Row, Col, message, Rate } from 'antd';
 import { 
   DeleteOutlined, 
   ClockCircleOutlined, 
@@ -9,7 +9,8 @@ import {
   CheckCircleOutlined,
   InfoCircleOutlined,
   CloseCircleOutlined,
-  ShoppingOutlined
+  ShoppingOutlined,
+  CommentOutlined
 } from '@ant-design/icons';
 import { useAdminOrders } from '../context/AdminOrderContext';
 import FoodLoader from './FoodLoader';
@@ -122,6 +123,50 @@ function NewOrderHistory() {
     return statusConfig[status] || { color: '#d9d9d9', icon: <InfoCircleOutlined />, text: status };
   };
 
+  const renderFeedback = (order) => {
+    if (!order.feedback) return null;
+    
+    return (
+      <div style={{
+        background: '#f8f8f8',
+        padding: '12px',
+        borderRadius: '8px',
+        marginTop: '15px',
+        marginBottom: '15px'
+      }}>
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '8px',
+          marginBottom: '8px' 
+        }}>
+          <CommentOutlined style={{ color: theme.primary }} />
+          <span style={{ fontWeight: '600' }}>Customer Feedback</span>
+        </div>
+        <Rate 
+          disabled 
+          value={order.feedback.rating} 
+          style={{ fontSize: '16px', marginBottom: '8px' }}
+        />
+        <div style={{ 
+          color: theme.textLight,
+          fontSize: '0.9rem',
+          marginTop: '4px'
+        }}>
+          "{order.feedback.feedback}"
+        </div>
+        <small style={{ 
+          display: 'block',
+          marginTop: '8px',
+          color: theme.textLight 
+        }}>
+          <ClockCircleOutlined style={{ marginRight: '5px' }} />
+          {new Date(order.feedback.timestamp).toLocaleString()}
+        </small>
+      </div>
+    );
+  };
+
   const renderMobileView = () => (
     <div style={{ padding: '10px' }}>
       {filteredOrders.map((order) => (
@@ -210,6 +255,8 @@ function NewOrderHistory() {
               </div>
             ))}
           </div>
+
+          {renderFeedback(order)}
 
           <div style={{
             padding: '15px',
@@ -439,6 +486,8 @@ function NewOrderHistory() {
                             </div>
                           ))}
                         </div>
+
+                        {renderFeedback(order)}
 
                         <div style={{
                           borderTop: `1px solid ${theme.border}`,

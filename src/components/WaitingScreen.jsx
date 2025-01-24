@@ -308,29 +308,49 @@ const WaitingScreen = () => {
       orderId: orderId,
       feedback,
       rating,
+      timestamp: new Date().toISOString(),
+      customerId: order.customerId,
+      tableNumber: order.tableNumber
     };
-  
+
     try {
-      const response = await fetch('https://production-db-993e8-default-rtdb.firebaseio.com/feedback.json', {
+      // Update the order with feedback in Firebase
+      const orderUpdateResponse = await fetch(`https://production-db-993e8-default-rtdb.firebaseio.com/history/${orderId}.json`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          feedback: feedbackDetails
+        }),
+      });
+
+      if (!orderUpdateResponse.ok) {
+        throw new Error('Failed to update order with feedback');
+      }
+
+      // Also save to separate feedback collection for easier querying
+      const feedbackResponse = await fetch('https://production-db-993e8-default-rtdb.firebaseio.com/feedback.json', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(feedbackDetails),
       });
-  
-      if (!response.ok) {
+
+      if (!feedbackResponse.ok) {
         throw new Error('Failed to save feedback');
       }
-  
+
       message.success('Thank you for your feedback!');
       setIsModalVisible(false);
-      navigate('/home'); // Redirect after submission
+      navigate('/home');
     } catch (error) {
       console.error('Failed to save feedback', error);
       message.error('Failed to submit feedback. Please try again.');
     }
-  }
+  };
+
   const handleCancelModalClose = () => {
     setCancelModalVisible(false);
     navigate(`/home/`);
