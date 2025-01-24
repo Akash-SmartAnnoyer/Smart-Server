@@ -66,11 +66,10 @@ const NewAdminPage = () => {
   useEffect(() => {
     // Function to establish WebSocket connection
     const connectWebSocket = () => {
-ws.current = new WebSocket('wss://smart-menu-web-socket-server.onrender.com');
+      ws.current = new WebSocket('wss://smart-menu-web-socket-server.onrender.com');
       ws.current.onopen = () => {
         console.log('WebSocket connected');
       };
-//testing commit
       ws.current.onmessage = (event) => {
         const data = JSON.parse(event.data);
         
@@ -254,6 +253,16 @@ ws.current = new WebSocket('wss://smart-menu-web-socket-server.onrender.com');
       fetchOrders(oldestOrder.timestamp);
     }
   };
+
+  useEffect(() => {
+    // Check if page needs refresh
+    const needRefresh = localStorage.getItem('needRefresh');
+    if (needRefresh !== 'no') {
+      // Set flag to 'no' before refreshing to prevent refresh loop
+      localStorage.setItem('needRefresh', 'no');
+      window.location.reload();
+    }
+  }, []); // Empty dependency array ensures this runs only once on mount
 
   if (loading) {
     return (
