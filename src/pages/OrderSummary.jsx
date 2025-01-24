@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Modal, Button, Checkbox, Input, Typography, message, Card, Alert } from 'antd';
 import { CoffeeOutlined, SmileOutlined,ExclamationCircleOutlined, PlusCircleOutlined, CheckOutlined, ShoppingCartOutlined, GifOutlined, ThunderboltFilled } from '@ant-design/icons';
 import { useCart } from '../contexts/CartContext';
@@ -43,9 +43,10 @@ function OrderSummary() {
   const [description, setDescription] = useState('');
   const ws = useRef(null);
   const [charges, setCharges] = useState([]);
-  const [chargesLoading, setChargesLoading] = useState(true);
+  const [chargesLoading, setChargesLoading] = useState(false);
   const { restaurantDetails, charges: contextCharges, addOrder } = useOrders();
   const [locationError, setLocationError] = useState(null);
+  const [restaurantData, setRestaurantData] = useState(null);
 
   // Add WebSocket connection setup
 useEffect(() => {
@@ -115,34 +116,55 @@ ws.current = new WebSocket('wss://smart-menu-web-socket-server.onrender.com');
     return () => clearInterval(interval);
   }, []);
 
+  // Combined fetch for restaurant data and charges
   useEffect(() => {
-    const fetchCharges = async () => {
+    const fetchData = async () => {
       try {
         const orgId = localStorage.getItem('orgId');
-        const response = await fetch(`https://production-db-993e8-default-rtdb.firebaseio.com/restaurants/${orgId}/charges.json`);
-        const data = await response.json();
-        if (data) {
-          const chargesArray = Object.entries(data).map(([id, charge]) => ({
-            id,
-            ...charge
-          }));
-          setCharges(chargesArray);
+        if (!orgId) {
+          console.error('No orgId found in localStorage');
+          return;
+        }
+
+        // If we already have charges in context, use those
+        if (contextCharges?.length > 0) {
+          setCharges(contextCharges);
+          setChargesLoading(false);
+          return;
+        }
+
+        // Only fetch if we don't have the data
+        if (!restaurantData) {
+          setChargesLoading(true);
+          const response = await fetch(`https://production-db-993e8-default-rtdb.firebaseio.com/restaurants/${orgId}/charges.json`);
+          if (!response.ok) throw new Error('Failed to fetch charges');
+          
+          const data = await response.json();
+          if (data) {
+            const chargesArray = Object.entries(data).map(([id, charge]) => ({
+              id,
+              ...charge
+            }));
+            setCharges(chargesArray);
+          }
         }
       } catch (error) {
-        console.error('Error fetching charges:', error);
+        console.error('Error fetching data:', error);
         message.error('Failed to fetch charges');
       } finally {
-        setChargesLoading(false); // Set loading to false after fetching
+        setChargesLoading(false);
       }
     };
 
-    fetchCharges();
-  }, []);
+    fetchData();
+  }, [contextCharges, restaurantData]);
 
-  // Calculate totals with charges
-  const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const enabledCharges = charges.filter(charge => charge.isEnabled);
-  const { total: calculatedTotal, breakdown } = calculateCharges(subtotal, enabledCharges);
+  // Memoize the charges calculation
+  const { total: calculatedTotal, breakdown } = useMemo(() => {
+    const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const enabledCharges = charges.filter(charge => charge.isEnabled);
+    return calculateCharges(subtotal, enabledCharges);
+  }, [cart, charges]);
 
   const handleTableNumberChange = (e) => {
     const value = e.target.value;
@@ -223,8 +245,8 @@ ws.current = new WebSocket('wss://smart-menu-web-socket-server.onrender.com');
         id: orderId,
         orgId: localStorage.getItem('orgId'),
         items: cart,
-        subtotal,
-        charges: enabledCharges,
+        subtotal: cart.reduce((sum, item) => sum + item.price * item.quantity, 0),
+        charges: charges.filter(charge => charge.isEnabled),
         chargesBreakdown: breakdown,
         total: calculatedTotal,
         tableNumber,
@@ -450,54 +472,66 @@ ws.current = new WebSocket('wss://smart-menu-web-socket-server.onrender.com');
         boxShadow: '0 2px 8px rgba(255, 77, 79, 0.1)',
         marginTop: '20px'
       }}>
-        <div className="subtotal" style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          marginBottom: '15px',
-          borderBottom: '2px dashed #ffcccb',
-          paddingBottom: '15px'
-        }}>
-          <span style={{ fontSize: '18px', color: '#666' }}>Subtotal</span>
-          <span style={{ fontSize: '18px', color: '#ff4d4f', fontWeight: 'bold' }}>
-            ₹{subtotal.toFixed(2)}
-          </span>
-        </div>
-        
-        {/* Charges Breakdown */}
         {chargesLoading ? (
-          <div style={{ textAlign: 'center', color: '#ff4d4f' }}>Loading charges...</div>
+          <div style={{ 
+            textAlign: 'center', 
+            padding: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '10px' 
+          }}>
+            <span className="loading-spinner"></span>
+            <span>Calculating total...</span>
+          </div>
         ) : (
-          Object.entries(breakdown).map(([name, detail]) => (
-            <div key={name} className="charge-item" style={{
+          <>
+            <div className="subtotal" style={{
               display: 'flex',
               justifyContent: 'space-between',
-              margin: '10px 0',
-              color: '#666'
+              marginBottom: '15px',
+              borderBottom: '2px dashed #ffcccb',
+              paddingBottom: '15px'
             }}>
-              <span style={{ fontSize: '16px' }}>
-                {name} 
-                {detail.type === 'percentage' && 
-                  <small style={{ color: '#999' }}> ({detail.value}%)</small>
-                }
+              <span style={{ fontSize: '18px', color: '#666' }}>Subtotal</span>
+              <span style={{ fontSize: '18px', color: '#ff4d4f', fontWeight: 'bold' }}>
+                ₹{cart.reduce((sum, item) => sum + item.price * item.quantity, 0).toFixed(2)}
               </span>
-              <span style={{ color: '#ff4d4f' }}>₹{detail.amount.toFixed(2)}</span>
             </div>
-          ))
-        )}
+            
+            {/* Charges Breakdown */}
+            {Object.entries(breakdown).map(([name, detail]) => (
+              <div key={name} className="charge-item" style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                margin: '10px 0',
+                color: '#666'
+              }}>
+                <span style={{ fontSize: '16px' }}>
+                  {name} 
+                  {detail.type === 'percentage' && 
+                    <small style={{ color: '#999' }}> ({detail.value}%)</small>
+                  }
+                </span>
+                <span style={{ color: '#ff4d4f' }}>₹{detail.amount.toFixed(2)}</span>
+              </div>
+            ))}
 
-        {/* Total Amount */}
-        <div className="total" style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          marginTop: '20px',
-          borderTop: '2px solid #ff4d4f',
-          paddingTop: '20px',
-          fontWeight: 'bold',
-          fontSize: '22px'
-        }}>
-          <span>Grand Total</span>
-          <span style={{ color: '#ff4d4f' }}>₹{calculatedTotal.toFixed(2)}</span>
-        </div>
+            {/* Total Amount */}
+            <div className="total" style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              marginTop: '20px',
+              borderTop: '2px solid #ff4d4f',
+              paddingTop: '20px',
+              fontWeight: 'bold',
+              fontSize: '22px'
+            }}>
+              <span>Grand Total</span>
+              <span style={{ color: '#ff4d4f' }}>₹{calculatedTotal.toFixed(2)}</span>
+            </div>
+          </>
+        )}
       </div>
 
 
@@ -632,5 +666,27 @@ ws.current = new WebSocket('wss://smart-menu-web-socket-server.onrender.com');
     </div>
   );
 }
+
+// Add some CSS for the loading spinner
+const styles = `
+  .loading-spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #ff4d4f;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+`;
+
+// Add the styles to the document
+const styleSheet = document.createElement("style");
+styleSheet.innerText = styles;
+document.head.appendChild(styleSheet);
 
 export default OrderSummary;
