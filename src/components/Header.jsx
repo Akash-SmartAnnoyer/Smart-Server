@@ -10,11 +10,13 @@ import {
   FileText, 
   ChevronDown, 
   LogOut, 
-  MapPinned
+  MapPinned,
+  User
 } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
 import './Header.css';
 import { Modal as AntModal } from 'antd';
+import { ProfileFilled } from '@ant-design/icons';
 
 function Header({ onSearch }) {
   const navigate = useNavigate();
@@ -28,6 +30,7 @@ function Header({ onSearch }) {
   const [role, setRole] = useState(localStorage.getItem('role'));
   const [restaurantDetails, setRestaurantDetails] = useState(null);
   const [isSignOutModalVisible, setIsSignOutModalVisible] = useState(false);
+  const [isProfileModalVisible, setIsProfileModalVisible] = useState(false);
 
   const searchPlaceholders = [
     "Search for your favorite dishes...",
@@ -251,6 +254,12 @@ function Header({ onSearch }) {
               <AiFillMail style={{ marginRight: '10px', color: '#ff4d4f' }} />
               {restaurantDetails.email}
             </p>
+            {role === 'admin' && <p style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
+              <Link to="/management">
+                <User style={{ marginRight: '10px', color: '#ff4d4f' }} />
+                Profile Settings
+              </Link>
+            </p>}
             <p style={{ display: 'flex', alignItems: 'flex-start', marginBottom: '10px' }}>
               <AiFillEnvironment 
                 size={64}  // Increased size significantly
