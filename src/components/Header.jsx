@@ -255,7 +255,7 @@ function Header({ onSearch }) {
               {restaurantDetails.email}
             </p>
             {role === 'admin' && <p style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
-              <Link to="/management">
+              <Link to="/management" onClick={() => setIsLogoModalVisible(false)}>
                 <User style={{ marginRight: '10px', color: '#ff4d4f' }} />
                 Profile Settings
               </Link>
