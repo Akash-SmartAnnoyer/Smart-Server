@@ -91,24 +91,30 @@ const NewAdminPage = () => {
             icon: <BellOutlined style={{ color: '#ff4d4f' }} />
           });
         } else if (data.type === 'statusUpdate' && data.orgId === orgId) {
-          setOrders(prevOrders =>
-            prevOrders.map(order =>
-              order.id === data.orderId 
-                ? { ...order, status: data.status, statusMessage: data.statusMessage }
-                : order
-            )
-          );
+          // Only show notification and update state if the update is from another client
+          if (data.senderId !== ws.current.id) {
+            setOrders(prevOrders =>
+              prevOrders.map(order =>
+                order.id === data.orderId 
+                  ? { ...order, status: data.status, statusMessage: data.statusMessage }
+                  : order
+              )
+            );
 
-          if (soundEnabled) {
-            playNotificationSound();
+            if (soundEnabled) {
+              playNotificationSound();
+            }
+
+            message.info({
+              content: `Order #${data.orderId} status updated to ${data.status}`,
+              icon: <SyncOutlined spin style={{ color: '#1890ff' }} />
+            });
           }
-
-          message.info({
-            content: `Order #${data.orderId} status updated to ${data.status}`,
-            icon: <SyncOutlined spin style={{ color: '#1890ff' }} />
-          });
         }
       };
+
+      // Assign a unique ID to this WebSocket connection
+      ws.current.id = Math.random().toString(36).substr(2, 9);
 
       ws.current.onclose = () => {
         console.log('WebSocket disconnected. Attempting to reconnect...');
@@ -196,6 +202,16 @@ const NewAdminPage = () => {
 
       if (!success) throw new Error('Failed to update order status');
 
+      // Silently update local state without triggering notification
+      setOrders(prevOrders =>
+        prevOrders.map(order =>
+          order.id === orderId 
+            ? { ...order, status: newStatus, statusMessage }
+            : order
+        )
+      );
+
+      // Send WebSocket message for other clients
       if (ws.current?.readyState === WebSocket.OPEN) {
         ws.current.send(JSON.stringify({
           type: 'statusUpdate',
@@ -206,7 +222,6 @@ const NewAdminPage = () => {
         }));
       }
 
-      message.success(`Order #${orderId} status updated to ${newStatus}`);
       setNewOrders(prev => prev.filter(id => id !== orderId));
     } catch (error) {
       console.error('Failed to update order status:', error);
