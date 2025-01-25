@@ -38,6 +38,7 @@ const NewAdminPage = () => {
   const ws = useRef(null);
   const orgId = localStorage.getItem('orgId');
   const [lastOrderTimestamp, setLastOrderTimestamp] = useState(null);
+  const [cancelledOrders, setCancelledOrders] = useState([]);
 
   // Map customer IDs to sequential numbers
   useEffect(() => {
@@ -111,6 +112,17 @@ const NewAdminPage = () => {
               icon: <SyncOutlined spin style={{ color: '#1890ff' }} />
             });
           }
+        } else if (data.type === 'statusUpdate' && data.status === 'cancelled') {
+          // Add to cancelled orders list
+          setCancelledOrders(prev => {
+            const order = orders.find(o => o.id === data.orderId);
+            if (order && !prev.some(o => o.id === order.id)) {
+              return [{ ...order, timestamp: new Date().toISOString() }, ...prev];
+            }
+            return prev;
+          });
+          // Play notification sound
+          playNotificationSound();
         }
       };
 
@@ -286,35 +298,74 @@ const NewAdminPage = () => {
 
   // Create menu items for the dropdown
   const notificationItems = {
-    items: pendingOrders.map(order => ({
-      key: order.id,
-      label: (
-        <div style={{ 
-          padding: '8px',
-          borderBottom: '1px solid #f0f0f0',
-          cursor: 'pointer'
-        }}>
-          <div style={{ fontWeight: 'bold', color: '#ff4d4f' }}>
-            Order #{order.id} - Table {order.tableNumber}
+    items: [
+      // Pending orders section
+      ...(pendingOrders.length > 0 ? [{
+        key: 'pending-header',
+        label: (
+          <div style={{ padding: '8px', backgroundColor: '#fff7e6', fontWeight: 'bold' }}>
+            Pending Orders
           </div>
-          <div style={{ fontSize: '12px', color: '#666' }}>
-            {new Date(order.timestamp).toLocaleString()}
+        ),
+        disabled: true
+      },
+      ...pendingOrders.map(order => ({
+        key: order.id,
+        label: (
+          <div style={{ padding: '8px', borderBottom: '1px solid #f0f0f0', cursor: 'pointer' }}>
+            <div style={{ fontWeight: 'bold', color: '#ff4d4f' }}>
+              Order #{order.id} - Table {order.tableNumber}
+            </div>
+            <div style={{ fontSize: '12px', color: '#666' }}>
+              {new Date(order.timestamp).toLocaleString()}
+            </div>
           </div>
-        </div>
-      ),
-      onClick: () => {
-        // Scroll to the order card
-        const orderCard = document.getElementById(`order-${order.id}`);
-        if (orderCard) {
-          orderCard.scrollIntoView({ behavior: 'smooth' });
-          // Add a temporary highlight effect
-          orderCard.style.backgroundColor = 'yellow';
-          setTimeout(() => {
-            orderCard.style.backgroundColor = getStatusConfig(order.status).bgColor;
-          }, 2000);
-        }
-      }
-    })),
+        ),
+        onClick: () => handleOrderClick(order.id)
+      }))] : []),
+      
+      // Cancelled orders section
+      ...(cancelledOrders.length > 0 ? [{
+        key: 'cancelled-header',
+        label: (
+          <div style={{ padding: '8px', backgroundColor: '#fff1f0', fontWeight: 'bold' }}>
+            Recently Cancelled Orders
+          </div>
+        ),
+        disabled: true
+      },
+      ...cancelledOrders.map(order => ({
+        key: `cancelled-${order.id}`,
+        label: (
+          <div style={{ padding: '8px', borderBottom: '1px solid #f0f0f0', cursor: 'pointer' }}>
+            <div style={{ fontWeight: 'bold', color: '#ff4d4f' }}>
+              Order #{order.id} - Table {order.tableNumber}
+            </div>
+            <div style={{ fontSize: '12px', color: '#666' }}>
+              Cancelled at {new Date(order.timestamp).toLocaleString()}
+            </div>
+          </div>
+        ),
+        onClick: () => handleOrderClick(order.id)
+      }))] : [])
+    ]
+  };
+
+  // Add handleOrderClick function
+  const handleOrderClick = (orderId) => {
+    // Find the order in the list and scroll to it
+    const orderElement = document.getElementById(`order-${orderId}`);
+    if (orderElement) {
+      orderElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Highlight the order card briefly
+      orderElement.style.backgroundColor = '#fff3f0';
+      setTimeout(() => {
+        orderElement.style.backgroundColor = '';
+      }, 2000);
+    }
+
+    // Remove from notifications if it's a cancelled order
+    setCancelledOrders(prev => prev.filter(order => order.id !== orderId));
   };
 
   if (loading) {
@@ -440,16 +491,20 @@ const NewAdminPage = () => {
               width: '300px'
             }}
           >
-            <Badge count={pendingOrdersCount} offset={[-5, 5]}>
+            <Badge 
+              count={pendingOrders.length + cancelledOrders.length} 
+              offset={[-5, 5]}
+            >
               <BellFilled 
                 style={{ 
                   fontSize: '24px', 
-                  color: '#ff4d4f',
+                  color: cancelledOrders.length > 0 ? '#ff4d4f' : '#ff4d4f',
                   padding: '8px',
                   backgroundColor: '#fff',
                   borderRadius: '50%',
                   boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  animation: cancelledOrders.length > 0 ? 'shake 0.5s ease-in-out infinite' : 'none'
                 }} 
               />
             </Badge>
@@ -681,6 +736,17 @@ const NewAdminPage = () => {
           </button>
         )}
       </div>
+      <style>
+        {`
+          @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-3px); }
+            50% { transform: translateX(3px); }
+            75% { transform: translateX(-3px); }
+            100% { transform: translateX(0); }
+          }
+        `}
+      </style>
     </div>
   );
 };
