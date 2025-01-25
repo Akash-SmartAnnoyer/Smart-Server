@@ -515,19 +515,24 @@ const WaitingScreen = () => {
     alignItems: 'center',
     marginBottom: '20px',
     borderRadius: '12px',
-    marginLeft: '80px',
     overflow: 'hidden',
     boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-    height: '100px',
-    width: '100px',
+    height: '150px', // Increased height
+    width: '150px',  // Increased width
     maxWidth: '100%',
     backgroundColor: '#f8f9fa',
+    margin: '0 auto', // Center horizontally
+    position: 'relative' // Added for responsive image positioning
   }}>
     {order?.status && statusGifs[order.status] && (
       <img 
         src={statusGifs[order.status][currentGifIndex]}
         alt={`Order ${order.status} animation`}
         style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)', // Center the image
           width: '100%',
           height: '100%',
           objectFit: 'cover',
