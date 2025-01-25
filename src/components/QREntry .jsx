@@ -100,51 +100,57 @@ const QREntry = () => {
     }
 `;
 
-    useEffect(() => {
-        const fetchRestaurantData = async () => {
-            try {
-                const progressInterval = setInterval(() => {
-                    setProgress(prev => (prev < 90 ? prev + 10 : prev));
-                }, 200);
+useEffect(() => {
+    const fetchRestaurantData = async () => {
+        try {
+            const progressInterval = setInterval(() => {
+                setProgress(prev => (prev < 90 ? prev + 10 : prev));
+            }, 200);
 
-                const response = await fetch(`${API_URL}.json`);
-                if (!response.ok) throw new Error('Failed to fetch restaurant data');
+            const response = await fetch(`${API_URL}.json`);
+            if (!response.ok) throw new Error('Failed to fetch restaurant data');
 
-                const data = await response.json();
+            const data = await response.json();
                 const restaurantArray = Object.values(data);
-                const restaurantData = restaurantArray.find(r => r.orgId === orgId);
+            const restaurantData = restaurantArray.find(r => r.orgId === orgId);
 
-                clearInterval(progressInterval);
-                setProgress(100);
+            clearInterval(progressInterval);
+            setProgress(100);
 
-                if (restaurantData) {
-                    setRestaurant(restaurantData);
+            if (restaurantData) {
+                setRestaurant(restaurantData);
+                
+                const isLocationVerified = true;
+                
+                if (isLocationVerified) {
+                    // Check if there's an existing customerId for this restaurant
+                    const existingCustomerId = localStorage.getItem('customerId');
+                    const existingOrgId = localStorage.getItem('orgId');
                     
-                    // Verify location before proceeding
-                    // const isLocationVerified = await verifyLocation(restaurantData);
-                    const isLocationVerified = true;
-                    
-                    if (isLocationVerified) {
+                    // Only generate new customerId if none exists or if user is at a different restaurant
+                    if (!existingCustomerId || existingOrgId !== orgId) {
                         const customerId = `cust-${Math.random().toString(36).substr(2, 9)}`;
                         localStorage.setItem('customerId', customerId);
-                        localStorage.setItem('role', 'customer');
-                        localStorage.setItem('orgId', orgId);
-                        localStorage.setItem('tableNumber', tableNumber);
-
-                        setTimeout(() => {
-                            sessionStorage.setItem('justSetOrgIdAndTable', 'true');
-                            window.location.href = '/home';
-                        }, 1500);
                     }
-                } else {
-                    throw new Error('Restaurant not found');
+                    
+                    localStorage.setItem('role', 'customer');
+                    localStorage.setItem('orgId', orgId);
+                    localStorage.setItem('tableNumber', tableNumber);
+
+                    setTimeout(() => {
+                        sessionStorage.setItem('justSetOrgIdAndTable', 'true');
+                        window.location.href = '/home';
+                    }, 1500);
                 }
-            } catch (err) {
-                setError(err.message);
-            } finally {
-                setLoading(false);
+            } else {
+                throw new Error('Restaurant not found');
             }
-        };
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
 
         if (orgId && tableNumber) {
             fetchRestaurantData();
