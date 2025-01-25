@@ -193,7 +193,7 @@ const AdminOrderComponent = () => {
       }).toString();
   
       const response = await fetch(
-        `https://production-db-993e8-default-rtdb.firebaseio.com/history.json?${queryParams}`
+        `https://smart-server-menu-database.firebaseio.com/history.json?${queryParams}`
       );
   
       if (!response.ok) {
@@ -226,7 +226,7 @@ const AdminOrderComponent = () => {
 
   // const fetchOrders = async () => {
   //   try {
-  //     const response = await fetch(`https://production-db-993e8-default-rtdb.firebaseio.com/history.json`);
+  //     const response = await fetch(`https://smart-server-menu-database.firebaseio.com/history.json`);
   //     if (!response.ok) {
   //       throw new Error('Failed to fetch orders');
   //     }

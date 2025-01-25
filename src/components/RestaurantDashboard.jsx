@@ -889,15 +889,15 @@ export const RestaurantDashboard = () => {
       setLoading(true);
 
       // Fetch orders
-      const ordersResponse = await fetch('https://production-db-993e8-default-rtdb.firebaseio.com/history.json');
+      const ordersResponse = await fetch('https://smart-server-menu-database.firebaseio.com/history.json');
       const ordersData = await ordersResponse.json();
       
       // Fetch categories
-      const categoriesResponse = await fetch('https://production-db-993e8-default-rtdb.firebaseio.com/categories.json');
+      const categoriesResponse = await fetch('https://smart-server-menu-database.firebaseio.com/categories.json');
       const categoriesData = await categoriesResponse.json();
       
       // Fetch menu items
-      const menuItemsResponse = await fetch('https://production-db-993e8-default-rtdb.firebaseio.com/menu_items.json');
+      const menuItemsResponse = await fetch('https://smart-server-menu-database.firebaseio.com/menu_items.json');
       const menuItemsData = await menuItemsResponse.json();
 
       // Process orders

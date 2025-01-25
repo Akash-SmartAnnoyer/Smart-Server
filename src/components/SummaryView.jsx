@@ -41,7 +41,7 @@ function BillSummary() {
   useEffect(() => {
     const fetchRestaurantInfo = async () => {
       try {
-        const response = await fetch(`https://production-db-993e8-default-rtdb.firebaseio.com/restaurants.json`);
+        const response = await fetch(`https://smart-server-menu-database.firebaseio.com/restaurants.json`);
 
         if (response.ok) {
           const data = await response.json();
@@ -73,7 +73,7 @@ function BillSummary() {
   useEffect(() => {
     const fetchCharges = async () => {
       try {
-        const response = await fetch(`https://production-db-993e8-default-rtdb.firebaseio.com/restaurants/${orgId}/charges.json`);
+        const response = await fetch(`https://smart-server-menu-database.firebaseio.com/restaurants/${orgId}/charges.json`);
         const data = await response.json();
         if (data) {
           const chargesArray = Object.entries(data).map(([id, charge]) => ({

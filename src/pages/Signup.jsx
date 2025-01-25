@@ -10,7 +10,7 @@ const Signup = ({ onSignup }) => {
     setLoading(true);
     setError('');
     try {
-      const response = await fetch('https://production-db-993e8-default-rtdb.firebaseio.com/users', {
+      const response = await fetch('https://smart-server-menu-database.firebaseio.com/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password, role: 'customer' }),

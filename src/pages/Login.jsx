@@ -11,7 +11,7 @@ const Login = ({ onLogin }) => {
     setError('');
     try {
       // Correct the URL structure and add .json for Firebase compatibility
-      const response = await fetch(`https://production-db-993e8-default-rtdb.firebaseio.com/users.json?orderBy="username"&equalTo="${username}"`);
+      const response = await fetch(`https://smart-server-menu-database.firebaseio.com/users.json?orderBy="username"&equalTo="${username}"`);
       if (!response.ok) {
         throw new Error('Failed to fetch user data');
       }

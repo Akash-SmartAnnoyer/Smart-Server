@@ -16,10 +16,10 @@ export const AdminOrderProvider = ({ children }) => {
       
       if (endAt) {
         // Query orders before the endAt timestamp for the specific orgId
-        url = `https://production-db-993e8-default-rtdb.firebaseio.com/history.json?orderBy="timestamp"&endAt="${endAt}"&limitToLast=${limit + 1}`;
+        url = `https://smart-server-menu-database.firebaseio.com/history.json?orderBy="timestamp"&endAt="${endAt}"&limitToLast=${limit + 1}`;
       } else {
         // Initial load - get the most recent orders
-        url = `https://production-db-993e8-default-rtdb.firebaseio.com/history.json?orderBy="timestamp"&limitToLast=${limit}`;
+        url = `https://smart-server-menu-database.firebaseio.com/history.json?orderBy="timestamp"&limitToLast=${limit}`;
       }
 
       const response = await fetch(url);
@@ -61,7 +61,7 @@ export const AdminOrderProvider = ({ children }) => {
   const updateOrder = async (orderId, updates) => {
     try {
       const response = await fetch(
-        `https://production-db-993e8-default-rtdb.firebaseio.com/history/${orderId}.json`,
+        `https://smart-server-menu-database.firebaseio.com/history/${orderId}.json`,
         {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },

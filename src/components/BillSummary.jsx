@@ -19,7 +19,7 @@
 //   useEffect(() => {
 //     if (orgId) {
 //       // Fetch categories
-//       fetch('https://production-db-993e8-default-rtdb.firebaseio.com/categories.json')
+//       fetch('https://smart-server-menu-database.firebaseio.com/categories.json')
 //         .then((res) => res.json())
 //         .then((data) => {
 //           if (data) {
@@ -31,7 +31,7 @@
 //         });
 
 //       // Fetch subcategories
-//       fetch('https://production-db-993e8-default-rtdb.firebaseio.com/subcategories.json')
+//       fetch('https://smart-server-menu-database.firebaseio.com/subcategories.json')
 //         .then((res) => res.json())
 //         .then((data) => {
 //           if (data) {
@@ -43,7 +43,7 @@
 //         });
 
 //       // Fetch menu items
-//       fetch('https://production-db-993e8-default-rtdb.firebaseio.com/menu_items.json')
+//       fetch('https://smart-server-menu-database.firebaseio.com/menu_items.json')
 //         .then((res) => res.json())
 //         .then((data) => {
 //           if (data) {
@@ -202,7 +202,7 @@
 //   useEffect(() => {
 //     if (orgId) {
 //       // Fetch categories
-//       fetch('https://production-db-993e8-default-rtdb.firebaseio.com/categories.json')
+//       fetch('https://smart-server-menu-database.firebaseio.com/categories.json')
 //         .then((res) => res.json())
 //         .then((data) => {
 //           if (data) {
@@ -214,7 +214,7 @@
 //         });
 
 //       // Fetch subcategories
-//       fetch('https://production-db-993e8-default-rtdb.firebaseio.com/subcategories.json')
+//       fetch('https://smart-server-menu-database.firebaseio.com/subcategories.json')
 //         .then((res) => res.json())
 //         .then((data) => {
 //           if (data) {
@@ -226,7 +226,7 @@
 //         });
 
 //       // Fetch menu items
-//       fetch('https://production-db-993e8-default-rtdb.firebaseio.com/menu_items.json')
+//       fetch('https://smart-server-menu-database.firebaseio.com/menu_items.json')
 //         .then((res) => res.json())
 //         .then((data) => {
 //           if (data) {
@@ -414,7 +414,7 @@
 //   useEffect(() => {
 //     if (orgId) {
 //       // Fetch categories
-//       fetch('https://production-db-993e8-default-rtdb.firebaseio.com/categories.json')
+//       fetch('https://smart-server-menu-database.firebaseio.com/categories.json')
 //         .then((res) => res.json())
 //         .then((data) => {
 //           if (data) {
@@ -426,7 +426,7 @@
 //         });
 
 //       // Fetch subcategories
-//       fetch('https://production-db-993e8-default-rtdb.firebaseio.com/subcategories.json')
+//       fetch('https://smart-server-menu-database.firebaseio.com/subcategories.json')
 //         .then((res) => res.json())
 //         .then((data) => {
 //           if (data) {
@@ -438,7 +438,7 @@
 //         });
 
 //       // Fetch menu items
-//       fetch('https://production-db-993e8-default-rtdb.firebaseio.com/menu_items.json')
+//       fetch('https://smart-server-menu-database.firebaseio.com/menu_items.json')
 //         .then((res) => res.json())
 //         .then((data) => {
 //           if (data) {
@@ -603,7 +603,7 @@
 //   useEffect(() => {
 //     if (orgId) {
 //       // Fetch categories
-//       fetch('https://production-db-993e8-default-rtdb.firebaseio.com/categories.json')
+//       fetch('https://smart-server-menu-database.firebaseio.com/categories.json')
 //         .then((res) => res.json())
 //         .then((data) => {
 //           if (data) {
@@ -615,7 +615,7 @@
 //         });
 
 //       // Fetch subcategories
-//       fetch('https://production-db-993e8-default-rtdb.firebaseio.com/subcategories.json')
+//       fetch('https://smart-server-menu-database.firebaseio.com/subcategories.json')
 //         .then((res) => res.json())
 //         .then((data) => {
 //           if (data) {
@@ -627,7 +627,7 @@
 //         });
 
 //       // Fetch menu items
-//       fetch('https://production-db-993e8-default-rtdb.firebaseio.com/menu_items.json')
+//       fetch('https://smart-server-menu-database.firebaseio.com/menu_items.json')
 //         .then((res) => res.json())
 //         .then((data) => {
 //           if (data) {
@@ -1014,7 +1014,7 @@ const CategoryNavigator = ({ onCategorySelect, onSubcategorySelect }) => {
   useEffect(() => {
     if (orgId) {
       // Fetch categories
-      fetch('https://production-db-993e8-default-rtdb.firebaseio.com/categories.json')
+      fetch('https://smart-server-menu-database.firebaseio.com/categories.json')
         .then((res) => res.json())
         .then((data) => {
           if (data) {
@@ -1026,7 +1026,7 @@ const CategoryNavigator = ({ onCategorySelect, onSubcategorySelect }) => {
         });
 
       // Fetch subcategories
-      fetch('https://production-db-993e8-default-rtdb.firebaseio.com/subcategories.json')
+      fetch('https://smart-server-menu-database.firebaseio.com/subcategories.json')
         .then((res) => res.json())
         .then((data) => {
           if (data) {
@@ -1038,7 +1038,7 @@ const CategoryNavigator = ({ onCategorySelect, onSubcategorySelect }) => {
         });
 
       // Fetch menu items
-      fetch('https://production-db-993e8-default-rtdb.firebaseio.com/menu_items.json')
+      fetch('https://smart-server-menu-database.firebaseio.com/menu_items.json')
         .then((res) => res.json())
         .then((data) => {
           if (data) {

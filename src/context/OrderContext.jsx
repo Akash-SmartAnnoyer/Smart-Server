@@ -19,7 +19,7 @@ export const OrderProvider = ({ children }) => {
         setLoading(true);
         // Fetch restaurant details with query parameter
         const restaurantResponse = await fetch(
-          `https://production-db-993e8-default-rtdb.firebaseio.com/restaurants.json?orderBy="orgId"&equalTo="${orgId}"`
+          `https://smart-server-menu-database.firebaseio.com/restaurants.json?orderBy="orgId"&equalTo="${orgId}"`
         );
         const restaurantData = await restaurantResponse.json();
         
@@ -31,7 +31,7 @@ export const OrderProvider = ({ children }) => {
           // Fetch charges directly using the restaurant key
           const restaurantKey = Object.keys(restaurantData)[0];
           const chargesResponse = await fetch(
-            `https://production-db-993e8-default-rtdb.firebaseio.com/restaurants/${restaurantKey}/charges.json`
+            `https://smart-server-menu-database.firebaseio.com/restaurants/${restaurantKey}/charges.json`
           );
           const chargesData = await chargesResponse.json();
           

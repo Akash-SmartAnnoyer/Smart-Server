@@ -70,7 +70,7 @@ ws.current = new WebSocket('wss://smart-menu-web-socket-server.onrender.com');
           return;
         }
     
-        const response = await fetch('https://production-db-993e8-default-rtdb.firebaseio.com/restaurants.json'); // Add .json
+        const response = await fetch('https://smart-server-menu-database.firebaseio.com/restaurants.json'); // Add .json
         if (!response.ok) {
           throw new Error('Failed to fetch restaurant data');
         }
@@ -136,7 +136,7 @@ ws.current = new WebSocket('wss://smart-menu-web-socket-server.onrender.com');
         // Only fetch if we don't have the data
         if (!restaurantData) {
           setChargesLoading(true);
-          const response = await fetch(`https://production-db-993e8-default-rtdb.firebaseio.com/restaurants/${orgId}/charges.json`);
+          const response = await fetch(`https://smart-server-menu-database.firebaseio.com/restaurants/${orgId}/charges.json`);
           if (!response.ok) throw new Error('Failed to fetch charges');
           
           const data = await response.json();
@@ -187,7 +187,7 @@ ws.current = new WebSocket('wss://smart-menu-web-socket-server.onrender.com');
   const verifyLocation = async () => {
     try {
       const orgId = localStorage.getItem('orgId');
-      const response = await fetch('https://production-db-993e8-default-rtdb.firebaseio.com/restaurants.json');
+      const response = await fetch('https://smart-server-menu-database.firebaseio.com/restaurants.json');
       if (!response.ok) throw new Error('Failed to fetch restaurant data');
 
       const data = await response.json();
@@ -273,7 +273,7 @@ ws.current = new WebSocket('wss://smart-menu-web-socket-server.onrender.com');
       }
 
       // Save to Firebase
-      const orderResponse = await fetch(`https://production-db-993e8-default-rtdb.firebaseio.com/history/${orderId}.json`, {
+      const orderResponse = await fetch(`https://smart-server-menu-database.firebaseio.com/history/${orderId}.json`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(orderDetails),
