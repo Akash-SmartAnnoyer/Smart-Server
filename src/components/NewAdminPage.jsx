@@ -1,6 +1,6 @@
 // src/components/NewAdminPage.jsx
 import React, { useState, useEffect, useRef } from 'react';
-import { Card, Tag, Select, Typography, message, Empty, Badge, Input, Switch, Button } from 'antd';
+import { Card, Tag, Select, Typography, message, Empty, Badge, Input, Switch, Button, Dropdown } from 'antd';
 import {
   CheckOutlined,
   ClockCircleOutlined,
@@ -13,7 +13,8 @@ import {
   TableOutlined,
   EditOutlined,
   MessageOutlined,
-  TagsOutlined
+  TagsOutlined,
+  BellFilled
 } from '@ant-design/icons';
 import { useAdminOrders } from '../context/AdminOrderContext';
 import FoodLoader from './FoodLoader';
@@ -279,6 +280,43 @@ const NewAdminPage = () => {
     }
   }, []); // Empty dependency array ensures this runs only once on mount
 
+  // Get pending orders count
+  const pendingOrders = orders.filter(order => order.status === 'pending');
+  const pendingOrdersCount = pendingOrders.length;
+
+  // Create menu items for the dropdown
+  const notificationItems = {
+    items: pendingOrders.map(order => ({
+      key: order.id,
+      label: (
+        <div style={{ 
+          padding: '8px',
+          borderBottom: '1px solid #f0f0f0',
+          cursor: 'pointer'
+        }}>
+          <div style={{ fontWeight: 'bold', color: '#ff4d4f' }}>
+            Order #{order.id} - Table {order.tableNumber}
+          </div>
+          <div style={{ fontSize: '12px', color: '#666' }}>
+            {new Date(order.timestamp).toLocaleString()}
+          </div>
+        </div>
+      ),
+      onClick: () => {
+        // Scroll to the order card
+        const orderCard = document.getElementById(`order-${order.id}`);
+        if (orderCard) {
+          orderCard.scrollIntoView({ behavior: 'smooth' });
+          // Add a temporary highlight effect
+          orderCard.style.backgroundColor = 'yellow';
+          setTimeout(() => {
+            orderCard.style.backgroundColor = getStatusConfig(order.status).bgColor;
+          }, 2000);
+        }
+      }
+    })),
+  };
+
   if (loading) {
     return (
       <div style={{
@@ -385,6 +423,39 @@ const NewAdminPage = () => {
           </div>
         </div>
 
+        {/* Add notification bell */}
+        <div style={{
+          position: 'fixed',
+          top: '70px',
+          left: '15px',
+          zIndex: 1000
+        }}>
+          <Dropdown
+            menu={notificationItems}
+            placement="bottomRight"
+            trigger={['click']}
+            overlayStyle={{
+              maxHeight: '400px',
+              overflowY: 'auto',
+              width: '300px'
+            }}
+          >
+            <Badge count={pendingOrdersCount} offset={[-5, 5]}>
+              <BellFilled 
+                style={{ 
+                  fontSize: '24px', 
+                  color: '#ff4d4f',
+                  padding: '8px',
+                  backgroundColor: '#fff',
+                  borderRadius: '50%',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                  cursor: 'pointer'
+                }} 
+              />
+            </Badge>
+          </Dropdown>
+        </div>
+
         {filteredOrders.length === 0 ? (
           <Empty
             description={
@@ -413,6 +484,7 @@ const NewAdminPage = () => {
                 color={getStatusConfig(order.status).color}
               >
                 <Card
+                  id={`order-${order.id}`}
                   hoverable
                   style={{
                     borderRadius: '15px',
