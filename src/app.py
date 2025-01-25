@@ -4,48 +4,26 @@ import jwt
 from datetime import datetime, timedelta
 import os
 from functools import wraps
-from dotenv import load_dotenv
 
 app = Flask(__name__)
 CORS(app)  # This enables CORS for all routes
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key')
 
-# Load environment variables based on FLASK_ENV
-if os.environ.get('FLASK_ENV') == 'production':
-    load_dotenv('.env.production')
-else:
-    load_dotenv('.env.development')
+# Mock credentials with different orgIds (replace with database in production)
+users = {
+    'royalspice@smartserver.com': {'password': 'R0y@!$p!ce', 'orgId': 3},
+    'ammammagarillu': {'password': 'ammammagarillu', 'orgId': 2},
+    'biryanis': {'password': 'biryanis', 'orgId': 1},
+    'hotelmuntaz@smartserver.com': {'password': 'HotelMuntaz', 'orgId': 4},
+    'janedoe@example.com': {'password': 'J@neD03!24', 'orgId': 5},
+    'spicychicken@restaurant.com': {'password': 'Sp!cyCh!ck3n', 'orgId': 6},
+    'siri@smartserver.com': {'password': 'siri@2025', 'orgId': 7},
+    'tastytreats@delights.com': {'password': 'T@styTreaT$', 'orgId': 8},
+    'deliciousbites@foodies.com': {'password': 'D3l!c10usB!t3s', 'orgId': 9},
+    'spicybiryani@spicydishes.com': {'password': 'Sp!cYB!rY@N!', 'orgId': 10}
+}
 
-# Get environment type
-ENVIRONMENT = os.environ.get('FLASK_ENV', 'development')
 
-# Define credentials based on environment
-if ENVIRONMENT == 'production':
-    users = {
-        'royalspice@smartserver.com': {'password': os.environ.get('ROYAL_SPICE_PASS'), 'orgId': 3},
-        'ammammagarillu': {'password': os.environ.get('AMMA_PASS'), 'orgId': 2},
-        'biryanis': {'password': os.environ.get('BIRYANI_PASS'), 'orgId': 1},
-        'johndoe@example.com': {'password': os.environ.get('JOHN_PASS'), 'orgId': 4},
-        'janedoe@example.com': {'password': os.environ.get('JANE_PASS'), 'orgId': 5},
-        'spicychicken@restaurant.com': {'password': os.environ.get('SPICY_CHICKEN_PASS'), 'orgId': 6},
-        'foodlover@mail.com': {'password': os.environ.get('FOOD_LOVER_PASS'), 'orgId': 7},
-        'tastytreats@delights.com': {'password': os.environ.get('TASTY_TREATS_PASS'), 'orgId': 8},
-        'deliciousbites@foodies.com': {'password': os.environ.get('DELICIOUS_BITES_PASS'), 'orgId': 9},
-        'spicybiryani@spicydishes.com': {'password': os.environ.get('SPICY_BIRYANI_PASS'), 'orgId': 10}
-    }
-else:  # development/testing environment
-    users = {
-        'royalspice@smartserver.com': {'password': os.environ.get('DEV_ROYAL_SPICE_PASS', 'dev_password1'), 'orgId': 3},
-        'ammammagarillu': {'password': os.environ.get('DEV_AMMA_PASS', 'dev_password2'), 'orgId': 2},
-        'biryanis': {'password': os.environ.get('DEV_BIRYANI_PASS', 'dev_password3'), 'orgId': 1},
-        'johndoe@example.com': {'password': os.environ.get('DEV_JOHN_PASS', 'dev_password4'), 'orgId': 4},
-        'janedoe@example.com': {'password': os.environ.get('DEV_JANE_PASS', 'dev_password5'), 'orgId': 5},
-        'spicychicken@restaurant.com': {'password': os.environ.get('DEV_SPICY_CHICKEN_PASS', 'dev_password6'), 'orgId': 6},
-        'foodlover@mail.com': {'password': os.environ.get('DEV_FOOD_LOVER_PASS', 'dev_password7'), 'orgId': 7},
-        'tastytreats@delights.com': {'password': os.environ.get('DEV_TASTY_TREATS_PASS', 'dev_password8'), 'orgId': 8},
-        'deliciousbites@foodies.com': {'password': os.environ.get('DEV_DELICIOUS_BITES_PASS', 'dev_password9'), 'orgId': 9},
-        'spicybiryani@spicydishes.com': {'password': os.environ.get('DEV_SPICY_BIRYANI_PASS', 'dev_password10'), 'orgId': 10}
-    }
 
 # Token verification decorator
 def token_required(f):
