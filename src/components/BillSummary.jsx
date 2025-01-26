@@ -944,22 +944,20 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
-// Import FontAwesome icons
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBars, faTimes, faUtensils } from '@fortawesome/free-solid-svg-icons';
+import { useMenu } from '../contexts/MenuProvider';
 
 const CategoryNavigator = ({ onCategorySelect, onSubcategorySelect }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [categories, setCategories] = useState([]);
-  const [subcategories, setSubcategories] = useState([]);
-  const [menuItems, setMenuItems] = useState([]);
   const [expandedCategories, setExpandedCategories] = useState({});
   const [viewportSize, setViewportSize] = useState({
     width: window.innerWidth,
     height: window.innerHeight
   });
 
-  // Default position closer to the top
+  const { categories, subcategories, menuItems, loading } = useMenu();
+
   const [position, setPosition] = useState(() => {
     const saved = localStorage.getItem('categoryNavigatorPosition');
     if (saved) {
@@ -979,7 +977,6 @@ const CategoryNavigator = ({ onCategorySelect, onSubcategorySelect }) => {
   const buttonRef = useRef(null);
   const location = useLocation();
   const navigate = useNavigate();
-  const orgId = localStorage.getItem('orgId');
 
   const resetToDefault = () => {
     setPosition({
@@ -1011,53 +1008,12 @@ const CategoryNavigator = ({ onCategorySelect, onSubcategorySelect }) => {
     localStorage.setItem('categoryNavigatorPosition', JSON.stringify(position));
   }, [position]);
 
-  useEffect(() => {
-    if (orgId) {
-      // Fetch categories
-      fetch('https://smart-server-menu-database.firebaseio.com/categories.json')
-        .then((res) => res.json())
-        .then((data) => {
-          if (data) {
-            const matchedCategories = Object.entries(data)
-              .map(([id, category]) => ({ id, ...category }))
-              .filter(category => category.orgId === parseInt(orgId));
-            setCategories(matchedCategories);
-          }
-        });
-
-      // Fetch subcategories
-      fetch('https://smart-server-menu-database.firebaseio.com/subcategories.json')
-        .then((res) => res.json())
-        .then((data) => {
-          if (data) {
-            const matchedSubcategories = Object.entries(data)
-              .map(([id, subcategory]) => ({ id, ...subcategory }))
-              .filter(subcategory => subcategory.orgId === parseInt(orgId));
-            setSubcategories(matchedSubcategories);
-          }
-        });
-
-      // Fetch menu items
-      fetch('https://smart-server-menu-database.firebaseio.com/menu_items.json')
-        .then((res) => res.json())
-        .then((data) => {
-          if (data) {
-            const matchedMenuItems = Object.entries(data)
-              .map(([id, item]) => ({ id, ...item }))
-              .filter(item => item.orgId === parseInt(orgId));
-            setMenuItems(matchedMenuItems);
-          }
-        });
-    }
-  }, [orgId]);
-
   const handleDragEnd = (event, info) => {
     const newPosition = {
       x: info.point.x,
       y: info.point.y
     };
 
-    // Ensure the button stays within viewport bounds
     const buttonSize = 56;
     const minX = 0;
     const maxX = viewportSize.width - buttonSize;
@@ -1110,7 +1066,6 @@ const CategoryNavigator = ({ onCategorySelect, onSubcategorySelect }) => {
     }
   };
   
-  // Add this useEffect to handle URL params
   useEffect(() => {
     const queryParams = new URLSearchParams(location.search);
     const subcategoryId = queryParams.get('subcategoryId');
@@ -1118,7 +1073,6 @@ const CategoryNavigator = ({ onCategorySelect, onSubcategorySelect }) => {
     if (subcategoryId) {
       const subcategory = subcategories.find(sub => sub.id === subcategoryId);
       if (subcategory) {
-        // Expand the parent category
         setExpandedCategories(prev => ({
           ...prev,
           [subcategory.categoryId]: true
@@ -1242,7 +1196,7 @@ const CategoryNavigator = ({ onCategorySelect, onSubcategorySelect }) => {
 
   const menuPosition = getMenuPosition();
   
-  if (location.pathname !== '/home') return null;
+  if (location.pathname !== '/home' || loading.overall) return null;
 
   return (
     <>
@@ -1298,115 +1252,114 @@ const CategoryNavigator = ({ onCategorySelect, onSubcategorySelect }) => {
       </motion.button>
 
       <AnimatePresence>
-  {isOpen && (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.9 }}
-      transition={{ type: "spring", stiffness: 300, damping: 25 }}
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        zIndex: 40,
-        backgroundColor: 'white',
-        borderRadius: '12px',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 0 10px 3px rgba(255, 68, 68, 0.5)', // Added glow effect
-        border: '2px solid #ff4444', // Added red border
-        height: '400px',
-        width: '350px',
-        maxWidth: '90vw',
-        maxHeight: '80vh',
-        overflow: 'hidden',
-        x: menuPosition.x,
-        y: menuPosition.y
-      }}
-    >
-      <div style={{
-        padding: '16px',
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column'
-      }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          marginBottom: '24px'
-        }}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M3 6h18v12H3z"/>
-            <path d="M3 10h18"/>
-            <path d="M12 6v12"/>
-            <circle cx="8" cy="16" r="1"/>
-            <circle cx="16" cy="16" r="1"/>
-          </svg>
-          <h3 style={{
-            fontSize: '20px',
-            fontWeight: 600,
-            color: '#1f2937',
-            margin: 0
-          }}>
-            Menu Categories
-          </h3>
-        </div>
-        
-        <div style={{
-          overflowY: 'auto',
-          flex: 1,
-          paddingRight: '8px'
-        }}>
-          {categories.map((category) => (
-            <div key={category.id} style={{ marginBottom: '16px' }}>
-              <motion.div
-                onClick={() => toggleCategoryExpansion(category.id)}
-                style={{
-                  padding: '12px',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  backgroundColor: expandedCategories[category.id] ? '#fff1f2' : 'white',
-                  transition: 'all 0.2s ease'
-                }}
-                whileHover={{ backgroundColor: expandedCategories[category.id] ? '#ffe4e6' : '#f3f4f6' }}
-              >
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px'
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              zIndex: 40,
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 0 10px 3px rgba(255, 68, 68, 0.5)',
+              border: '2px solid #ff4444',
+              height: '400px',
+              width: '350px',
+              maxWidth: '90vw',
+              maxHeight: '80vh',
+              overflow: 'hidden',
+              x: menuPosition.x,
+              y: menuPosition.y
+            }}
+          >
+            <div style={{
+              padding: '16px',
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column'
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                marginBottom: '24px'
+              }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 6h18v12H3z"/>
+                  <path d="M3 10h18"/>
+                  <path d="M12 6v12"/>
+                  <circle cx="8" cy="16" r="1"/>
+                  <circle cx="16" cy="16" r="1"/>
+                </svg>
+                <h3 style={{
+                  fontSize: '20px',
+                  fontWeight: 600,
+                  color: '#1f2937',
+                  margin: 0
                 }}>
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    style={{
-                      transform: `rotate(${expandedCategories[category.id] ? '90deg' : '0deg'})`,
-                      transition: 'transform 0.2s ease'
-                    }}
-                  >
-                    <path d="M9 18l6-6-6-6"/>
-                  </svg>
-                  <span style={{
-                    fontWeight: 500,
-                    color: '#374151'
-                  }}>
-                    {category.name}
-                  </span>
-                </div>
-              </motion.div>
-              <AnimatePresence>
-                {expandedCategories[category.id] && renderSubcategories(category.id)}
-              </AnimatePresence>
+                  Menu Categories
+                </h3>
+              </div>
+              
+              <div style={{
+                overflowY: 'auto',
+                flex: 1,
+                paddingRight: '8px'
+              }}>
+                {categories.map((category) => (
+                  <div key={category.id} style={{ marginBottom: '16px' }}>
+                    <motion.div
+                      onClick={() => toggleCategoryExpansion(category.id)}
+                      style={{
+                        padding: '12px',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        backgroundColor: expandedCategories[category.id] ? '#fff1f2' : 'white',
+                        transition: 'all 0.2s ease'
+                      }}
+                      whileHover={{ backgroundColor: expandedCategories[category.id] ? '#ffe4e6' : '#f3f4f6' }}
+                    >
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}>
+                        <svg
+                          width="18"
+                          height="18"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          style={{
+                            transform: `rotate(${expandedCategories[category.id] ? '90deg' : '0deg'})`,
+                            transition: 'transform 0.2s ease'
+                          }}
+                        >
+                          <path d="M9 18l6-6-6-6"/>
+                        </svg>
+                        <span style={{
+                          fontWeight: 500,
+                          color: '#374151'
+                        }}>
+                          {category.name}
+                        </span>
+                      </div>
+                    </motion.div>
+                    <AnimatePresence>
+                      {expandedCategories[category.id] && renderSubcategories(category.id)}
+                    </AnimatePresence>
+                  </div>
+                ))}
+              </div>
             </div>
-          ))}
-        </div>
-      </div>
-    </motion.div>
-  )}
-</AnimatePresence>
-
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 };
