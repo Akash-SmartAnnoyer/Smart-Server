@@ -197,14 +197,19 @@ const MenuSuggestionManager = () => {
         [selectedItem.id]: selectedSuggestions.map(item => ({
           id: item.id,
           name: item.name,
+          image: item.image,
+          description: item.description,
+          price: item.price,
           orgId: parseInt(localStorage.getItem('orgId'))
         }))
       };
 
       await updateSuggestions(updatedSuggestions);
+      await refreshData();
       message.success('Suggestions saved successfully');
       setModalVisible(false);
     } catch (error) {
+      console.error('Error saving suggestions:', error);
       message.error('Failed to save suggestions');
     } finally {
       setSaving(false);

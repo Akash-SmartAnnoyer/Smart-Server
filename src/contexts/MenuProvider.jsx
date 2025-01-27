@@ -74,30 +74,16 @@ export function MenuProvider({ children }) {
         ]);
 
         // Fetch suggestions
-        const suggestionsRef = doc(db, 'menu_suggestions', 'suggestions');
+        const orgId = parseInt(localStorage.getItem('orgId'));
+        const suggestionsRef = doc(db, 'menu_suggestions', orgId.toString());
         const suggestionsDoc = await getDoc(suggestionsRef);
-        const sugData = suggestionsDoc.exists() ? suggestionsDoc.data() : {};
-
-        const processedRecommendations = {};
-        if (Object.keys(sugData).length > 0 && menuItemsArray.length > 0) {
-          Object.entries(sugData).forEach(([itemId, suggestionIds]) => {
-            const suggestedItems = menuItemsArray.filter(menuItem => 
-              suggestionIds.some(suggestion => 
-                suggestion.name === menuItem.name && 
-                suggestion.orgId === orgId
-              )
-            );
-            if (suggestedItems.length > 0) {
-              processedRecommendations[itemId] = suggestedItems;
-            }
-          });
-        }
+        const sugData = suggestionsDoc.exists() ? suggestionsDoc.data().suggestions || {} : {};
 
         setMenuData(prev => ({
           ...prev,
           subcategories: processedSubcategories,
           menuItems: menuItemsArray,
-          recommendations: processedRecommendations
+          recommendations: sugData
         }));
 
         setLoading({
@@ -125,8 +111,9 @@ export function MenuProvider({ children }) {
 
   const updateSuggestions = async (updatedSuggestions) => {
     try {
-      const suggestionsRef = doc(db, 'menu_suggestions', 'suggestions');
-      await setDoc(suggestionsRef, updatedSuggestions);
+      const orgId = parseInt(localStorage.getItem('orgId'));
+      const suggestionsRef = doc(db, 'menu_suggestions', orgId.toString());
+      await setDoc(suggestionsRef, { suggestions: updatedSuggestions }, { merge: true });
       
       setMenuData(prev => ({
         ...prev,
