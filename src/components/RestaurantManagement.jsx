@@ -27,6 +27,16 @@ import {
 import { MapContainer, TileLayer, Marker, useMap, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { 
+  collection, 
+  query, 
+  where, 
+  getDocs, 
+  doc, 
+  updateDoc,
+  setDoc
+} from 'firebase/firestore';
+import { db } from '../pages/fireBaseConfig';
 
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
@@ -78,30 +88,23 @@ const RestaurantManagement = () => {
     try {
       setLoading(true);
       const orgId = localStorage.getItem('orgId');
-      const response = await fetch(
-        `https://production-db-993e8-default-rtdb.firebaseio.com/restaurants.json?orderBy="orgId"&equalTo="${orgId}"`
-      );
-  
-      if (response.ok) {
-        const data = await response.json();
+      
+      const restaurantsRef = collection(db, 'restaurants');
+      const q = query(restaurantsRef, where('orgId', '==', orgId));
+      const querySnapshot = await getDocs(q);
+      
+      if (!querySnapshot.empty) {
+        const doc = querySnapshot.docs[0];
+        const restaurantData = {
+          ...doc.data(),
+          id: doc.id
+        };
         
-        if (data) {
-          // Get the first (and should be only) restaurant
-          const restaurantId = Object.keys(data)[0];
-          const restaurantData = data[restaurantId];
-  
-          if (restaurantData) {
-            const restaurantWithId = { ...restaurantData, id: restaurantId };
-            setRestaurant(restaurantWithId);
-            // Cache the data
-            cachedData = restaurantWithId;
-            cacheTimestamp = Date.now();
-          } else {
-            console.error("No restaurant found for this orgId");
-          }
-        }
+        setRestaurant(restaurantData);
+        cachedData = restaurantData;
+        cacheTimestamp = Date.now();
       } else {
-        console.error("Failed to fetch restaurant data:", response.status);
+        console.error("No restaurant found for this orgId");
       }
     } catch (error) {
       console.error("Error fetching restaurant data:", error);
@@ -116,22 +119,18 @@ const RestaurantManagement = () => {
     
     try {
       const { id, ...restaurantData } = restaurant;
-      const response = await fetch(`https://production-db-993e8-default-rtdb.firebaseio.com/restaurants/${id}.json`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(restaurantData),
+      const restaurantRef = doc(db, 'restaurants', id);
+      
+      await updateDoc(restaurantRef, {
+        ...restaurantData,
+        lastUpdated: new Date().toISOString()
       });
-  
-      if (response.ok) {
-        console.log("Restaurant information updated successfully");
-        // Update cache with new data
-        cachedData = restaurant;
-        cacheTimestamp = Date.now();
-      } else {
-        console.error("Failed to update restaurant information");
-      }
+      
+      // Update cache
+      cachedData = restaurant;
+      cacheTimestamp = Date.now();
+      
+      console.log("Restaurant information updated successfully");
     } catch (error) {
       console.error("Error updating restaurant information:", error);
     } finally {
@@ -144,24 +143,37 @@ const RestaurantManagement = () => {
     setRestaurant(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleLogoChange = (e) => {
+  const handleLogoChange = async (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      setLoading(true); // Add loading state while reading file
-      const reader = new FileReader();
-      
-      reader.onloadend = () => {
-        setRestaurant(prev => ({ ...prev, logo: reader.result }));
-        setLoading(false); // Remove loading state after file is read
-      };
-      
-      reader.onerror = () => {
-        setLoading(false); // Remove loading state if there's an error
-        // You might want to add error handling here
-        console.error('Error reading file');
-      };
-      
-      reader.readAsDataURL(file);
+      setLoading(true);
+      try {
+        const reader = new FileReader();
+        
+        reader.onloadend = async () => {
+          const newLogo = reader.result;
+          setRestaurant(prev => ({ ...prev, logo: newLogo }));
+          
+          // Update logo in Firestore
+          if (restaurant?.id) {
+            const restaurantRef = doc(db, 'restaurants', restaurant.id);
+            await updateDoc(restaurantRef, {
+              logo: newLogo,
+              lastUpdated: new Date().toISOString()
+            });
+            
+            // Update cache
+            cachedData = { ...restaurant, logo: newLogo };
+            cacheTimestamp = Date.now();
+          }
+        };
+        
+        reader.readAsDataURL(file);
+      } catch (error) {
+        console.error("Error updating logo:", error);
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -178,40 +190,38 @@ const RestaurantManagement = () => {
         });
         
         const { latitude, longitude } = position.coords;
-        
-        // Update restaurant position
-        setRestaurant(prev => ({ ...prev, position: [latitude, longitude] }));
-        
-        // Fetch and update address
-        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+        );
         const data = await response.json();
         
-        // Update restaurant data in state
-        setRestaurant(prev => ({ ...prev, address: data.display_name }));
-        
-        // Save to database
-        const { id, ...restaurantData } = restaurant;
-        await fetch(`https://production-db-993e8-default-rtdb.firebaseio.com/restaurants/${id}.json`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
+        if (restaurant?.id) {
+          const restaurantRef = doc(db, 'restaurants', restaurant.id);
+          await updateDoc(restaurantRef, {
+            position: [latitude, longitude],
+            address: data.display_name,
+            lastUpdated: new Date().toISOString()
+          });
+          
+          setRestaurant(prev => ({
+            ...prev,
             position: [latitude, longitude],
             address: data.display_name
-          }),
-        });
-
-        // Show success message (you can implement your own toast/notification system)
-        console.log("Location updated successfully");
-        
+          }));
+          
+          // Update cache
+          cachedData = {
+            ...restaurant,
+            position: [latitude, longitude],
+            address: data.display_name
+          };
+          cacheTimestamp = Date.now();
+        }
       } catch (error) {
-        console.error("Error getting or saving location:", error);
+        console.error("Error updating location:", error);
       } finally {
         setLoading(false);
       }
-    } else {
-      console.error("Geolocation is not supported by this browser.");
     }
   };
 
@@ -225,14 +235,41 @@ const RestaurantManagement = () => {
     }
   };
 
-  const selectSearchResult = (result) => {
-    setRestaurant(prev => ({
-      ...prev,
-      position: [parseFloat(result.lat), parseFloat(result.lon)],
-      address: result.display_name
-    }));
-    setSearchResults([]);
-    setSearchQuery('');
+  const selectSearchResult = async (result) => {
+    try {
+      setLoading(true);
+      const newPosition = [parseFloat(result.lat), parseFloat(result.lon)];
+      
+      if (restaurant?.id) {
+        const restaurantRef = doc(db, 'restaurants', restaurant.id);
+        await updateDoc(restaurantRef, {
+          position: newPosition,
+          address: result.display_name,
+          lastUpdated: new Date().toISOString()
+        });
+        
+        setRestaurant(prev => ({
+          ...prev,
+          position: newPosition,
+          address: result.display_name
+        }));
+        
+        // Update cache
+        cachedData = {
+          ...restaurant,
+          position: newPosition,
+          address: result.display_name
+        };
+        cacheTimestamp = Date.now();
+      }
+      
+      setSearchResults([]);
+      setSearchQuery('');
+    } catch (error) {
+      console.error("Error updating location:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const fetchAddress = async (lat, lng) => {
@@ -509,19 +546,13 @@ const RestaurantManagement = () => {
     setLoading(true);
     try {
       const { id } = restaurant;
-      const response = await fetch(`https://production-db-993e8-default-rtdb.firebaseio.com/restaurants/${id}.json`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ logo: restaurant.logo }),
+      const restaurantRef = doc(db, 'restaurants', id);
+      
+      await updateDoc(restaurantRef, {
+        logo: restaurant.logo
       });
 
-      if (response.ok) {
-        console.log("Logo updated successfully");
-      } else {
-        console.error("Failed to update logo");
-      }
+      console.log("Logo updated successfully");
     } catch (error) {
       console.error("Error updating logo:", error);
     } finally {

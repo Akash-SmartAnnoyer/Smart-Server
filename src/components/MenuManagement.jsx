@@ -53,13 +53,20 @@ import { ScrollMenu } from 'react-horizontal-scrolling-menu';
 import FoodLoader from './FoodLoader';
 import StylishButton from './common/StylishButton';
 import { useMenu } from '../contexts/MenuProvider';
+import { db } from '../pages/fireBaseConfig';
+import { 
+  collection, 
+  getDocs, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  doc 
+} from 'firebase/firestore';
 
 const { Content, Sider } = Layout;
 const { Option } = Select;
 const { Title, Text } = Typography;
 const { TextArea } = Input;
-
-const API_URL = 'https://production-db-993e8-default-rtdb.firebaseio.com';
 
 // Theme colors
 const theme = {
@@ -566,7 +573,7 @@ const ModernCategoryCard = ({ item, type }) => (
           borderRadius: '8px',
         }}
         onError={(e) => {
-          e.target.src = '/api/placeholder/80/80';
+          e.target.src = 'https://via.placeholder.com/80';
         }}
       />
       <div style={{ flex: 1 }}>
@@ -671,30 +678,40 @@ const handleCreate = async values => {
     const dataToCreate = {
       ...values,
       image: imageData,
-      orgId: parseInt(orgId)
+      orgId: parseInt(orgId),
+      createdAt: new Date().toISOString(), // Convert to string for Firestore
+      updatedAt: new Date().toISOString(),
+      isAvailable: values.isAvailable || true // Default to true if not specified
     };
 
     // Remove unnecessary fields
     delete dataToCreate.imageUrl;
     delete dataToCreate.imageUpload;
 
-    const response = await fetch(`${API_URL}/${type}.json`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(dataToCreate),
+    // Add document to Firestore
+    const docRef = await addDoc(collection(db, type), dataToCreate);
+    
+    // Update the document with its firebaseId
+    const newItem = {
+      ...dataToCreate,
+      id: docRef.id,
+      firebaseId: docRef.id
+    };
+    
+    await updateDoc(docRef, {
+      id: docRef.id,
+      firebaseId: docRef.id
     });
 
-    if (response.ok) {
-      const data = await response.json();
-      const newItem = {
-        firebaseId: data.name,
-        ...dataToCreate,
-      };
-      updateLocalState(type, 'add', newItem);
-      setIsModalVisible(false);
-      form.resetFields();
-      message.success('Item created successfully');
-    }
+    // Update local state
+    updateLocalState(type, 'add', newItem);
+    
+    // Refresh data from server
+    await refreshData();
+    
+    setIsModalVisible(false);
+    form.resetFields();
+    message.success('Item created successfully');
   } catch (error) {
     console.error(`Error creating ${type}:`, error);
     message.error('Failed to create item');
@@ -730,23 +747,21 @@ const handleUpdate = async values => {
     const dataToUpdate = {
       ...values,
       image: imageData,
-      orgId: parseInt(orgId)
+      orgId: parseInt(orgId),
+      updatedAt: new Date().toISOString(),
+      id: editingItem.firebaseId,
+      firebaseId: editingItem.firebaseId
     };
 
     delete dataToUpdate.imageUrl;
     delete dataToUpdate.imageUpload;
 
-    // Make the API call
-    const response = await fetch(
-      `${API_URL}/${type}/${editingItem.firebaseId}.json`,
-      {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(dataToUpdate),
-      }
-    );
+    // Update document in Firestore
+    const docRef = doc(db, type, editingItem.firebaseId);
+    await updateDoc(docRef, dataToUpdate);
 
-    if (!response.ok) throw new Error('Failed to update item');
+    // Update local state
+    updateLocalState(type, 'update', dataToUpdate);
 
     // Close modal and reset form
     setIsModalVisible(false);
@@ -767,7 +782,7 @@ const handleUpdate = async values => {
 
 // Helper function to get the correct image URL
 const getImageUrl = (imageData) => {
-  if (!imageData) return '/api/placeholder/80/80';
+  if (!imageData) return 'https://via.placeholder.com/80';
   
   if (typeof imageData === 'string') {
     return imageData; // Direct URL
@@ -777,7 +792,7 @@ const getImageUrl = (imageData) => {
     return imageData.file.url; // Uploaded file URL
   }
   
-  return '/api/placeholder/80/80'; // Fallback
+  return 'https://via.placeholder.com/80'; // Fallback
 };
 
 const handleDelete = async (firebaseId) => {
@@ -791,11 +806,12 @@ const handleDelete = async (firebaseId) => {
     : 'menu_items';
 
   try {
-    const response = await fetch(`${API_URL}/${type}/${firebaseId}.json`, {
-      method: 'DELETE',
-    });
+    // Delete document from Firestore
+    const docRef = doc(db, type, firebaseId);
+    await deleteDoc(docRef);
 
-    if (!response.ok) throw new Error('Failed to delete item');
+    // Update local state
+    updateLocalState(type, 'delete', { firebaseId });
 
     // Refresh data after successful deletion
     await refreshData();
@@ -811,65 +827,38 @@ const handleDelete = async (firebaseId) => {
 
 
 const updateLocalState = (type, action, item) => {
-
   const updateState = prevState => {
-
     switch (action) {
-
       case 'add':
-
         return [...prevState, item];
-
       case 'update':
-
         return prevState.map(i =>
-
           i.firebaseId === item.firebaseId ? { ...i, ...item } : i
-
         );
-
       case 'delete':
-
         return prevState.filter(i => i.firebaseId !== item.firebaseId);
-
       default:
-
         return prevState;
-
     }
-
   };
 
-
-
   switch (type) {
-
     case 'categories':
-
-      setCategories(updateState);
-
+      setCategories(prev => updateState(prev));
       break;
-
     case 'subcategories':
-
-      setSubcategories(updateState);
-
+      setSubcategories(prev => updateState(prev));
       break;
-
     case 'menu_items':
-
-      setMenuItems(updateState);
-
+      setMenuItems(prev => updateState(prev));
       break;
-
   }
-
 };
 
 
 
 const handleAvailabilityChange = async (itemId, isAvailable) => {
-  if (updatingItemId === itemId) return; // Prevent double updates
+  if (updatingItemId === itemId) return;
   setUpdatingItemId(itemId);
 
   try {
@@ -883,13 +872,12 @@ const handleAvailabilityChange = async (itemId, isAvailable) => {
       )
     );
 
-    const response = await fetch(`${API_URL}/menu_items/${itemId}.json`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ isAvailable }),
+    // Update availability in Firestore
+    const docRef = doc(db, 'menu_items', itemId);
+    await updateDoc(docRef, { 
+      isAvailable,
+      updatedAt: new Date()
     });
-
-    if (!response.ok) throw new Error('Failed to update availability');
 
     // Refresh menu data after successful update
     await refreshData();
@@ -911,49 +899,49 @@ const handleAvailabilityChange = async (itemId, isAvailable) => {
 
 
 
-const handleSaveAvailability = async firebaseId => {
+// const handleSaveAvailability = async firebaseId => {
 
-  try {
+//   try {
 
-    const values = await form.validateFields();
+//     const values = await form.validateFields();
 
-    await fetch(`${API_URL}/menu_items/${firebaseId}.json`, {
+//     await fetch(`${API_URL}/menu_items/${firebaseId}.json`, {
 
-      method: 'PATCH',
+//       method: 'PATCH',
 
-      headers: { 'Content-Type': 'application/json' },
+//       headers: { 'Content-Type': 'application/json' },
 
-      body: JSON.stringify(values),
+//       body: JSON.stringify(values),
 
-    });
-
-
-
-    setMenuItems(prev =>
-
-      prev.map(item =>
-
-        item.firebaseId === firebaseId ? { ...item, ...values } : item
-
-      )
-
-    );
+//     });
 
 
 
-    setAvailabilityDrawer(false);
+//     setMenuItems(prev =>
 
-    message.success('Availability details updated successfully');
+//       prev.map(item =>
 
-  } catch (error) {
+//         item.firebaseId === firebaseId ? { ...item, ...values } : item
 
-    console.error('Error saving availability:', error);
+//       )
 
-    message.error('Failed to update availability details');
+//     );
 
-  }
 
-};
+
+//     setAvailabilityDrawer(false);
+
+//     message.success('Availability details updated successfully');
+
+//   } catch (error) {
+
+//     console.error('Error saving availability:', error);
+
+//     message.error('Failed to update availability details');
+
+//   }
+
+// };
 
 
 
@@ -1199,10 +1187,10 @@ const ModernMenuItem = memo(({ item }) => (
           height: '80px',
           objectFit: 'cover',
           borderRadius: '12px',
-          flexShrink: 0, // Prevent image from shrinking
+          flexShrink: 0,
         }}
         onError={(e) => {
-          e.target.src = '/api/placeholder/80/80';
+          e.target.src = 'https://via.placeholder.com/80';
         }}
       />
       <div style={{ 
