@@ -12,14 +12,6 @@ import {
 } from '@ant-design/icons';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import FoodLoader from './FoodLoader';
-import { db } from '../pages/fireBaseConfig';
-import { 
-  collection, 
-  query, 
-  where, 
-  getDocs,
-  orderBy
-} from 'firebase/firestore';
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -895,10 +887,8 @@ export const RestaurantDashboard = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const orgId = parseInt(localStorage.getItem('orgId'));
 
       // Fetch orders
-<<<<<<< Updated upstream
       const ordersResponse = await fetch('https://smart-server-menu-database.firebaseio.com/history.json');
       const ordersData = await ordersResponse.json();
       
@@ -909,51 +899,34 @@ export const RestaurantDashboard = () => {
       // Fetch menu items
       const menuItemsResponse = await fetch('https://smart-server-menu-database.firebaseio.com/menu_items.json');
       const menuItemsData = await menuItemsResponse.json();
-=======
-      const historyRef = collection(db, 'history');
-      const ordersQuery = query(
-        historyRef, 
-        where('orgId', '==', orgId),
-        orderBy('timestamp', 'desc')
-      );
-      const ordersSnapshot = await getDocs(ordersQuery);
-      const processedOrders = ordersSnapshot.docs.map(doc => ({
-        ...doc.data(),
-        id: doc.id,
-        firebaseId: doc.id
-      }));
 
-      // Fetch categories
-      const categoriesRef = collection(db, 'categories');
-      const categoriesQuery = query(
-        categoriesRef,
-        where('orgId', '==', orgId)
-      );
-      const categoriesSnapshot = await getDocs(categoriesQuery);
-      const processedCategories = categoriesSnapshot.docs.map(doc => ({
-        ...doc.data(),
-        id: doc.id,
-        firebaseId: doc.id
-      }));
+      // Process orders
+      const processedOrders = ordersData ? 
+        Object.entries(ordersData)
+          .map(([key, value]) => ({
+            ...value,
+            id: key
+          }))
+          .filter(order => order.orgId === orgId)
+          .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)) : [];
 
-      // Fetch menu items
-      const menuItemsRef = collection(db, 'menu_items');
-      const menuItemsQuery = query(
-        menuItemsRef,
-        where('orgId', '==', orgId)
-      );
-      const menuItemsSnapshot = await getDocs(menuItemsQuery);
-      const processedMenuItems = menuItemsSnapshot.docs.map(doc => ({
-        ...doc.data(),
-        id: doc.id,
-        firebaseId: doc.id
-      }));
->>>>>>> Stashed changes
+      // Process categories
+      const processedCategories = categoriesData ?
+        Object.entries(categoriesData)
+          .map(([key, value]) => ({
+            ...value,
+            id: key
+          }))
+          .filter(cat => cat.orgId === orgId) : [];
 
-      // Log fetched data for debugging
-      console.log('Fetched Orders:', processedOrders);
-      console.log('Fetched Categories:', processedCategories);
-      console.log('Fetched Menu Items:', processedMenuItems);
+      // Process menu items
+      const processedMenuItems = menuItemsData ?
+        Object.entries(menuItemsData)
+          .map(([key, value]) => ({
+            ...value,
+            id: key
+          }))
+          .filter(item => item.orgId === orgId) : [];
 
       setOrders(processedOrders);
       setCategories(processedCategories);
@@ -963,7 +936,7 @@ export const RestaurantDashboard = () => {
       console.error('Error fetching dashboard data:', error);
       notification.error({
         message: 'Error',
-        description: `Failed to load dashboard data: ${error.message}`
+        description: 'Failed to load dashboard data'
       });
     } finally {
       setLoading(false);
@@ -975,12 +948,8 @@ export const RestaurantDashboard = () => {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     
-    // Ensure orders is an array
-    const safeOrders = Array.isArray(orders) ? orders : [];
-    
     // Filter orders based on timeFrame
-    const filteredOrders = safeOrders.filter(order => {
-      if (!order.timestamp) return false;
+    const filteredOrders = orders.filter(order => {
       const orderDate = new Date(order.timestamp);
       switch(timeFrame) {
         case 'today':
@@ -997,7 +966,7 @@ export const RestaurantDashboard = () => {
     });
 
     const activeOrders = filteredOrders.filter(order => 
-      order.status && !['completed', 'cancelled'].includes(order.status)
+      !['completed', 'cancelled'].includes(order.status)
     );
 
     const completedOrders = filteredOrders.filter(order => 
@@ -1012,32 +981,27 @@ export const RestaurantDashboard = () => {
       sum + (parseFloat(order.total) || 0), 0
     );
 
-    // Calculate category performance with null checks
+    // Calculate category performance
     const categoryPerformance = {};
     completedOrders.forEach(order => {
-      if (!order.items) return;
-      
-      order.items.forEach(item => {
-        if (!item || !item.id) return;
-        
+      order.items?.forEach(item => {
         const menuItem = menuItems.find(mi => mi.id === item.id);
-        if (!menuItem || !menuItem.categoryId) return;
-        
-        const category = categories.find(c => c.id === menuItem.categoryId);
-        if (!category) return;
-        
-        if (!categoryPerformance[category.id]) {
-          categoryPerformance[category.id] = {
-            name: category.name,
-            orders: 0,
-            revenue: 0,
-            items: 0
-          };
+        if (menuItem) {
+          const category = categories.find(c => c.id === menuItem.categoryId);
+          if (category) {
+            if (!categoryPerformance[category.id]) {
+              categoryPerformance[category.id] = {
+                name: category.name,
+                orders: 0,
+                revenue: 0,
+                items: 0
+              };
+            }
+            categoryPerformance[category.id].orders++;
+            categoryPerformance[category.id].revenue += parseFloat(item.price) * item.quantity;
+            categoryPerformance[category.id].items += item.quantity;
+          }
         }
-        
-        categoryPerformance[category.id].orders++;
-        categoryPerformance[category.id].revenue += (parseFloat(item.price) || 0) * (item.quantity || 0);
-        categoryPerformance[category.id].items += (item.quantity || 0);
       });
     });
 
@@ -1049,8 +1013,8 @@ export const RestaurantDashboard = () => {
       totalRevenue,
       avgOrderValue: completedOrders.length ? totalRevenue / completedOrders.length : 0,
       categoryPerformance: Object.values(categoryPerformance),
-      completionRate: filteredOrders.length ? (completedOrders.length / filteredOrders.length) * 100 : 0,
-      cancellationRate: filteredOrders.length ? (cancelledOrders.length / filteredOrders.length) * 100 : 0
+      completionRate: (completedOrders.length / filteredOrders.length) * 100 || 0,
+      cancellationRate: (cancelledOrders.length / filteredOrders.length) * 100 || 0
     };
   };
 
@@ -1127,6 +1091,8 @@ export const RestaurantDashboard = () => {
             </Card>
           </Col>
         </Row>
+
+
 
         {/* Recent Orders */}
         <Card title="Recent Orders" style={styles.sectionCard}>
@@ -1214,7 +1180,7 @@ export const RestaurantDashboard = () => {
               }
             />
             <Progress 
-              percent={Number((item.  quantity / topItems[0].quantity * 100).toFixed(2))} 
+              percent={Number((item.quantity / topItems[0].quantity * 100).toFixed(2))} 
               strokeColor="#ff4d4f"
             />
           </List.Item>

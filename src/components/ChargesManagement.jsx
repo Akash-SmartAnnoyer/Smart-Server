@@ -2,17 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Card, Form, Input, Button, Select, message, Switch, Typography, Popconfirm } from 'antd';
 import { DeleteOutlined, EditOutlined, PlusOutlined, PercentageOutlined, TagOutlined } from '@ant-design/icons';
 import { RiMoneyDollarCircleLine } from 'react-icons/ri';
-import { db } from '../pages/fireBaseConfig';
-import { 
-  collection, 
-  query, 
-  where, 
-  getDocs,
-  doc,
-  addDoc,
-  updateDoc,
-  deleteDoc
-} from 'firebase/firestore';
 
 const { Option } = Select;
 const { Text } = Typography;
@@ -21,40 +10,20 @@ const ChargesManagement = () => {
   const [form] = Form.useForm();
   const [charges, setCharges] = useState([]);
   const [editingId, setEditingId] = useState(null);
-  const [restaurantDocId, setRestaurantDocId] = useState(null);
   const orgId = localStorage.getItem('orgId');
 
   useEffect(() => {
-    fetchRestaurantAndCharges();
+    fetchCharges();
   }, []);
 
-  const fetchRestaurantAndCharges = async () => {
+  const fetchCharges = async () => {
     try {
-<<<<<<< Updated upstream
       const response = await fetch(`https://smart-server-menu-database.firebaseio.com/restaurants/${orgId}/charges.json`);
       const data = await response.json();
       if (data) {
         const chargesArray = Object.entries(data).map(([id, charge]) => ({
           id,
           ...charge
-=======
-      // First, get the restaurant document ID
-      const restaurantsRef = collection(db, 'restaurants');
-      const q = query(restaurantsRef, where('orgId', '==', orgId));
-      const querySnapshot = await getDocs(q);
-
-      if (!querySnapshot.empty) {
-        const restaurantDoc = querySnapshot.docs[0];
-        setRestaurantDocId(restaurantDoc.id);
-
-        // Then fetch charges
-        const chargesRef = collection(db, 'restaurants', restaurantDoc.id, 'charges');
-        const chargesSnapshot = await getDocs(chargesRef);
-        
-        const chargesArray = chargesSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
->>>>>>> Stashed changes
         }));
         setCharges(chargesArray);
       }
@@ -76,7 +45,6 @@ const ChargesManagement = () => {
 
       if (editingId) {
         // Update existing charge
-<<<<<<< Updated upstream
         await fetch(`https://smart-server-menu-database.firebaseio.com/restaurants/${orgId}/charges/${editingId}.json`, {
           method: 'PUT',
           body: JSON.stringify(chargeData)
@@ -88,21 +56,12 @@ const ChargesManagement = () => {
           method: 'POST',
           body: JSON.stringify(chargeData)
         });
-=======
-        const chargeRef = doc(db, 'restaurants', restaurantDocId, 'charges', editingId);
-        await updateDoc(chargeRef, chargeData);
-        message.success('Charge updated successfully');
-      } else {
-        // Add new charge
-        const chargesRef = collection(db, 'restaurants', restaurantDocId, 'charges');
-        await addDoc(chargesRef, chargeData);
->>>>>>> Stashed changes
         message.success('Charge added successfully');
       }
 
       form.resetFields();
       setEditingId(null);
-      fetchRestaurantAndCharges();
+      fetchCharges();
     } catch (error) {
       console.error('Error saving charge:', error);
       message.error('Failed to save charge');
@@ -111,16 +70,11 @@ const ChargesManagement = () => {
 
   const handleDelete = async (id) => {
     try {
-<<<<<<< Updated upstream
       await fetch(`https://smart-server-menu-database.firebaseio.com/restaurants/${orgId}/charges/${id}.json`, {
         method: 'DELETE'
       });
-=======
-      const chargeRef = doc(db, 'restaurants', restaurantDocId, 'charges', id);
-      await deleteDoc(chargeRef);
->>>>>>> Stashed changes
       message.success('Charge deleted successfully');
-      fetchRestaurantAndCharges();
+      fetchCharges();
     } catch (error) {
       console.error('Error deleting charge:', error);
       message.error('Failed to delete charge');
@@ -139,17 +93,12 @@ const ChargesManagement = () => {
 
   const handleToggleCharge = async (record, enabled) => {
     try {
-<<<<<<< Updated upstream
       await fetch(`https://smart-server-menu-database.firebaseio.com/restaurants/${orgId}/charges/${record.id}.json`, {
         method: 'PATCH',
         body: JSON.stringify({ isEnabled: enabled })
       });
-=======
-      const chargeRef = doc(db, 'restaurants', restaurantDocId, 'charges', record.id);
-      await updateDoc(chargeRef, { isEnabled: enabled });
->>>>>>> Stashed changes
       message.success(`${record.name} ${enabled ? 'enabled' : 'disabled'}`);
-      fetchRestaurantAndCharges();
+      fetchCharges();
     } catch (error) {
       console.error('Error toggling charge:', error);
       message.error('Failed to update charge status');

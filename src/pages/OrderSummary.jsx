@@ -234,7 +234,7 @@ ws.current = new WebSocket('wss://smart-menu-web-socket-server.onrender.com');
       
       // Verify location before proceeding
       const isLocationValid = await verifyLocation();
-      if (!isLocationValid) {  
+      if (!isLocationValid) {
         setLoading(false);
         return;
       }
