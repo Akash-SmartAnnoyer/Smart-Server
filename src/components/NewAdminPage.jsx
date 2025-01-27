@@ -210,35 +210,39 @@ const NewAdminPage = () => {
       const statusMessage = getStatusMessage(newStatus);
       const success = await updateOrder(orderId, { 
         status: newStatus, 
-        statusMessage 
+        statusMessage,
+        updatedAt: new Date().toISOString()
       });
 
-      if (!success) throw new Error('Failed to update order status');
+      if (success) {
+        // Update local state
+        setOrders(prevOrders =>
+          prevOrders.map(order =>
+            order.id === orderId 
+              ? { ...order, status: newStatus, statusMessage }
+              : order
+          )
+        );
 
-      // Silently update local state without triggering notification
-      setOrders(prevOrders =>
-        prevOrders.map(order =>
-          order.id === orderId 
-            ? { ...order, status: newStatus, statusMessage }
-            : order
-        )
-      );
+        // Send WebSocket message for other clients
+        if (ws.current?.readyState === WebSocket.OPEN) {
+          ws.current.send(JSON.stringify({
+            type: 'statusUpdate',
+            orderId,
+            status: newStatus,
+            statusMessage,
+            orgId,
+            senderId: ws.current.id
+          }));
+        }
 
-      // Send WebSocket message for other clients
-      if (ws.current?.readyState === WebSocket.OPEN) {
-        ws.current.send(JSON.stringify({
-          type: 'statusUpdate',
-          orderId,
-          status: newStatus,
-          statusMessage,
-          orgId
-        }));
+        setNewOrders(prev => prev.filter(id => id !== orderId));
+        
+        message.success('Order status updated successfully');
       }
-
-      setNewOrders(prev => prev.filter(id => id !== orderId));
     } catch (error) {
       console.error('Failed to update order status:', error);
-      message.error('Failed to update order status');
+      message.error('Failed to update order status: ' + error.message);
     }
   };
 

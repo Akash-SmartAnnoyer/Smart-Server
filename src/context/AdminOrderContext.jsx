@@ -9,7 +9,8 @@ import {
   where, 
   startAfter,
   doc,
-  updateDoc 
+  updateDoc,
+  setDoc
 } from 'firebase/firestore';
 import { db } from '../pages/fireBaseConfig';
 
@@ -28,7 +29,6 @@ export const AdminOrderProvider = ({ children }) => {
       let q;
 
       if (endAt) {
-        // Query orders before the endAt timestamp for the specific orgId
         q = query(
           historyRef,
           where('orgId', '==', orgId),
@@ -37,7 +37,6 @@ export const AdminOrderProvider = ({ children }) => {
           limit(limit + 1)
         );
       } else {
-        // Initial load - get the most recent orders
         q = query(
           historyRef,
           where('orgId', '==', orgId),
@@ -52,15 +51,26 @@ export const AdminOrderProvider = ({ children }) => {
         id: doc.id
       }));
 
-      // Remove the duplicate order that is the same as endAt
       if (endAt) {
         ordersArray.pop();
       }
 
       setOrders(prevOrders => {
+        // If we're not loading more (no endAt), replace all orders
+        if (!endAt) {
+          localStorage.setItem('cachedOrders', JSON.stringify(ordersArray));
+          return ordersArray;
+        }
+        
+        // If loading more, append new orders
         const existingOrderIds = new Set(prevOrders.map(order => order.id));
         const newOrders = ordersArray.filter(order => !existingOrderIds.has(order.id));
-        return [...prevOrders, ...newOrders];
+        const updatedOrders = [...prevOrders, ...newOrders];
+        
+        // Cache the updated orders
+        localStorage.setItem('cachedOrders', JSON.stringify(updatedOrders));
+        
+        return updatedOrders;
       });
     } catch (error) {
       console.error('Failed to fetch orders:', error);
@@ -72,49 +82,106 @@ export const AdminOrderProvider = ({ children }) => {
 
   const updateOrder = async (orderId, updates) => {
     try {
-      const orderRef = doc(db, 'history', orderId);
-      await updateDoc(orderRef, updates);
+      // Convert orderId to numeric format since documents are stored as numbers
+      const numericId = orderId.toString().replace(/\D/g, ''); // Remove non-numeric characters
+      const orderRef = doc(db, 'history', numericId);
+      
+      // Add timestamp to updates
+      const updatedData = {
+        ...updates,
+        lastUpdated: new Date().toISOString()
+      };
 
+      await updateDoc(orderRef, updatedData);
+      
+      // Update local state
       setOrders(prevOrders =>
         prevOrders.map(order =>
-          order.id === orderId ? { ...order, ...updates } : order
+          order.id === orderId ? { ...order, ...updatedData } : order
         )
       );
+
+      // Update localStorage
+      const updatedOrders = orders.map(order =>
+        order.id === orderId ? { ...order, ...updatedData } : order
+      );
+      localStorage.setItem('cachedOrders', JSON.stringify(updatedOrders));
+      
       return true;
     } catch (error) {
       console.error('Failed to update order:', error);
-      return false;
+      // Add more specific error handling
+      if (error.code === 'not-found') {
+        throw new Error('Order not found. It might have been deleted or moved.');
+      }
+      throw error;
     }
   };
 
+  // Add a function to store new orders in the history collection
+  const storeOrderInHistory = async (order) => {
+    try {
+      const numericId = order.id.toString().replace(/\D/g, '');
+      const orderRef = doc(db, 'history', numericId);
+      await setDoc(orderRef, {
+        ...order,
+        timestamp: new Date().toISOString(),
+        status: 'pending'
+      });
+    } catch (error) {
+      console.error('Failed to store order in history:', error);
+    }
+  };
+
+  // Update the initial useEffect for loading orders
   useEffect(() => {
     if (orgId) {
+      // Try to load cached orders first
+      const cachedOrders = localStorage.getItem('cachedOrders');
+      if (cachedOrders) {
+        setOrders(JSON.parse(cachedOrders));
+        setLoading(false); // Set loading to false after loading cached orders
+      }
+      
+      // Then fetch fresh orders
       fetchOrders();
-      // Set up periodic refresh
-      // const intervalId = setInterval(fetchOrders, 30000); // Refresh every 30 seconds
-      // return () => clearInterval(intervalId);
     }
   }, [orgId]);
 
+  // Add a cleanup effect to handle page refresh
+  useEffect(() => {
+    // Check if page needs refresh
+    const needRefresh = localStorage.getItem('needRefresh');
+    if (needRefresh !== 'no') {
+      // Set flag to 'no' before refreshing to prevent refresh loop
+      localStorage.setItem('needRefresh', 'no');
+      window.location.reload();
+    }
+  }, []); // Empty dependency array ensures this runs only once on mount
+
+  // Update the WebSocket effect to handle new orders better
   useEffect(() => {
     if (orgId) {
-      // ws.current = new WebSocket('wss://legend-sulfuric-ruby.glitch.me');
-
       const ws = new WebSocket('wss://smart-menu-web-socket-server.onrender.com');
       
       ws.onopen = () => {
         console.log('WebSocket connected in AdminOrderContext');
       };
 
-      ws.onmessage = (event) => {
+      ws.onmessage = async (event) => {
         const data = JSON.parse(event.data);
         if (data.type === 'newOrder' && data.order.orgId === orgId) {
+          // Store the new order in history collection
+          await storeOrderInHistory(data.order);
+          
           setOrders(prevOrders => {
-            // Check if order already exists
             if (prevOrders.some(order => order.id === data.order.id)) {
               return prevOrders;
             }
-            return [data.order, ...prevOrders];
+            const updatedOrders = [data.order, ...prevOrders];
+            // Update localStorage with new order
+            localStorage.setItem('cachedOrders', JSON.stringify(updatedOrders));
+            return updatedOrders;
           });
         }
       };
