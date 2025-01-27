@@ -1,4 +1,14 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { db } from '../pages/fireBaseConfig';
+import { 
+  collection, 
+  query, 
+  where, 
+  getDocs,
+  doc,
+  setDoc,
+  getDoc
+} from 'firebase/firestore';
 
 console.log('MenuProvider is being loaded');
 
@@ -24,16 +34,19 @@ export function MenuProvider({ children }) {
   const [error, setError] = useState(null);
   const orgId = localStorage.getItem('orgId');
 
-  const fetchData = async (url, queryParams = null) => {
+  const fetchCollectionData = async (collectionName) => {
     try {
-      const finalUrl = queryParams 
-        ? `${url}?orderBy="orgId"&equalTo=${orgId}`
-        : url;
-      const response = await fetch(finalUrl);
-      const data = await response.json();
-      return data;
+      const collectionRef = collection(db, collectionName);
+      const q = query(collectionRef, where('orgId', '==', parseInt(orgId)));
+      const querySnapshot = await getDocs(q);
+      
+      return querySnapshot.docs.map(doc => ({
+        ...doc.data(),
+        id: doc.id,
+        firebaseId: doc.id
+      }));
     } catch (error) {
-      console.error(`Error fetching from ${url}:`, error);
+      console.error(`Error fetching ${collectionName}:`, error);
       throw error;
     }
   };
@@ -48,8 +61,9 @@ export function MenuProvider({ children }) {
       }));
 
       try {
-        // Fetch categories with query parameter
+        // Fetch categories
         setLoading(prev => ({ ...prev, categories: true }));
+<<<<<<< Updated upstream
         const catData = await fetchData('https://smart-server-menu-database.firebaseio.com/categories.json', true);
         const processedCategories = catData ? 
           Object.entries(catData)
@@ -64,25 +78,30 @@ export function MenuProvider({ children }) {
           fetchData('https://smart-server-menu-database.firebaseio.com/subcategories.json', true),
           fetchData('https://smart-server-menu-database.firebaseio.com/menu_items.json', true),
           fetchData('https://smart-server-menu-database.firebaseio.com/menu_suggestions.json') // No filter for suggestions
+=======
+        const processedCategories = await fetchCollectionData('categories');
+        setMenuData(prev => ({ ...prev, categories: processedCategories }));
+        setLoading(prev => ({ ...prev, categories: false }));
+
+        // Fetch other data in parallel
+        const [processedSubcategories, menuItemsArray] = await Promise.all([
+          fetchCollectionData('subcategories'),
+          fetchCollectionData('menu_items')
+>>>>>>> Stashed changes
         ]);
 
-        const processedSubcategories = subData ?
-          Object.entries(subData)
-            .map(([id, subcategory]) => ({ id, ...subcategory })) :
-          [];
-
-        const menuItemsArray = menuData ?
-          Object.entries(menuData)
-            .map(([id, item]) => ({ id, ...item })) :
-          [];
+        // Fetch suggestions
+        const suggestionsRef = doc(db, 'menu_suggestions', 'suggestions');
+        const suggestionsDoc = await getDoc(suggestionsRef);
+        const sugData = suggestionsDoc.exists() ? suggestionsDoc.data() : {};
 
         const processedRecommendations = {};
-        if (sugData && menuItemsArray.length > 0) {
+        if (Object.keys(sugData).length > 0 && menuItemsArray.length > 0) {
           Object.entries(sugData).forEach(([itemId, suggestionIds]) => {
             const suggestedItems = menuItemsArray.filter(menuItem => 
               suggestionIds.some(suggestion => 
                 suggestion.name === menuItem.name && 
-                suggestion.orgId.toString() === orgId
+                suggestion.orgId === orgId
               )
             );
             if (suggestedItems.length > 0) {
@@ -123,6 +142,7 @@ export function MenuProvider({ children }) {
 
   const updateSuggestions = async (updatedSuggestions) => {
     try {
+<<<<<<< Updated upstream
       const response = await fetch('https://smart-server-menu-database.firebaseio.com/menu_suggestions.json', {
         method: 'PUT',
         headers: {
@@ -132,6 +152,11 @@ export function MenuProvider({ children }) {
       });
 
       if (!response.ok) throw new Error('Failed to save suggestions');
+=======
+      const suggestionsRef = doc(db, 'menu_suggestions', 'suggestions');
+      await setDoc(suggestionsRef, updatedSuggestions);
+      
+>>>>>>> Stashed changes
       setMenuData(prev => ({
         ...prev,
         recommendations: updatedSuggestions
@@ -152,10 +177,7 @@ export function MenuProvider({ children }) {
       overall: true
     });
     
-    // Force a small delay to ensure state updates properly
     await new Promise(resolve => setTimeout(resolve, 100));
-    
-    // This will trigger the useEffect to fetch fresh data
     setDataInitialized(false);
   }, []);
 

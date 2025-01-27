@@ -64,6 +64,7 @@ function Header({ onSearch }) {
   const fetchRestaurantDetails = async () => {
     try {
       const orgId = localStorage.getItem('orgId');
+<<<<<<< Updated upstream
       const response = await fetch(
         `https://smart-server-menu-database.firebaseio.com/restaurants.json?orderBy="orgId"&equalTo="${orgId}"`
       );
@@ -71,22 +72,24 @@ function Header({ onSearch }) {
       if (!response.ok) {
         throw new Error('Failed to fetch restaurant details');
       }
+=======
+      const { db } = await import('../pages/fireBaseConfig');
+      const { collection, query, where, getDocs } = await import('firebase/firestore');
+>>>>>>> Stashed changes
 
-      const data = await response.json();
-      
-      if (data) {
-        // Since we're filtering by orgId, we'll get only one restaurant
-        const restaurantId = Object.keys(data)[0];
-        const restaurant = data[restaurantId];
+      const restaurantsRef = collection(db, 'restaurants');
+      const q = query(restaurantsRef, where('orgId', '==', orgId));
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) {
+        // Get the first document since we're filtering by orgId
+        const doc = querySnapshot.docs[0];
+        const restaurant = doc.data();
         
-        if (restaurant) {
-          setRestaurantDetails({ ...restaurant, id: restaurantId });
-          setRestaurantLogo(restaurant.logo);
-        } else {
-          console.error("No restaurant found with the given orgId");
-        }
+        setRestaurantDetails({ ...restaurant, id: doc.id });
+        setRestaurantLogo(restaurant.logo);
       } else {
-        console.error("No data available in the database");
+        console.error("No restaurant found with the given orgId");
       }
     } catch (error) {
       console.error('Error fetching restaurant details:', error);

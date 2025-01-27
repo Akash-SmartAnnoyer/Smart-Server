@@ -1,4 +1,13 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
+import { db } from '../pages/fireBaseConfig';
+import { 
+  collection, 
+  query, 
+  where, 
+  getDocs,
+  doc,
+  getDoc
+} from 'firebase/firestore';
 
 console.log('OrderContext is being loaded');
 
@@ -17,31 +26,44 @@ export const OrderProvider = ({ children }) => {
     const fetchInitialData = async () => {
       try {
         setLoading(true);
+<<<<<<< Updated upstream
         // Fetch restaurant details with query parameter
         const restaurantResponse = await fetch(
           `https://smart-server-menu-database.firebaseio.com/restaurants.json?orderBy="orgId"&equalTo="${orgId}"`
         );
         const restaurantData = await restaurantResponse.json();
+=======
+>>>>>>> Stashed changes
         
-        if (restaurantData) {
-          // Since we're filtering by orgId, we'll only get one restaurant
-          const restaurant = Object.values(restaurantData)[0];
+        // Fetch restaurant details
+        const restaurantsRef = collection(db, 'restaurants');
+        const q = query(restaurantsRef, where('orgId', '==', orgId));
+        const querySnapshot = await getDocs(q);
+
+        if (!querySnapshot.empty) {
+          // Get the first document since we're filtering by orgId
+          const restaurantDoc = querySnapshot.docs[0];
+          const restaurant = restaurantDoc.data();
           setRestaurantDetails(restaurant);
 
+<<<<<<< Updated upstream
           // Fetch charges directly using the restaurant key
           const restaurantKey = Object.keys(restaurantData)[0];
           const chargesResponse = await fetch(
             `https://smart-server-menu-database.firebaseio.com/restaurants/${restaurantKey}/charges.json`
           );
           const chargesData = await chargesResponse.json();
+=======
+          // Fetch charges from the restaurant's charges subcollection
+          const chargesRef = collection(db, 'restaurants', restaurantDoc.id, 'charges');
+          const chargesSnapshot = await getDocs(chargesRef);
+>>>>>>> Stashed changes
           
-          if (chargesData) {
-            const chargesArray = Object.entries(chargesData).map(([id, charge]) => ({
-              id,
-              ...charge
-            }));
-            setCharges(chargesArray);
-          }
+          const chargesArray = chargesSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }));
+          setCharges(chargesArray);
         }
       } catch (error) {
         console.error('Error fetching initial data:', error);

@@ -1,5 +1,17 @@
 // src/context/AdminOrderContext.jsx
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import { 
+  collection, 
+  query, 
+  orderBy, 
+  limit, 
+  getDocs, 
+  where, 
+  startAfter,
+  doc,
+  updateDoc 
+} from 'firebase/firestore';
+import { db } from '../pages/fireBaseConfig';
 
 const AdminOrderContext = createContext();
 
@@ -12,33 +24,40 @@ export const AdminOrderProvider = ({ children }) => {
   const fetchOrders = async (endAt = null, limit = 5) => {
     try {
       setLoading(true);
-      let url;
-      
+      const historyRef = collection(db, 'history');
+      let q;
+
       if (endAt) {
         // Query orders before the endAt timestamp for the specific orgId
+<<<<<<< Updated upstream
         url = `https://smart-server-menu-database.firebaseio.com/history.json?orderBy="timestamp"&endAt="${endAt}"&limitToLast=${limit + 1}`;
       } else {
         // Initial load - get the most recent orders
         url = `https://smart-server-menu-database.firebaseio.com/history.json?orderBy="timestamp"&limitToLast=${limit}`;
+=======
+        q = query(
+          historyRef,
+          where('orgId', '==', orgId),
+          orderBy('timestamp', 'desc'),
+          startAfter(endAt),
+          limit(limit + 1)
+        );
+      } else {
+        // Initial load - get the most recent orders
+        q = query(
+          historyRef,
+          where('orgId', '==', orgId),
+          orderBy('timestamp', 'desc'),
+          limit(limit)
+        );
+>>>>>>> Stashed changes
       }
 
-      const response = await fetch(url);
-      if (!response.ok) throw new Error('Failed to fetch orders');
-
-      const data = await response.json();
-      if (!data) {
-        setOrders([]);
-        return;
-      }
-
-      // Filter for matching orgId after fetching
-      const ordersArray = Object.entries(data)
-        .map(([key, order]) => ({
-          ...order,
-          id: order.id || key
-        }))
-        .filter(order => order.orgId === orgId) // Filter for matching orgId
-        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      const querySnapshot = await getDocs(q);
+      const ordersArray = querySnapshot.docs.map(doc => ({
+        ...doc.data(),
+        id: doc.id
+      }));
 
       // Remove the duplicate order that is the same as endAt
       if (endAt) {
@@ -60,6 +79,7 @@ export const AdminOrderProvider = ({ children }) => {
 
   const updateOrder = async (orderId, updates) => {
     try {
+<<<<<<< Updated upstream
       const response = await fetch(
         `https://smart-server-menu-database.firebaseio.com/history/${orderId}.json`,
         {
@@ -70,6 +90,10 @@ export const AdminOrderProvider = ({ children }) => {
       );
 
       if (!response.ok) throw new Error('Failed to update order');
+=======
+      const orderRef = doc(db, 'history', orderId);
+      await updateDoc(orderRef, updates);
+>>>>>>> Stashed changes
 
       setOrders(prevOrders =>
         prevOrders.map(order =>
