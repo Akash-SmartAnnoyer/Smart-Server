@@ -22,7 +22,7 @@ export const AdminOrderProvider = ({ children }) => {
   const orgId = localStorage.getItem('orgId');
 
 
-  const fetchOrders = async (endAt = null, limit = 5) => {
+  const fetchOrders = async (endAt = null, limit = null) => {
     try {
       setLoading(true);
       const historyRef = collection(db, 'history');
@@ -34,14 +34,14 @@ export const AdminOrderProvider = ({ children }) => {
           where('orgId', '==', orgId),
           orderBy('timestamp', 'desc'),
           startAfter(endAt),
-          limit(limit + 1)
+          ...(limit ? [limit(limit + 1)] : [])
         );
       } else {
         q = query(
           historyRef,
           where('orgId', '==', orgId),
           orderBy('timestamp', 'desc'),
-          limit(limit)
+          ...(limit ? [limit(limit)] : [])
         );
       }
 
