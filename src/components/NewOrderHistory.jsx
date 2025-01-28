@@ -14,6 +14,8 @@ import {
 } from '@ant-design/icons';
 import { useAdminOrders } from '../context/AdminOrderContext';
 import FoodLoader from './FoodLoader';
+import { doc, deleteDoc } from 'firebase/firestore';
+import { db } from '../pages/fireBaseConfig';
 
 function NewOrderHistory() {
   const { orders, loading, setOrders, fetchOrders } = useAdminOrders();
@@ -70,17 +72,18 @@ function NewOrderHistory() {
 
   const handleDelete = async (orderId) => {
     try {
-      const deleteResponse = await fetch(
-        `https://production-db-993e8-default-rtdb.firebaseio.com/history/${orderId}.json`,
-        { method: 'DELETE' }
-      );
-
-      if (!deleteResponse.ok) {
-        throw new Error(`Failed to delete order. Status: ${deleteResponse.status}`);
-      }
+      // Convert orderId to numeric format since documents are stored as numbers
+      const numericId = orderId.toString().replace(/\D/g, '');
+      const orderRef = doc(db, 'history', numericId);
+      
+      await deleteDoc(orderRef);
 
       message.success('Order deleted successfully');
       setOrders((prevOrders) => prevOrders.filter((order) => order.id !== orderId));
+      
+      // Update the cached orders
+      const updatedOrders = orders.filter((order) => order.id !== orderId);
+      localStorage.setItem('cachedOrders', JSON.stringify(updatedOrders));
     } catch (error) {
       console.error('Failed to delete order:', error);
       message.error('Failed to delete order. Please try again.');
