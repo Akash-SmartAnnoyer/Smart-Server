@@ -6,6 +6,8 @@ import {
   BookOpen, Star, Clock, Bell, GlassWater, MapPin, AlertTriangle
 } from 'lucide-react';
 import { Card, Typography, Spin, Alert, Progress } from 'antd';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '../pages/fireBaseConfig';
 const { Title, Text } = Typography;
 
 const QREntry = () => {
@@ -107,17 +109,16 @@ useEffect(() => {
                 setProgress(prev => (prev < 90 ? prev + 10 : prev));
             }, 200);
 
-            const response = await fetch(`${API_URL}.json`);
-            if (!response.ok) throw new Error('Failed to fetch restaurant data');
-
-            const data = await response.json();
-                const restaurantArray = Object.values(data);
-            const restaurantData = restaurantArray.find(r => r.orgId === orgId);
-
+            // Update to use Firestore query
+            const restaurantsRef = collection(db, 'restaurants');
+            const q = query(restaurantsRef, where('orgId', '==', orgId));
+            const querySnapshot = await getDocs(q);
+            
             clearInterval(progressInterval);
             setProgress(100);
 
-            if (restaurantData) {
+            if (!querySnapshot.empty) {
+                const restaurantData = querySnapshot.docs[0].data();
                 setRestaurant(restaurantData);
                 
                 const isLocationVerified = true;
@@ -151,6 +152,7 @@ useEffect(() => {
             setLoading(false);
         }
     };
+
 
         if (orgId && tableNumber) {
             fetchRestaurantData();
