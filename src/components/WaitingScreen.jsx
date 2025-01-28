@@ -6,7 +6,8 @@ import { useCart } from '../contexts/CartContext';
 import { IoVolumeMuteOutline } from "react-icons/io5";
 import notificationSound from './notification.mp3';
 import FoodLoader from './FoodLoader';
-import { useOrders } from '../context/OrderContext';
+import { doc, getDoc, updateDoc, collection, addDoc } from 'firebase/firestore';
+import { db } from '../pages/fireBaseConfig';
 
 const { Title, Text } = Typography;
 const { Panel } = Collapse;
@@ -52,10 +53,8 @@ const WaitingScreen = () => {
   const { orderId } = useParams();
   const navigate = useNavigate();
   const { clearCart } = useCart();
-  const { orders, updateOrder } = useOrders();
   
-  // Get order from context instead of API
-  const [order, setOrder] = useState(() => orders.find(o => o.id === orderId));
+  const [order, setOrder] = useState(null);
   const [feedback, setFeedback] = useState('');
   const [rating, setRating] = useState(0);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -77,13 +76,14 @@ const WaitingScreen = () => {
   }, [soundEnabled]);
 
   useEffect(() => {
-    // Always fetch the latest order data when component mounts
+    // Update the fetch order function to use Firestore
     const fetchOrder = async () => {
       try {
-        const response = await fetch(`https://production-db-993e8-default-rtdb.firebaseio.com/history/${orderId}.json`);
-        if (!response.ok) throw new Error('Failed to fetch order');
-        const fetchedOrder = await response.json();
-        if (!fetchedOrder) throw new Error('Order not found');
+        const orderRef = doc(db, 'history', orderId);
+        const orderSnap = await getDoc(orderRef);
+        
+        if (!orderSnap.exists()) throw new Error('Order not found');
+        const fetchedOrder = { id: orderSnap.id, ...orderSnap.data() };
         setOrder({ ...fetchedOrder, displayOrderId: fetchedOrder.id || orderId });
         setIsGeneratingOrderId(false);
       } catch (error) {
@@ -92,7 +92,6 @@ const WaitingScreen = () => {
       }
     };
 
-    // Always fetch fresh data when component mounts
     fetchOrder();
     
     // WebSocket setup
@@ -178,21 +177,12 @@ const WaitingScreen = () => {
   const handleConfirmCancelOrder = async () => {
     setConfirmCancelVisible(false);
     try {
-      // First update in Firebase
-      const response = await fetch(`https://production-db-993e8-default-rtdb.firebaseio.com/history/${orderId}.json`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          status: 'cancelled',
-          statusMessage: 'Your order has been cancelled'
-        }),
+      // Update in Firestore
+      const orderRef = doc(db, 'history', orderId);
+      await updateDoc(orderRef, {
+        status: 'cancelled',
+        statusMessage: 'Your order has been cancelled'
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to update order in Firebase');
-      }
 
       // Update local state
       setOrder(prev => ({
@@ -201,7 +191,7 @@ const WaitingScreen = () => {
         statusMessage: 'Your order has been cancelled'
       }));
 
-      // Send WebSocket notification
+      // WebSocket notification remains the same
       if (ws.current?.readyState === WebSocket.OPEN) {
         ws.current.send(JSON.stringify({
           type: 'statusUpdate',
@@ -223,30 +213,21 @@ const WaitingScreen = () => {
 
   const handleCompleteOrder = async () => {
     try {
-      // First update in Firebase
-      const response = await fetch(`https://production-db-993e8-default-rtdb.firebaseio.com/history/${orderId}.json`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          status: 'completed',
-          statusMessage: 'Your order has been completed'
-        }),
+      // Update in Firestore
+      const orderRef = doc(db, 'history', orderId);
+      await updateDoc(orderRef, {
+        status: 'completed',
+        statusMessage: 'Your order has been completed'
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to update order in Firebase');
-      }
-
-      // Update local state
+      // Rest of the function remains the same
       setOrder(prev => ({
         ...prev,
         status: 'completed',
         statusMessage: 'Your order has been completed'
       }));
 
-      // Send WebSocket notification
+      // WebSocket notification remains the same
       if (ws.current?.readyState === WebSocket.OPEN) {
         ws.current.send(JSON.stringify({
           type: 'statusUpdate',
@@ -314,33 +295,14 @@ const WaitingScreen = () => {
     };
 
     try {
-      // Update the order with feedback in Firebase
-      const orderUpdateResponse = await fetch(`https://production-db-993e8-default-rtdb.firebaseio.com/history/${orderId}.json`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          feedback: feedbackDetails
-        }),
+      // Update order with feedback in Firestore
+      const orderRef = doc(db, 'history', orderId);
+      await updateDoc(orderRef, {
+        feedback: feedbackDetails
       });
 
-      if (!orderUpdateResponse.ok) {
-        throw new Error('Failed to update order with feedback');
-      }
-
-      // Also save to separate feedback collection for easier querying
-      const feedbackResponse = await fetch('https://production-db-993e8-default-rtdb.firebaseio.com/feedback.json', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(feedbackDetails),
-      });
-
-      if (!feedbackResponse.ok) {
-        throw new Error('Failed to save feedback');
-      }
+      // Save to separate feedback collection
+      await addDoc(collection(db, 'feedback'), feedbackDetails);
 
       message.success('Thank you for your feedback!');
       setIsModalVisible(false);
