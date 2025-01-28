@@ -79,14 +79,44 @@ export const AdminOrderProvider = ({ children }) => {
     }
   };
 
+  // Helper function to standardize order ID format
+  const standardizeOrderId = (orderId) => {
+    if (!orderId) return '';
+    // If it starts with 'ORD-', keep it as is
+    if (orderId.startsWith('ORD-')) return orderId;
+    // If it's a pure numeric string, add the 'ORD-' prefix
+    if (/^\d+$/.test(orderId)) {
+      return `ORD-${orderId}`;
+    }
+    // If it's already in the correct format, return as is
+    if (/^ORD-\d+$/.test(orderId)) return orderId;
+    // For any other format, extract numbers and add prefix
+    const numbers = orderId.replace(/\D/g, '');
+    return `ORD-${numbers}`;
+  };
 
+  // Update the storeOrderInHistory function
+  const storeOrderInHistory = async (order) => {
+    try {
+      const standardId = standardizeOrderId(order.id);
+      const orderRef = doc(db, 'history', standardId);
+      await setDoc(orderRef, {
+        ...order,
+        id: standardId, // Ensure the ID in the document data is also standardized
+        timestamp: new Date().toISOString(),
+        status: 'pending'
+      });
+    } catch (error) {
+      console.error('Failed to store order in history:', error);
+    }
+  };
+
+  // Update the updateOrder function
   const updateOrder = async (orderId, updates) => {
     try {
-      // Convert orderId to numeric format since documents are stored as numbers
-      const numericId = orderId.toString().replace(/\D/g, ''); // Remove non-numeric characters
-      const orderRef = doc(db, 'history', numericId);
+      const standardId = standardizeOrderId(orderId);
+      const orderRef = doc(db, 'history', standardId);
       
-      // Add timestamp to updates
       const updatedData = {
         ...updates,
         lastUpdated: new Date().toISOString()
@@ -94,42 +124,23 @@ export const AdminOrderProvider = ({ children }) => {
 
       await updateDoc(orderRef, updatedData);
       
-      // Update local state
+      // Update local state using the standardized ID
       setOrders(prevOrders =>
         prevOrders.map(order =>
-          order.id === orderId ? { ...order, ...updatedData } : order
+          standardizeOrderId(order.id) === standardId ? { ...order, ...updatedData, id: standardId } : order
         )
       );
 
       // Update localStorage
       const updatedOrders = orders.map(order =>
-        order.id === orderId ? { ...order, ...updatedData } : order
+        standardizeOrderId(order.id) === standardId ? { ...order, ...updatedData, id: standardId } : order
       );
       localStorage.setItem('cachedOrders', JSON.stringify(updatedOrders));
       
       return true;
     } catch (error) {
       console.error('Failed to update order:', error);
-      // Add more specific error handling
-      if (error.code === 'not-found') {
-        throw new Error('Order not found. It might have been deleted or moved.');
-      }
       throw error;
-    }
-  };
-
-  // Add a function to store new orders in the history collection
-  const storeOrderInHistory = async (order) => {
-    try {
-      const numericId = order.id.toString().replace(/\D/g, '');
-      const orderRef = doc(db, 'history', numericId);
-      await setDoc(orderRef, {
-        ...order,
-        timestamp: new Date().toISOString(),
-        status: 'pending'
-      });
-    } catch (error) {
-      console.error('Failed to store order in history:', error);
     }
   };
 

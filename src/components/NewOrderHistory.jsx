@@ -72,17 +72,20 @@ function NewOrderHistory() {
 
   const handleDelete = async (orderId) => {
     try {
-      // Convert orderId to numeric format since documents are stored as numbers
-      const numericId = orderId.toString().replace(/\D/g, '');
-      const orderRef = doc(db, 'history', numericId);
+      const standardId = orderId.startsWith('ORD-') ? orderId : `ORD-${orderId.replace(/\D/g, '')}`;
+      const orderRef = doc(db, 'history', standardId);
       
       await deleteDoc(orderRef);
 
       message.success('Order deleted successfully');
-      setOrders((prevOrders) => prevOrders.filter((order) => order.id !== orderId));
+      setOrders((prevOrders) => prevOrders.filter((order) => 
+        order.id !== orderId && order.id !== standardId
+      ));
       
       // Update the cached orders
-      const updatedOrders = orders.filter((order) => order.id !== orderId);
+      const updatedOrders = orders.filter((order) => 
+        order.id !== orderId && order.id !== standardId
+      );
       localStorage.setItem('cachedOrders', JSON.stringify(updatedOrders));
     } catch (error) {
       console.error('Failed to delete order:', error);
