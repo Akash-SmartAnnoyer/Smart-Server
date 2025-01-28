@@ -470,11 +470,11 @@ const NewAdminPage = () => {
               />
               <Text>Sound Alerts</Text>
             </div>
-            {filteredOrders.length > 0 && (
+            {/* {filteredOrders.length > 0 && (
               <Button onClick={loadMoreOrders} style={{ margin: '20px auto', display: 'block' }}>
                 Load More Orders
               </Button>
-            )}
+            )} */}
           </div>
         </div>
 
@@ -734,11 +734,11 @@ const NewAdminPage = () => {
             ))}
           </div>
         )}
-        {filteredOrders.length > 0 && (
+        {/* {filteredOrders.length > 0 && (
           <button onClick={loadMoreOrders} style={{ margin: '20px auto', display: 'block' }}>
             Load More Orders
           </button>
-        )}
+        )} */}
       </div>
       <style>
         {`

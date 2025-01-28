@@ -367,11 +367,11 @@ function NewOrderHistory() {
           }}
           allowClear
         />
-        {filteredOrders.length > 0 && (
+        {/* {filteredOrders.length > 0 && (
           <Button onClick={loadMoreOrders} style={{ margin: '20px auto', display: 'block' }}>
             Load More Orders
           </Button>
-        )}
+        )} */}
       </div>
       <div style={{
         maxWidth: isMobile ? '100%' : '1200px',
@@ -528,9 +528,9 @@ function NewOrderHistory() {
                 )}
               />
             )}
-            <Button onClick={loadMoreOrders} style={{ margin: '20px auto', display: 'block' }}>
+            {/* <Button onClick={loadMoreOrders} style={{ margin: '20px auto', display: 'block' }}>
               Load More Orders
-            </Button>
+            </Button> */}
           </>
         )}
       </div>
