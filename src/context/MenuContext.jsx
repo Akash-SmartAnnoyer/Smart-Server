@@ -1,4 +1,6 @@
 import React, { createContext, useState, useContext } from 'react';
+import { db } from '../pages/fireBaseConfig';
+import { collection, getDocs, query, where, doc, setDoc } from 'firebase/firestore';
 
 const MenuContext = createContext();
 
@@ -11,23 +13,25 @@ export const MenuProvider = ({ children }) => {
   const fetchMenuData = async () => {
     setLoading(true);
     try {
-      const [menuResponse, suggestionsResponse] = await Promise.all([
-        fetch('https://production-db-993e8-default-rtdb.firebaseio.com/menu_items.json'),
-        fetch('https://production-db-993e8-default-rtdb.firebaseio.com/menu_suggestions.json')
-      ]);
-      const menuData = await menuResponse.json();
-      const suggestionsData = await suggestionsResponse.json();
+      const orgId = parseInt(localStorage.getItem('orgId'));
+      
+      // Fetch menu items
+      const menuQuery = query(
+        collection(db, 'menu_items'),
+        where('orgId', '==', orgId)
+      );
+      const menuSnapshot = await getDocs(menuQuery);
+      const menuData = menuSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setMenuItems(menuData);
 
-      if (menuData) {
-        const orgId = parseInt(localStorage.getItem('orgId'));
-        const matchedMenuItems = Object.entries(menuData)
-          .map(([id, item]) => ({ id, ...item }))
-          .filter(item => item.orgId === orgId);
-        setMenuItems(matchedMenuItems);
-      }
-
-      if (suggestionsData) {
-        setSuggestions(suggestionsData);
+      // Fetch suggestions
+      const suggestionsDoc = doc(db, 'menu_suggestions', 'current');
+      const suggestionsSnapshot = await getDocs(suggestionsDoc);
+      if (suggestionsSnapshot.exists()) {
+        setSuggestions(suggestionsSnapshot.data());
       }
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -39,15 +43,8 @@ export const MenuProvider = ({ children }) => {
 
   const updateSuggestions = async (updatedSuggestions) => {
     try {
-      const response = await fetch('https://production-db-993e8-default-rtdb.firebaseio.com/menu_suggestions.json', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(updatedSuggestions),
-      });
-
-      if (!response.ok) throw new Error('Failed to save suggestions');
+      const suggestionsRef = doc(db, 'menu_suggestions', 'current');
+      await setDoc(suggestionsRef, updatedSuggestions);
       setSuggestions(updatedSuggestions);
       return true;
     } catch (error) {
