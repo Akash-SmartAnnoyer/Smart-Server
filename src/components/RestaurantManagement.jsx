@@ -34,7 +34,8 @@ import {
   getDocs, 
   doc, 
   updateDoc,
-  setDoc
+  setDoc,
+  getDoc
 } from 'firebase/firestore';
 import { db } from '../pages/fireBaseConfig';
 
@@ -190,18 +191,27 @@ const RestaurantManagement = () => {
         });
         
         const { latitude, longitude } = position.coords;
+        console.log('Updating restaurant location:', { latitude, longitude });
+        
         const response = await fetch(
           `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
         );
         const data = await response.json();
         
         if (restaurant?.id) {
+          console.log('Restaurant ID:', restaurant.id);
+          console.log('Updating position in Firestore:', [latitude, longitude]);
+          
           const restaurantRef = doc(db, 'restaurants', restaurant.id);
           await updateDoc(restaurantRef, {
             position: [latitude, longitude],
             address: data.display_name,
             lastUpdated: new Date().toISOString()
           });
+          
+          // Verify the update
+          const updatedDoc = await getDoc(restaurantRef);
+          console.log('Updated restaurant data:', updatedDoc.data());
           
           setRestaurant(prev => ({
             ...prev,
@@ -216,9 +226,12 @@ const RestaurantManagement = () => {
             address: data.display_name
           };
           cacheTimestamp = Date.now();
+        } else {
+          console.error('No restaurant ID found');
         }
       } catch (error) {
         console.error("Error updating location:", error);
+        console.error(error.stack);
       } finally {
         setLoading(false);
       }
@@ -487,6 +500,7 @@ const RestaurantManagement = () => {
     width: '120px',
     height: '120px',
     marginBottom: '1.5rem',
+    cursor: 'pointer',
     '@media (max-width: 768px)': {
       width: '100px',
       height: '100px',
@@ -1490,6 +1504,7 @@ const RestaurantManagement = () => {
                   onChange={handleLogoChange}
                   accept="image/*"
                   style={{ display: 'none' }}
+                  aria-label="Upload logo"
                 />
               </div>
 
