@@ -19,6 +19,8 @@ import 'jspdf-autotable';
 import FoodLoader from './FoodLoader';
 import { calculateCharges } from '../utils/calculateCharges';
 import { useOrders } from '../context/OrderContext';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '../pages/fireBaseConfig';
 
 const { Title, Text } = Typography;
 
@@ -41,23 +43,15 @@ function BillSummary() {
   useEffect(() => {
     const fetchRestaurantInfo = async () => {
       try {
-        const response = await fetch(`https://production-db-993e8-default-rtdb.firebaseio.com/restaurants.json`);
+        const restaurantsRef = collection(db, 'restaurants');
+        const q = query(restaurantsRef, where('orgId', '==', orgId));
+        const querySnapshot = await getDocs(q);
 
-        if (response.ok) {
-          const data = await response.json();
-
-          // Check if data exists and filter by `orgId`
-          if (data) {
-            // Firebase stores data in a key-value format, so `data` is an object not an array
-            const restaurant = Object.values(data).find(item => item.orgId === orgId);
-            if (restaurant) {
-              setRestaurantInfo(restaurant);
-            } else {
-              throw new Error('Organization not found');
-            }
-          }
+        if (!querySnapshot.empty) {
+          const restaurant = querySnapshot.docs[0].data();
+          setRestaurantInfo(restaurant);
         } else {
-          throw new Error('Failed to fetch restaurant details');
+          throw new Error('Organization not found');
         }
       } catch (error) {
         console.error(error);
@@ -73,12 +67,13 @@ function BillSummary() {
   useEffect(() => {
     const fetchCharges = async () => {
       try {
-        const response = await fetch(`https://production-db-993e8-default-rtdb.firebaseio.com/restaurants/${orgId}/charges.json`);
-        const data = await response.json();
-        if (data) {
-          const chargesArray = Object.entries(data).map(([id, charge]) => ({
-            id,
-            ...charge
+        const chargesRef = collection(db, 'restaurants', orgId, 'charges');
+        const querySnapshot = await getDocs(chargesRef);
+        
+        if (!querySnapshot.empty) {
+          const chargesArray = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
           }));
           setCharges(chargesArray);
         }
@@ -87,7 +82,9 @@ function BillSummary() {
       }
     };
 
-    fetchCharges();
+    if (orgId) {
+      fetchCharges();
+    }
   }, [orgId]);
 
   if (loading) {
