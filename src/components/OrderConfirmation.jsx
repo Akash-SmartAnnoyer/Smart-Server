@@ -4,6 +4,8 @@ import { Card, Typography, Divider } from 'antd';
 import { ClockCircleOutlined, DollarOutlined } from '@ant-design/icons';
 import FoodLoader from './FoodLoader';
 import { calculateCharges } from '../utils/calculateCharges';
+import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { db } from '../pages/fireBaseConfig';
 
 const { Title, Text } = Typography;
 
@@ -19,23 +21,20 @@ function OrderConfirmation() {
   useEffect(() => {
     const fetchOrderAndCharges = async () => {
       try {
-        // Fetch order details
-        const orderResponse = await fetch(`https://production-db-993e8-default-rtdb.firebaseio.com/history/${orderId}.json`);
-        if (!orderResponse.ok) {
-          throw new Error('Failed to fetch order status');
+        // Fetch order details from Firestore
+        const orderDocRef = doc(db, 'orders', orderId);
+        const orderDoc = await getDoc(orderDocRef);
+        if (!orderDoc.exists()) {
+          throw new Error('Order not found');
         }
-        const order = await orderResponse.json();
-        setOrderData(order);
+        setOrderData(orderDoc.data());
 
-        // Fetch charges
-        const chargesResponse = await fetch(`https://production-db-993e8-default-rtdb.firebaseio.com/restaurants/${orgId}/charges.json`);
-        const chargesData = await chargesResponse.json();
-        if (chargesData) {
-          const chargesArray = Object.entries(chargesData).map(([id, charge]) => ({
-            id,
-            ...charge
-          }));
-          setCharges(chargesArray);
+        // Fetch charges from Firestore
+        const chargesDocRef = doc(db, 'restaurants', orgId);
+        const chargesDoc = await getDoc(chargesDocRef);
+        if (chargesDoc.exists()) {
+          const chargesData = chargesDoc.data().charges || [];
+          setCharges(chargesData);
         }
       } catch (error) {
         console.error('Failed to fetch data:', error);
@@ -44,11 +43,19 @@ function OrderConfirmation() {
       }
     };
 
+    // Initial fetch
     fetchOrderAndCharges();
     
-    // Set up polling for order status updates
-    const interval = setInterval(fetchOrderAndCharges, 5000);
-    return () => clearInterval(interval);
+    // Set up real-time listener for order updates
+    const orderDocRef = doc(db, 'orders', orderId);
+    const unsubscribe = onSnapshot(orderDocRef, (doc) => {
+      if (doc.exists()) {
+        setOrderData(doc.data());
+      }
+    });
+
+    // Cleanup subscription
+    return () => unsubscribe();
   }, [orderId, orgId]);
 
   if (loading) {
