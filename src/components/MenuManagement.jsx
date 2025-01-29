@@ -655,6 +655,9 @@ const ModernCategoryCard = ({ item, type }) => (
 
 // Update handleCreate and handleUpdate functions to handle images for all types
 const handleCreate = async values => {
+  if (processingAction) return;
+  setProcessingAction(true);
+
   const type = activeTab === 'categories'
     ? 'categories'
     : activeTab === 'subcategories'
@@ -662,34 +665,75 @@ const handleCreate = async values => {
     : 'menu_items';
     
   try {
-    // Handle image data for all types
-    let imageData;
-    if (imageInputType === 'url') {
-      imageData = values.imageUrl;
-    } else if (imageInputType === 'upload' && values.imageUpload?.[0]) {
-      imageData = {
-        file: {
-          url: values.imageUpload[0].url || values.imageUpload[0].thumbUrl,
-          name: values.imageUpload[0].name
-        }
-      };
+    // Validate required fields first
+    if (!values.name || (type === 'menu_items' && !values.price)) {
+      throw new Error('Required fields are missing');
     }
 
+    // Handle image data for all types
+    let imageData = null;
+    try {
+      if (imageInputType === 'url' && values.imageUrl) {
+        // Validate URL
+        new URL(values.imageUrl); // This will throw if URL is invalid
+        imageData = values.imageUrl;
+      } else if (imageInputType === 'upload' && values.imageUpload?.[0]) {
+        if (!values.imageUpload[0].url && !values.imageUpload[0].thumbUrl) {
+          throw new Error('Invalid image upload data');
+        }
+        imageData = {
+          file: {
+            url: values.imageUpload[0].url || values.imageUpload[0].thumbUrl,
+            name: values.imageUpload[0].name || 'uploaded_image.jpg'
+          }
+        };
+      }
+    } catch (imageError) {
+      console.warn('Image processing error:', imageError);
+      // Don't fail the whole creation if image processing fails
+      imageData = null;
+    }
+
+    // Sanitize and prepare data
     const dataToCreate = {
       ...values,
+      name: values.name.trim(),
+      description: values.description?.trim() || '',
+      price: type === 'menu_items' ? Number(values.price) || 0 : undefined,
       image: imageData,
-      orgId: parseInt(orgId),
-      createdAt: new Date().toISOString(), // Convert to string for Firestore
+      orgId: parseInt(orgId) || 0,
+      createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      isAvailable: values.isAvailable || true // Default to true if not specified
+      isAvailable: values.isAvailable ?? true
     };
 
-    // Remove unnecessary fields
+    // Remove undefined and unnecessary fields
+    Object.keys(dataToCreate).forEach(key => {
+      if (dataToCreate[key] === undefined) {
+        delete dataToCreate[key];
+      }
+    });
     delete dataToCreate.imageUrl;
     delete dataToCreate.imageUpload;
 
-    // Add document to Firestore
-    const docRef = await addDoc(collection(db, type), dataToCreate);
+    // Add document to Firestore with retry logic
+    let retries = 3;
+    let docRef = null;
+    
+    while (retries > 0) {
+      try {
+        docRef = await addDoc(collection(db, type), dataToCreate);
+        break;
+      } catch (error) {
+        retries--;
+        if (retries === 0) throw error;
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
+      }
+    }
+
+    if (!docRef) {
+      throw new Error('Failed to create document after retries');
+    }
     
     // Update the document with its firebaseId
     const newItem = {
@@ -698,10 +742,15 @@ const handleCreate = async values => {
       firebaseId: docRef.id
     };
     
-    await updateDoc(docRef, {
-      id: docRef.id,
-      firebaseId: docRef.id
-    });
+    try {
+      await updateDoc(docRef, {
+        id: docRef.id,
+        firebaseId: docRef.id
+      });
+    } catch (updateError) {
+      console.warn('Failed to update document with IDs:', updateError);
+      // Don't fail the operation if this update fails
+    }
 
     // Update local state
     updateLocalState(type, 'add', newItem);
@@ -714,7 +763,20 @@ const handleCreate = async values => {
     message.success('Item created successfully');
   } catch (error) {
     console.error(`Error creating ${type}:`, error);
-    message.error('Failed to create item');
+    
+    // Provide more specific error messages
+    let errorMessage = 'Failed to create item';
+    if (error.message.includes('Required fields')) {
+      errorMessage = 'Please fill in all required fields';
+    } else if (error.code === 'permission-denied') {
+      errorMessage = 'You do not have permission to create items';
+    } else if (error.code === 'unavailable') {
+      errorMessage = 'Network error. Please check your connection';
+    }
+    
+    message.error(errorMessage);
+  } finally {
+    setProcessingAction(false);
   }
 };
 
@@ -827,32 +889,59 @@ const handleDelete = async (firebaseId) => {
 
 
 const updateLocalState = (type, action, item) => {
+
   const updateState = prevState => {
+
     switch (action) {
+
       case 'add':
+
         return [...prevState, item];
+
       case 'update':
+
         return prevState.map(i =>
+
           i.firebaseId === item.firebaseId ? { ...i, ...item } : i
+
         );
+
       case 'delete':
+
         return prevState.filter(i => i.firebaseId !== item.firebaseId);
+
       default:
+
         return prevState;
+
     }
+
   };
 
+
+
   switch (type) {
+
     case 'categories':
-      setCategories(prev => updateState(prev));
+
+      setCategories(updateState);
+
       break;
+
     case 'subcategories':
-      setSubcategories(prev => updateState(prev));
+
+      setSubcategories(updateState);
+
       break;
+
     case 'menu_items':
-      setMenuItems(prev => updateState(prev));
+
+      setMenuItems(updateState);
+
       break;
+
   }
+
 };
 
 
