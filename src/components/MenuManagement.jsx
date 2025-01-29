@@ -1494,7 +1494,8 @@ const ModernMenuItem = memo(({ item }) => (
       const updateHeight = () => {
         if (containerRef.current) {
           const searchBarHeight = showFilters ? 140 : 0;
-          const height = containerRef.current.offsetHeight - searchBarHeight;
+          const bottomPadding = 60; // Increased padding to account for footer
+          const height = window.innerHeight - 184 - searchBarHeight - bottomPadding; // 184px accounts for header and other elements
           setContainerHeight(height);
         }
       };
@@ -1509,7 +1510,8 @@ const ModernMenuItem = memo(({ item }) => (
         ref={containerRef} 
         style={{ 
           height: '100%',
-          overflow: 'hidden'
+          overflow: 'hidden',
+          paddingBottom: '50px' // Add padding at the bottom
         }}
       >
         <VirtualList
@@ -1841,6 +1843,19 @@ const ModernMenuItem = memo(({ item }) => (
 
   document.head.insertAdjacentHTML('beforeend', `<style>${updatedScrollStyles}</style>`);
 
+  // Add these additional styles
+  const scrollStyles = `
+    .menu-management-content {
+      padding-bottom: 60px;
+    }
+
+    .ant-virtual-list-holder {
+      padding-bottom: 60px;
+    }
+  `;
+
+  document.head.insertAdjacentHTML('beforeend', `<style>${scrollStyles}</style>`);
+
   return (
     <div className="menu-management-container">
       <Layout style={{ 
@@ -1886,12 +1901,13 @@ const ModernMenuItem = memo(({ item }) => (
               maxWidth: '480px',
             }}>
               <Content style={{
+                padding: '0',
                 height: '100%',
-                overflow: 'hidden',
+                overflow: 'auto',
                 position: 'relative',
                 display: 'flex',
                 flexDirection: 'column',
-                paddingBottom: '100px', 
+                paddingBottom: '60px', // Increase bottom padding
               }}>
                 {activeTab === 'menu_items' && showFilters && (
                   <div style={{ flexShrink: 0 }}>
@@ -1901,8 +1917,9 @@ const ModernMenuItem = memo(({ item }) => (
                 
                 <div style={{ 
                   flex: 1, 
-                  overflow: 'hidden',
-                  position: 'relative'
+                  overflow: 'auto',
+                  position: 'relative',
+                  WebkitOverflowScrolling: 'touch'
                 }}>
                   {activeTab === 'menu_items' ? (
                     <VirtualizedMenuItems />
@@ -1911,6 +1928,7 @@ const ModernMenuItem = memo(({ item }) => (
                       height: '100%',
                       overflowY: 'auto',
                       padding: '8px',
+                      paddingBottom: '60px', // Add padding for non-menu items views
                       WebkitOverflowScrolling: 'touch'
                     }}>
                       <Row gutter={[8, 8]}>
