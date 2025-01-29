@@ -889,68 +889,134 @@ export const RestaurantDashboard = () => {
 
   // Fetch Data
   useEffect(() => {
-    fetchDashboardData();
-  }, [orgId]);
+    let mounted = true;
+    
+    const loadData = async () => {
+      if (mounted) {
+        await fetchDashboardData();
+      }
+    };
+    
+    loadData();
+    
+    // Debug log when component mounts
+    console.log('Dashboard component mounted with orgId:', localStorage.getItem('orgId'));
+    
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const orgId = parseInt(localStorage.getItem('orgId'));
+      const orgId = localStorage.getItem('orgId');
+      
+      if (!orgId) {
+        throw new Error('Organization ID not found');
+      }
 
-      // Fetch orders
+      // Create timestamp for 3 months ago
+      const threeMonthsAgo = new Date();
+      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
       const historyRef = collection(db, 'history');
       const ordersQuery = query(
         historyRef, 
-        where('orgId', '==', orgId),
-        orderBy('timestamp', 'desc')
+        where('orgId', '==', orgId), // Compare with string orgId
+        orderBy('timestamp', 'desc')  // Remove timestamp filter temporarily for testing
       );
-      const ordersSnapshot = await getDocs(ordersQuery);
-      const processedOrders = ordersSnapshot.docs.map(doc => ({
-        ...doc.data(),
-        id: doc.id,
-        firebaseId: doc.id
-      }));
 
-      // Fetch categories
-      const categoriesRef = collection(db, 'categories');
-      const categoriesQuery = query(
-        categoriesRef,
-        where('orgId', '==', orgId)
-      );
-      const categoriesSnapshot = await getDocs(categoriesQuery);
-      const processedCategories = categoriesSnapshot.docs.map(doc => ({
-        ...doc.data(),
-        id: doc.id,
-        firebaseId: doc.id
-      }));
+      // Fetch all data
+      const [ordersSnapshot, categoriesSnapshot, menuItemsSnapshot] = await Promise.all([
+        getDocs(ordersQuery),
+        getDocs(query(collection(db, 'categories'), where('orgId', '==', orgId))),
+        getDocs(query(collection(db, 'menu_items'), where('orgId', '==', orgId)))
+      ]);
 
-      // Fetch menu items
-      const menuItemsRef = collection(db, 'menu_items');
-      const menuItemsQuery = query(
-        menuItemsRef,
-        where('orgId', '==', orgId)
-      );
-      const menuItemsSnapshot = await getDocs(menuItemsQuery);
-      const processedMenuItems = menuItemsSnapshot.docs.map(doc => ({
-        ...doc.data(),
-        id: doc.id,
-        firebaseId: doc.id
-      }));
+      // Debug log
+      console.log('Raw orders count:', ordersSnapshot.docs.length);
 
-      // Log fetched data for debugging
-      console.log('Fetched Orders:', processedOrders);
-      console.log('Fetched Categories:', processedCategories);
-      console.log('Fetched Menu Items:', processedMenuItems);
+      // Process orders with detailed logging
+      const processedOrders = ordersSnapshot.docs
+        .map(doc => {
+          const data = doc.data();
+          // Debug log
+          console.log('Processing order:', doc.id, data);
 
+          const timestamp = data.timestamp?.toDate?.() 
+            || (typeof data.timestamp === 'string' ? new Date(data.timestamp) 
+            : data.timestamp instanceof Date ? data.timestamp 
+            : new Date());
+
+          return {
+            ...data,
+            id: doc.id,
+            firebaseId: doc.id,
+            timestamp: timestamp,
+            total: parseFloat(data.total || 0),
+            items: Array.isArray(data.items) ? data.items : [],
+            status: data.status || 'pending',
+            tableNumber: data.tableNumber || '',
+          };
+        })
+        .filter(order => {
+          // Debug log for filtered orders
+          if (!order.timestamp || isNaN(order.total)) {
+            console.log('Filtered out order:', order);
+          }
+          return order.timestamp && !isNaN(order.total);
+        });
+
+      // Process categories
+      const processedCategories = categoriesSnapshot.docs
+        .map(doc => {
+          const data = doc.data();
+          return {
+            ...data,
+            id: doc.id,
+            firebaseId: doc.id,
+            name: data.name || 'Unnamed Category'
+          };
+        });
+
+      // Process menu items
+      const processedMenuItems = menuItemsSnapshot.docs
+        .map(doc => {
+          const data = doc.data();
+          return {
+            ...data,
+            id: doc.id,
+            firebaseId: doc.id,
+            name: data.name || 'Unnamed Item',
+            price: parseFloat(data.price || 0),
+            categoryId: data.categoryId || ''
+          };
+        });
+
+      // Debug logs
+      console.log('Processed orders:', processedOrders);
+      console.log('Processed categories:', processedCategories);
+      console.log('Processed menu items:', processedMenuItems);
+
+      // Update state
       setOrders(processedOrders);
       setCategories(processedCategories);
       setMenuItems(processedMenuItems);
 
+      // Success log
+      console.log(`Successfully fetched: 
+        ${processedOrders.length} orders, 
+        ${processedCategories.length} categories, 
+        ${processedMenuItems.length} menu items`
+      );
+
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
       notification.error({
-        message: 'Error',
-        description: `Failed to load dashboard data: ${error.message}`
+        message: 'Data Loading Error',
+        description: `Failed to load dashboard data: ${error.message}`,
+        duration: 5
       });
     } finally {
       setLoading(false);
@@ -1201,7 +1267,7 @@ export const RestaurantDashboard = () => {
               }
             />
             <Progress 
-              percent={Number((item.  quantity / topItems[0].quantity * 100).toFixed(2))} 
+              percent={Number((item.quantity / topItems[0].quantity * 100).toFixed(2))} 
               strokeColor="#ff4d4f"
             />
           </List.Item>
