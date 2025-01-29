@@ -1489,13 +1489,15 @@ const ModernMenuItem = memo(({ item }) => (
   const VirtualizedMenuItems = () => {
     const containerRef = useRef(null);
     const [containerHeight, setContainerHeight] = useState(window.innerHeight);
+    const scrollRef = useRef(null);
+    const [isScrolling, setIsScrolling] = useState(false);
 
     useEffect(() => {
       const updateHeight = () => {
         if (containerRef.current) {
           const searchBarHeight = showFilters ? 140 : 0;
-          const bottomPadding = 60; // Increased padding to account for footer
-          const height = window.innerHeight - 184 - searchBarHeight - bottomPadding; // 184px accounts for header and other elements
+          const bottomPadding = 60;
+          const height = window.innerHeight - 184 - searchBarHeight - bottomPadding;
           setContainerHeight(height);
         }
       };
@@ -1505,28 +1507,64 @@ const ModernMenuItem = memo(({ item }) => (
       return () => window.removeEventListener('resize', updateHeight);
     }, [showFilters]);
 
+    // Add scroll event handler
+    useEffect(() => {
+      const scrollContainer = scrollRef.current;
+      if (!scrollContainer) return;
+
+      let scrollTimeout;
+      const handleScroll = () => {
+        setIsScrolling(true);
+        clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(() => {
+          setIsScrolling(false);
+        }, 150);
+      };
+
+      scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
+      return () => {
+        scrollContainer.removeEventListener('scroll', handleScroll);
+        clearTimeout(scrollTimeout);
+      };
+    }, []);
+
     return (
       <div 
         ref={containerRef} 
         style={{ 
           height: '100%',
           overflow: 'hidden',
-          paddingBottom: '50px' // Add padding at the bottom
+          paddingBottom: '50px'
         }}
       >
         <VirtualList
+          ref={scrollRef}
           data={filteredAndSortedItems}
           height={containerHeight}
-          itemHeight={120}
+          itemHeight={120} // Fixed height for better performance
           itemKey="firebaseId"
+          overscan={5} // Increase overscan for smoother scrolling
           style={{
             padding: '0 8px',
             overflowX: 'hidden',
-            paddingTop: '54px'
+            paddingTop: '54px',
+            WebkitOverflowScrolling: 'touch', // Enable momentum scrolling on iOS
+            scrollBehavior: 'smooth',
+            msOverflowStyle: '-ms-autohiding-scrollbar'
           }}
         >
           {(item) => (
-            <Col xs={24} key={item.firebaseId}>
+            <Col 
+              xs={24} 
+              key={item.firebaseId}
+              style={{
+                opacity: isScrolling ? 0.8 : 1,
+                transition: 'opacity 0.2s ease',
+                transform: 'translateZ(0)', // Hardware acceleration
+                willChange: 'transform', // Optimize animations
+                padding: '4px 0'
+              }}
+            >
               <ModernMenuItem item={item} />
             </Col>
           )}
@@ -1534,6 +1572,61 @@ const ModernMenuItem = memo(({ item }) => (
       </div>
     );
   };
+
+  // Add these optimized scroll styles
+  const scrollOptimizationStyles = `
+    .ant-virtual-list {
+      -webkit-overflow-scrolling: touch;
+      scroll-behavior: smooth;
+      overscroll-behavior-y: contain;
+      scroll-snap-type: y proximity;
+      position: relative;
+    }
+
+    .ant-virtual-list-holder {
+      transform: translateZ(0);
+      will-change: transform;
+      contain: content;
+    }
+
+    .menu-item-card {
+      scroll-snap-align: start;
+      contain: layout style paint;
+    }
+
+    @supports (-webkit-touch-callout: none) {
+      .ant-virtual-list {
+        /* iOS-specific scroll improvements */
+        -webkit-overflow-scrolling: touch;
+        overflow-y: scroll;
+      }
+    }
+
+    /* Reduce motion for users who prefer it */
+    @media (prefers-reduced-motion: reduce) {
+      .ant-virtual-list {
+        scroll-behavior: auto;
+      }
+      
+      .menu-item-card {
+        transition: none !important;
+      }
+    }
+
+    /* Optimize touch targets for mobile */
+    @media (max-width: 768px) {
+      .menu-item-card {
+        min-height: 110px;
+        margin: 6px 0;
+      }
+
+      .ant-virtual-list-holder-inner {
+        padding: 4px 0;
+      }
+    }
+  `;
+
+  document.head.insertAdjacentHTML('beforeend', `<style>${scrollOptimizationStyles}</style>`);
 
   // Add this new styled drawer component
   const ModernFilterDrawer = memo(({ visible, onClose }) => {
@@ -1766,7 +1859,6 @@ const ModernMenuItem = memo(({ item }) => (
 
     .ant-radio-button-wrapper:hover {
       transform: translateY(-1px);
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
 
     .ant-drawer-content-wrapper {
