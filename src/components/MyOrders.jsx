@@ -84,7 +84,8 @@ const MyOrders = () => {
 
   // Filter active orders for the current customer
   const activeOrders = orders.filter(order => 
-    !['cancelled', 'completed'].includes(order.status) && 
+    order.status !== 'completed' && 
+    order.status !== 'cancelled' && 
     order.customerId === customerId
   );
 
