@@ -51,12 +51,12 @@ const MenuItem = ({ item, onItemAdded, recommendations }) => {
       borderRadius: '12px',
       boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
       overflow: 'hidden',
-      height: '220px',
+      height: 'auto',
+      minHeight: '220px',
       marginBottom: '24px',
       border: '1px solid #f0f0f0',
       position: 'relative',
       '@media (max-width: 767px)': {
-        height: 'auto',
         flexDirection: 'column',
       },
     },
@@ -66,26 +66,33 @@ const MenuItem = ({ item, onItemAdded, recommendations }) => {
       display: 'flex',
       flexDirection: 'column',
       position: 'relative',
-      minHeight: '220px',
+      minHeight: '180px',
       justifyContent: 'space-between',
     },
     mainContent: {
-      flex: 1,
+      flex: '1 0 auto',
+      display: 'flex',
+      flexDirection: 'column',
     },
     description: {
       fontSize: '14px',
       color: '#666',
       margin: '8px 0 12px 0',
       position: 'relative',
-      maxHeight: isDescriptionExpanded ? 'none' : '36px',
+      maxHeight: isDescriptionExpanded ? 'none' : '40px',
       overflow: 'hidden',
       transition: 'max-height 0.3s ease-out',
+      WebkitLineClamp: isDescriptionExpanded ? 'unset' : '2',
+      display: '-webkit-box',
+      WebkitBoxOrient: 'vertical',
+      lineHeight: '20px',
     },
     bottomSection: {
-      marginTop: 'auto',
+      marginTop: '12px',
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
+      flexShrink: 0,
     },
     price: {
       fontSize: '16px',
@@ -95,7 +102,9 @@ const MenuItem = ({ item, onItemAdded, recommendations }) => {
     quantityControls: {
       display: 'flex',
       alignItems: 'center',
-      gap: '12px',
+      gap: '8px',
+      minWidth: '120px',
+      justifyContent: 'flex-end',
     },
     addToCartButton: {
       padding: '8px 24px',
@@ -131,9 +140,10 @@ const MenuItem = ({ item, onItemAdded, recommendations }) => {
       userSelect: 'none',
     },
     quantityDisplay: {
-      width: '40px',
+      width: '32px',
       textAlign: 'center',
       fontSize: '16px',
+      userSelect: 'none',
     },
     disabledAddToCartButton: {
       background: '#d9d9d9',
@@ -278,18 +288,20 @@ const MenuItem = ({ item, onItemAdded, recommendations }) => {
     ],
     imageSection: {
       position: 'relative',
-      width: '220px',
-      height: '220px',
+      width: '180px',
+      minWidth: '180px',
+      height: 'auto',
       overflow: 'hidden',
       '@media (max-width: 767px)': {
         width: '100%',
-        height: '200px',
+        height: '160px',
       },
     },
     image: {
       width: '100%',
       height: '100%',
       objectFit: 'cover',
+      aspectRatio: '1/1',
     },
     editIcon: {
       position: 'absolute',
@@ -302,12 +314,20 @@ const MenuItem = ({ item, onItemAdded, recommendations }) => {
       boxShadow: '0 2px 6px rgba(0, 0, 0, 0.15)',
       zIndex: 2,
     },
+    quantityButton: {
+      minWidth: '32px',
+      height: '32px',
+      padding: 0,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
   };
 
   // Function to check if description needs truncation
   const needsTruncation = () => {
     if (descriptionRef.current) {
-      return descriptionRef.current.scrollHeight > 48; // 48px is our max-height for collapsed state
+      return descriptionRef.current.scrollHeight > 40;
     }
     return false;
   };
@@ -463,6 +483,7 @@ const MenuItem = ({ item, onItemAdded, recommendations }) => {
                   onClick={handleDecreaseQuantity}
                   size="middle"
                   danger
+                  style={styles.quantityButton}
                 />
                 <span style={styles.quantityDisplay}>{quantity}</span>
                 <Button
@@ -472,6 +493,7 @@ const MenuItem = ({ item, onItemAdded, recommendations }) => {
                   onClick={handleAddToCart}
                   size="middle"
                   danger
+                  style={styles.quantityButton}
                 />
               </div>
             ) : (
