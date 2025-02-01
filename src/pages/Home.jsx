@@ -35,7 +35,7 @@ function Home({ cartIconRef, onItemAdded, searchTerm }) {
       const filteredItems = menuItems.filter((item) =>
         item.name.toLowerCase().includes(searchTerm.toLowerCase())
       );
-      setSearchResults(filteredItems);
+      setSearchResults(filteredItems.sort((a, b) => a.name.localeCompare(b.name)));
       setSelectedCategory(null);
       setSelectedSubcategory(null);
     } else {
@@ -322,7 +322,7 @@ useEffect(() => {
       </div>
     ) : (
       <div className="menu-items-grid" style={{marginTop : "10px"}}>
-        {filteredMenuItems.map(renderMenuItem)}
+        {filteredMenuItems.sort((a, b) => a.name.localeCompare(b.name)).map(renderMenuItem)}
       </div>
     )}
   </>
