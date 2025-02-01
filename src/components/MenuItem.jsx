@@ -318,6 +318,23 @@ const MenuItem = ({ item, onItemAdded, recommendations }) => {
       { id: 3, label: 'Double Spicy' },
       { id: 4, label: 'Non Spicy' },
     ],
+    imageWrapper: {
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      gap: '8px',
+      width: '118px',
+    },
+    customizableLabel: {
+      color: '#e5004b',
+      fontSize: '12px',
+      fontWeight: '500',
+      padding: '4px 8px',
+      backgroundColor: '#fff3f6',
+      borderRadius: '4px',
+      border: '1px solid #ffe0e9',
+      marginBottom: '8px',
+    },
   };
 
   // Function to check if description needs truncation
@@ -467,58 +484,67 @@ const MenuItem = ({ item, onItemAdded, recommendations }) => {
           </div>
         </div>
 
-        <div style={styles.imageSection}>
-          <img
-            src={imageUrl}
-            alt={item.name}
-            style={styles.image}
-            onLoad={() => setImageLoaded(true)}
-          />
-          {quantity > 0 ? (
-            <div style={styles.quantityControls}>
-              <button
-                style={styles.quantityButton}
-                onClick={handleDecreaseQuantity}
-              >
-                <MinusOutlined />
-              </button>
-              <span style={styles.quantityDisplay}>{quantity}</span>
-              <button
-                style={styles.quantityButton}
-                onClick={handleAddToCart}
-              >
-                <PlusOutlined />
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={item.isAvailable ? handleAddToCart : undefined}
-              disabled={!item.isAvailable}
-              style={styles.addButton}
-            >
-              ADD
-            </button>
-          )}
-          {quantity > 0 && (
-            <Tooltip title="Customize your order">
-              <div style={styles.editIcon} onClick={handleEditIconClick}>
-                <EditOutlined style={{ fontSize: '20px', color: '#e5004b' }} />
+        <div style={styles.imageWrapper}>
+          <div style={styles.imageSection}>
+            <img
+              src={imageUrl}
+              alt={item.name}
+              style={styles.image}
+              onLoad={() => setImageLoaded(true)}
+            />
+            {quantity > 0 ? (
+              <div style={styles.quantityControls}>
+                <button
+                  style={styles.quantityButton}
+                  onClick={handleDecreaseQuantity}
+                >
+                  <MinusOutlined />
+                </button>
+                <span style={styles.quantityDisplay}>{quantity}</span>
+                <button
+                  style={styles.quantityButton}
+                  onClick={handleAddToCart}
+                >
+                  <PlusOutlined />
+                </button>
               </div>
-            </Tooltip>
+            ) : (
+              <button
+                onClick={item.isAvailable ? handleAddToCart : undefined}
+                disabled={!item.isAvailable}
+                style={styles.addButton}
+              >
+                ADD
+              </button>
+            )}
+            {quantity > 0 && item.isCustomizable && (
+              <Tooltip title="Customize your order">
+                <div style={styles.editIcon} onClick={handleEditIconClick}>
+                  <EditOutlined style={{ fontSize: '20px', color: '#e5004b' }} />
+                </div>
+              </Tooltip>
+            )}
+          </div>
+          {item.isCustomizable && (
+            <div style={styles.customizableLabel}>
+              Customizable
+            </div>
           )}
         </div>
       </div>
 
-      <CookingRequestDrawer
-        visible={showCookingRequest}
-        onClose={() => setShowCookingRequest(false)}
-        onSubmit={handleCookingRequestSubmit}
-        onTagClick={setSelectedTags}
-        selectedTags={selectedTags}
-        cookingRequest={cookingRequest}
-        onCookingRequestChange={handleCookingRequestChange}
-        item={item}
-      />
+      {item.isCustomizable && (
+        <CookingRequestDrawer
+          visible={showCookingRequest}
+          onClose={() => setShowCookingRequest(false)}
+          onSubmit={handleCookingRequestSubmit}
+          onTagClick={setSelectedTags}
+          selectedTags={selectedTags}
+          cookingRequest={cookingRequest}
+          onCookingRequestChange={handleCookingRequestChange}
+          item={item}
+        />
+      )}
 
       <RecommendationSection
         isVisible={showRecommendations}

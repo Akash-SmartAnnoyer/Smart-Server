@@ -543,6 +543,14 @@ const renderFormItems = () => {
           >
             <Switch />
           </Form.Item>
+          <Form.Item
+            name="isCustomizable"
+            label="Customizable"
+            valuePropName="checked"
+            initialValue={false}
+          >
+            <Switch />
+          </Form.Item>
         </>
       );
     default:
@@ -704,7 +712,8 @@ const handleCreate = async values => {
       orgId: parseInt(orgId) || 0,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      isAvailable: values.isAvailable ?? true
+      isAvailable: values.isAvailable ?? true,
+      isCustomizable: values.isCustomizable ?? false
     };
 
     // Remove undefined and unnecessary fields
@@ -812,7 +821,8 @@ const handleUpdate = async values => {
       orgId: parseInt(orgId),
       updatedAt: new Date().toISOString(),
       id: editingItem.firebaseId,
-      firebaseId: editingItem.firebaseId
+      firebaseId: editingItem.firebaseId,
+      isCustomizable: values.isCustomizable ?? false
     };
 
     delete dataToUpdate.imageUrl;
