@@ -445,20 +445,29 @@ const MenuItem = ({ item, onItemAdded, recommendations }) => {
   };
 
   const handleCookingRequestSubmit = () => {
-    // Save the cooking request to state or send it to the server
-    if (quantity === 0) {
-      addToCart(item);
+    // Update the existing item in cart with new customization options
+    if (quantity > 0) {
+      updateQuantity(item.id, quantity, {
+        specialInstructions: cookingRequest,
+        selectedTags,
+      });
     } else {
-      updateQuantity(item.id, quantity + 1);
+      // Only add to cart if it's a new item
+      addToCart({ 
+        ...item, 
+        quantity: 1, 
+        specialInstructions: cookingRequest, 
+        selectedTags 
+      });
+      setQuantity(1);
     }
-    setQuantity(quantity + 1);
-    // Only show recommendations if they exist for this item
+
+    // Show recommendations if they exist
     if (recommendations?.length > 0) {
       setShowRecommendations(true);
     }
-    // triggerAnimation();
+
     if (onItemAdded) onItemAdded();
-    console.log('Cooking request:', cookingRequest);
     setShowCookingRequest(false);
   };
 
