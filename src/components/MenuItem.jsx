@@ -49,43 +49,126 @@ const MenuItem = ({ item, onItemAdded, recommendations }) => {
       display: 'flex',
       background: '#fff',
       borderRadius: '12px',
+      padding: '16px',
       boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
-      overflow: 'hidden',
-      height: 'auto',
-      minHeight: '220px',
       marginBottom: '24px',
       border: '1px solid #f0f0f0',
       position: 'relative',
-      '@media (max-width: 767px)': {
-        flexDirection: 'column',
-      },
+      gap: '16px',
+      minHeight: '156px',
     },
     contentSection: {
       flex: 1,
-      padding: '20px',
       display: 'flex',
       flexDirection: 'column',
-      position: 'relative',
-      minHeight: '180px',
-      justifyContent: 'space-between',
+      gap: '8px',
     },
-    mainContent: {
-      flex: '1 0 auto',
-      display: 'flex',
-      flexDirection: 'column',
+    title: {
+      fontSize: '17px',
+      fontWeight: '500',
+      color: '#282c3f',
+      marginBottom: '4px',
+    },
+    price: {
+      fontSize: '15px',
+      fontWeight: '400',
+      color: '#282c3f',
+      marginBottom: '8px',
     },
     description: {
-      fontSize: '14px',
-      color: '#666',
-      margin: '8px 0 12px 0',
+      fontSize: '13px',
+      color: 'rgba(40,44,63,.45)',
+      lineHeight: '1.3',
+      marginTop: '4px',
       position: 'relative',
-      maxHeight: isDescriptionExpanded ? 'none' : '40px',
+      maxHeight: isDescriptionExpanded ? 'none' : '34px',
       overflow: 'hidden',
-      transition: 'max-height 0.3s ease-out',
       WebkitLineClamp: isDescriptionExpanded ? 'unset' : '2',
       display: '-webkit-box',
       WebkitBoxOrient: 'vertical',
-      lineHeight: '20px',
+    },
+    imageSection: {
+      position: 'relative',
+      width: '118px',
+      height: '120px',
+      flexShrink: 0,
+    },
+    image: {
+      width: '100%',
+      height: '100%',
+      objectFit: 'cover',
+      borderRadius: '8px',
+    },
+    addButton: {
+      position: 'absolute',
+      bottom: '8px',
+      left: '50%',
+      transform: 'translateX(-50%)',
+      backgroundColor: 'white',
+      color: '#e5004b',
+      border: '1px solid #e5004b',
+      borderRadius: '6px',
+      padding: '6px 24px',
+      fontSize: '12px',
+      fontWeight: '600',
+      cursor: 'pointer',
+      transition: 'all 0.3s ease',
+      '&:hover': {
+        backgroundColor: '#e5004b',
+        color: 'white',
+      },
+    },
+    quantityControls: {
+      position: 'absolute',
+      bottom: '8px',
+      left: '50%',
+      transform: 'translateX(-50%)',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+      backgroundColor: 'white',
+      border: '1px solid #e5004b',
+      borderRadius: '6px',
+      padding: '2px',
+    },
+    quantityButton: {
+      minWidth: '28px',
+      height: '28px',
+      padding: 0,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      color: '#e5004b',
+      border: 'none',
+      background: 'transparent',
+    },
+    quantityDisplay: {
+      width: '24px',
+      textAlign: 'center',
+      fontSize: '14px',
+      color: '#e5004b',
+      fontWeight: '500',
+    },
+    readMore: {
+      color: '#e5004b',
+      fontSize: '13px',
+      cursor: 'pointer',
+      fontWeight: '500',
+      marginTop: '4px',
+    },
+    foodTypeIcon: {
+      width: '28px',
+      marginRight: '12px',
+    },
+    titleWrapper: {
+      display: 'flex',
+      alignItems: 'center',
+      marginBottom: '12px',
+    },
+    title: {
+      fontSize: '18px',
+      fontWeight: 'bold',
+      margin: 0,
     },
     bottomSection: {
       marginTop: '12px',
@@ -93,57 +176,6 @@ const MenuItem = ({ item, onItemAdded, recommendations }) => {
       justifyContent: 'space-between',
       alignItems: 'center',
       flexShrink: 0,
-    },
-    price: {
-      fontSize: '16px',
-      fontWeight: 'bold',
-      color: '#333',
-    },
-    quantityControls: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      minWidth: '120px',
-      justifyContent: 'flex-end',
-    },
-    addToCartButton: {
-      padding: '8px 24px',
-      borderRadius: '8px',
-      border: 'none',
-      background: '#e5004b',
-      color: 'white',
-      cursor: 'pointer',
-      transition: 'background 0.3s',
-      fontSize: '14px',
-      fontWeight: 'bold',
-    },
-    titleWrapper: {
-      display: 'flex',
-      alignItems: 'center',
-      marginBottom: '12px',
-    },
-    foodTypeIcon: {
-      width: '28px',
-      marginRight: '12px',
-    },
-    title: {
-      fontSize: '18px',
-      fontWeight: 'bold',
-      margin: 0,
-    },
-    readMore: {
-      color: '#e5004b',
-      cursor: 'pointer',
-      fontWeight: '500',
-      display: 'inline-block',
-      marginLeft: '4px',
-      userSelect: 'none',
-    },
-    quantityDisplay: {
-      width: '32px',
-      textAlign: 'center',
-      fontSize: '16px',
-      userSelect: 'none',
     },
     disabledAddToCartButton: {
       background: '#d9d9d9',
@@ -286,42 +318,6 @@ const MenuItem = ({ item, onItemAdded, recommendations }) => {
       { id: 3, label: 'Double Spicy' },
       { id: 4, label: 'Non Spicy' },
     ],
-    imageSection: {
-      position: 'relative',
-      width: '180px',
-      minWidth: '180px',
-      height: 'auto',
-      overflow: 'hidden',
-      '@media (max-width: 767px)': {
-        width: '100%',
-        height: '160px',
-      },
-    },
-    image: {
-      width: '100%',
-      height: '100%',
-      objectFit: 'cover',
-      aspectRatio: '1/1',
-    },
-    editIcon: {
-      position: 'absolute',
-      top: 12,
-      right: 12,
-      backgroundColor: '#fff',
-      borderRadius: '50%',
-      padding: 8,
-      cursor: 'pointer',
-      boxShadow: '0 2px 6px rgba(0, 0, 0, 0.15)',
-      zIndex: 2,
-    },
-    quantityButton: {
-      minWidth: '32px',
-      height: '32px',
-      padding: 0,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
   };
 
   // Function to check if description needs truncation
@@ -452,63 +448,21 @@ const MenuItem = ({ item, onItemAdded, recommendations }) => {
   const imageUrl = getImageUrl(item.image);
   return (
     <>
-      <div style={styles.card}>
+      <div style={styles.card} ref={itemRef}>
         <div style={styles.contentSection}>
-          <div style={styles.mainContent}>
-            <div style={styles.titleWrapper}>
-              {getFoodTypeIcon(item.foodType)}
-              <h3 style={styles.title}>{item.name}</h3>
-            </div>
+          <div>
+            {getFoodTypeIcon(item.foodType)}
+            <h3 style={styles.title}>{item.name}</h3>
+            <div style={styles.price}>₹{item.price}</div>
+          </div>
+          <div>
             <div style={styles.description} ref={descriptionRef}>
               {item.description}
-              {needsTruncation() && !isDescriptionExpanded && (
-                <div style={styles.gradient} />
-              )}
             </div>
             {needsTruncation() && (
               <span onClick={toggleDescription} style={styles.readMore}>
-                {isDescriptionExpanded ? 'Show less' : 'Read more'}
+                {isDescriptionExpanded ? 'Show less' : 'Show more'}
               </span>
-            )}
-          </div>
-
-          <div style={styles.bottomSection}>
-            <div style={styles.price}>₹{item.price}</div>
-            {quantity > 0 ? (
-              <div style={styles.quantityControls}>
-                <Button
-                  type="primary"
-                  shape="circle"
-                  icon={<MinusOutlined />}
-                  onClick={handleDecreaseQuantity}
-                  size="middle"
-                  danger
-                  style={styles.quantityButton}
-                />
-                <span style={styles.quantityDisplay}>{quantity}</span>
-                <Button
-                  type="primary"
-                  shape="circle"
-                  icon={<PlusOutlined />}
-                  onClick={handleAddToCart}
-                  size="middle"
-                  danger
-                  style={styles.quantityButton}
-                />
-              </div>
-            ) : (
-              <Tooltip title={item.isAvailable ? '' : 'This item is currently unavailable'}>
-                <button
-                  onClick={item.isAvailable ? handleAddToCart : undefined}
-                  disabled={!item.isAvailable}
-                  style={{
-                    ...styles.addToCartButton,
-                    ...(item.isAvailable ? {} : styles.disabledAddToCartButton)
-                  }}
-                >
-                  ADD
-                </button>
-              </Tooltip>
             )}
           </div>
         </div>
@@ -519,17 +473,38 @@ const MenuItem = ({ item, onItemAdded, recommendations }) => {
             alt={item.name}
             style={styles.image}
             onLoad={() => setImageLoaded(true)}
-            onError={(e) => {
-              console.error('Error loading image:', e);
-              e.target.src = '/path-to-your-fallback-image.jpg';
-            }}
           />
+          {quantity > 0 ? (
+            <div style={styles.quantityControls}>
+              <button
+                style={styles.quantityButton}
+                onClick={handleDecreaseQuantity}
+              >
+                <MinusOutlined />
+              </button>
+              <span style={styles.quantityDisplay}>{quantity}</span>
+              <button
+                style={styles.quantityButton}
+                onClick={handleAddToCart}
+              >
+                <PlusOutlined />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={item.isAvailable ? handleAddToCart : undefined}
+              disabled={!item.isAvailable}
+              style={styles.addButton}
+            >
+              ADD
+            </button>
+          )}
           {quantity > 0 && (
-                        <Tooltip title="Customize your order">
-            <div style={styles.editIcon} onClick={handleEditIconClick}>
+            <Tooltip title="Customize your order">
+              <div style={styles.editIcon} onClick={handleEditIconClick}>
                 <EditOutlined style={{ fontSize: '20px', color: '#e5004b' }} />
-                </div>
-                </Tooltip>
+              </div>
+            </Tooltip>
           )}
         </div>
       </div>
@@ -544,8 +519,6 @@ const MenuItem = ({ item, onItemAdded, recommendations }) => {
         onCookingRequestChange={handleCookingRequestChange}
         item={item}
       />
-
-
 
       <RecommendationSection
         isVisible={showRecommendations}
