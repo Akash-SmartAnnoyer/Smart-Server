@@ -383,7 +383,8 @@ const verifyLocation = async () => {
   // };
 
   const showOrderNotification = (orderId) => {
-    if (Notification.permission === 'granted') {
+    // if (Notification.permission === 'granted') {
+    if (true) {
       const notification = new Notification('Order Placed Successfully!', {
         body: `Your order #${orderId} has been received and is being processed.`,
         icon: '/logo192.png', // Add your restaurant logo here
