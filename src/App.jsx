@@ -28,6 +28,7 @@ import { AdminOrderProvider } from './context/AdminOrderContext';
 import NewAdminPage from './components/NewAdminPage';
 import { NewOrderHistory } from './components/NewOrderHistory';
 import AllOrdersSummary from './components/AllOrdersSummary';
+import NotificationHandler from './components/NotificationHandler';
 
 const App = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -48,6 +49,7 @@ const App = () => {
             <CartIconProvider>
               <AdminOrderProvider>
                 <div className="App">
+                  {/* <NotificationHandler /> */}
                   <Routes>
                     <Route path="/" element={<LandingPage />} />
                     <Route path="/qr-entry/:orgId/:tableNumber" element={<QREntry />} />
