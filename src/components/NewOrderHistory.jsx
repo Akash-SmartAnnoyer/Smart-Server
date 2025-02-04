@@ -1,5 +1,5 @@
 // src/components/NewOrderHistory.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { List, Card, Button, Popconfirm, Tag, Empty, Badge, Input, Row, Col, message, Rate } from 'antd';
 import { 
   DeleteOutlined, 
@@ -18,12 +18,17 @@ import { doc, deleteDoc } from 'firebase/firestore';
 import { db } from '../pages/fireBaseConfig';
 
 function NewOrderHistory() {
-  const { orders, loading, setOrders, fetchOrders } = useAdminOrders();
+  const { orders, loading, setOrders, fetchOrders, hasMore } = useAdminOrders();
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [customerIdMap, setCustomerIdMap] = useState({});
+  const [page, setPage] = useState(1);
+  const ordersPerPage = 20; // Limit number of orders shown at once
   const [lastOrderTimestamp, setLastOrderTimestamp] = useState(null);
+
+  // Add a loading ref to prevent multiple simultaneous loads
+  const loadingRef = useRef(false);
 
   const theme = {
     primary: '#ff4d4f',
@@ -78,15 +83,23 @@ function NewOrderHistory() {
       await deleteDoc(orderRef);
 
       message.success('Order deleted successfully');
-      setOrders((prevOrders) => prevOrders.filter((order) => 
-        order.id !== orderId && order.id !== standardId
-      ));
-      
-      // Update the cached orders
-      const updatedOrders = orders.filter((order) => 
-        order.id !== orderId && order.id !== standardId
-      );
-      localStorage.setItem('cachedOrders', JSON.stringify(updatedOrders));
+      setOrders((prevOrders) => {
+        const updatedOrders = prevOrders.filter((order) => 
+          order.id !== orderId && order.id !== standardId
+        );
+        
+        // Safely update localStorage with limited data
+        try {
+          const limitedOrders = updatedOrders.slice(0, 50);
+          localStorage.setItem('cachedOrders', JSON.stringify(limitedOrders));
+        } catch (error) {
+          console.warn('Failed to update localStorage:', error);
+          // Clear localStorage if needed
+          localStorage.removeItem('cachedOrders');
+        }
+        
+        return updatedOrders;
+      });
     } catch (error) {
       console.error('Failed to delete order:', error);
       message.error('Failed to delete order. Please try again.');
@@ -300,11 +313,52 @@ function NewOrderHistory() {
     </div>
   );
 
-  const loadMoreOrders = () => {
-    const oldestOrder = orders[orders.length - 1];
-    if (oldestOrder) {
-      fetchOrders(oldestOrder.timestamp);
+  const loadMoreOrders = useCallback(() => {
+    if (!loadingRef.current && hasMore) {
+      const lastOrder = orders[orders.length - 1];
+      if (lastOrder) {
+        loadingRef.current = true;
+        fetchOrders(lastOrder.timestamp).finally(() => {
+          loadingRef.current = false;
+        });
+      }
     }
+  }, [hasMore, orders, fetchOrders]);
+
+  // Improved infinite scroll handler
+  useEffect(() => {
+    const handleScroll = debounce(() => {
+      // Check if we're near the bottom (within 200px)
+      if (
+        window.innerHeight + window.pageYOffset >= 
+        document.documentElement.scrollHeight - 200
+      ) {
+        loadMoreOrders();
+      }
+    }, 200); // Debounce scroll events
+
+    window.addEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      handleScroll.cancel(); // Cancel any pending debounce
+    };
+  }, [loadMoreOrders]);
+
+  // Helper function to debounce scroll events
+  function debounce(func, wait) {
+    let timeout;
+    const debouncedFunction = function(...args) {
+      const context = this;
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func.apply(context, args), wait);
+    };
+    debouncedFunction.cancel = () => clearTimeout(timeout);
+    return debouncedFunction;
+  }
+
+  // Get current orders for display
+  const getCurrentOrders = () => {
+    return filteredOrders.slice(0, page * ordersPerPage);
   };
 
   if (loading) {
@@ -370,12 +424,8 @@ function NewOrderHistory() {
           }}
           allowClear
         />
-        {/* {filteredOrders.length > 0 && (
-          <Button onClick={loadMoreOrders} style={{ margin: '20px auto', display: 'block' }}>
-            Load More Orders
-          </Button>
-        )} */}
       </div>
+      
       <div style={{
         maxWidth: isMobile ? '100%' : '1200px',
         margin: '0 auto',
@@ -398,142 +448,163 @@ function NewOrderHistory() {
         ) : (
           <>
             {isMobile ? renderMobileView() : (
-              <List
-                grid={{
-                  gutter: 24,
-                  xs: 1,
-                  sm: 1,
-                  md: 2,
-                  lg: 2,
-                  xl: 3,
-                  xxl: 3,
-                }}
-                dataSource={filteredOrders}
-                renderItem={(order) => (
-                  <List.Item>
-                    <Badge.Ribbon 
-                      text={getStatusInfo(order.status).text}
-                      color={getStatusInfo(order.status).color}
-                    >
-                      <Card
-                        hoverable
-                        style={{
-                          borderRadius: '15px',
-                          boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
-                          border: 'none'
-                        }}
+              <>
+                <List
+                  grid={{
+                    gutter: 24,
+                    xs: 1,
+                    sm: 1,
+                    md: 2,
+                    lg: 2,
+                    xl: 3,
+                    xxl: 3,
+                  }}
+                  dataSource={getCurrentOrders()}
+                  renderItem={(order) => (
+                    <List.Item>
+                      <Badge.Ribbon 
+                        text={getStatusInfo(order.status).text}
+                        color={getStatusInfo(order.status).color}
                       >
-                        <div style={{
-                          background: theme.secondary,
-                          margin: '-24px -24px 15px',
-                          padding: '15px 24px',
-                          borderBottom: `1px solid ${theme.border}`
-                        }}>
-                          <Row justify="space-between" align="middle">
-                            <Col>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <span style={{
-                                  fontSize: '1.2rem',
-                                  fontWeight: '600',
-                                  color: theme.primary
-                                }}>
-                                  #{order.id}
-                                </span>
-                              </div>
-                              <div style={{ color: theme.textLight, marginTop: '4px' }}>
-                              <TableOutlined /> Table {order.tableNumber}
-                                Customer {customerIdMap[order.customerId]}
-                              </div>
-                            </Col>
-                            <Col>
-                              <div style={{
-                                background: theme.primary,
-                                color: 'white',
-                                padding: '8px 16px',
-                                borderRadius: '20px',
-                                fontWeight: '600'
-                              }}>
-                          ₹{parseFloat(order.total).toFixed(2)}
-                          </div>
-                            </Col>
-                          </Row>
-                        </div>
-
-                        <div style={{ marginBottom: '15px' }}>
-                          {order?.items?.map((item, index) => (
-                            <div
-                              key={index}
-                              style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                padding: '10px 0',
-                                borderBottom: index < order.items.length - 1 ? `1px dashed ${theme.border}` : 'none'
-                              }}
-                            >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <Card
+                          hoverable
+                          style={{
+                            borderRadius: '15px',
+                            boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+                            border: 'none'
+                          }}
+                        >
+                          <div style={{
+                            background: theme.secondary,
+                            margin: '-24px -24px 15px',
+                            padding: '15px 24px',
+                            borderBottom: `1px solid ${theme.border}`
+                          }}>
+                            <Row justify="space-between" align="middle">
+                              <Col>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <span style={{
+                                    fontSize: '1.2rem',
+                                    fontWeight: '600',
+                                    color: theme.primary
+                                  }}>
+                                    #{order.id}
+                                  </span>
+                                </div>
+                                <div style={{ color: theme.textLight, marginTop: '4px' }}>
+                                <TableOutlined /> Table {order.tableNumber}
+                                  Customer {customerIdMap[order.customerId]}
+                                </div>
+                              </Col>
+                              <Col>
                                 <div style={{
-                                  background: theme.secondary,
-                                  color: theme.primary,
-                                  width: '28px',
-                                  height: '28px',
-                                  borderRadius: '50%',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
+                                  background: theme.primary,
+                                  color: 'white',
+                                  padding: '8px 16px',
+                                  borderRadius: '20px',
                                   fontWeight: '600'
                                 }}>
-                                  {item.quantity}
-                                </div>
-                                <span>{item.name}</span>
+                              ₹{parseFloat(order.total).toFixed(2)}
                               </div>
-                              <span style={{ color: theme.primary, fontWeight: '600' }}>
-                                ₹{(item.price * item.quantity).toFixed(2)}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
+                              </Col>
+                            </Row>
+                          </div>
 
-                        {renderFeedback(order)}
+                          <div style={{ marginBottom: '15px' }}>
+                            {order?.items?.map((item, index) => (
+                              <div
+                                key={index}
+                                style={{
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  padding: '10px 0',
+                                  borderBottom: index < order.items.length - 1 ? `1px dashed ${theme.border}` : 'none'
+                                }}
+                              >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                  <div style={{
+                                    background: theme.secondary,
+                                    color: theme.primary,
+                                    width: '28px',
+                                    height: '28px',
+                                    borderRadius: '50%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontWeight: '600'
+                                  }}>
+                                    {item.quantity}
+                                  </div>
+                                  <span>{item.name}</span>
+                                </div>
+                                <span style={{ color: theme.primary, fontWeight: '600' }}>
+                                  ₹{(item.price * item.quantity).toFixed(2)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
 
-                        <div style={{
-                          borderTop: `1px solid ${theme.border}`,
-                          paddingTop: '15px',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center'
-                        }}>
-                          <small style={{ color: theme.textLight }}>
-                            <ClockCircleOutlined style={{ marginRight: '5px' }} />
-                            {new Date(order.timestamp).toLocaleString()}
-                          </small>
-                          <Popconfirm
-                            title="Delete this order?"
-                            description="This action cannot be undone."
-                            onConfirm={() => handleDelete(order.id)}
-                            okText="Yes"
-                            cancelText="No"
-                            okButtonProps={{ 
-                              style: { background: theme.primary, borderColor: theme.primary }
-                            }}
-                          >
-                            <Button 
-                              type="text"
-                              danger
-                              icon={<DeleteOutlined />}
+                          {renderFeedback(order)}
+
+                          <div style={{
+                            borderTop: `1px solid ${theme.border}`,
+                            paddingTop: '15px',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center'
+                          }}>
+                            <small style={{ color: theme.textLight }}>
+                              <ClockCircleOutlined style={{ marginRight: '5px' }} />
+                              {new Date(order.timestamp).toLocaleString()}
+                            </small>
+                            <Popconfirm
+                              title="Delete this order?"
+                              description="This action cannot be undone."
+                              onConfirm={() => handleDelete(order.id)}
+                              okText="Yes"
+                              cancelText="No"
+                              okButtonProps={{ 
+                                style: { background: theme.primary, borderColor: theme.primary }
+                              }}
                             >
-                              Delete
-                            </Button>
-                          </Popconfirm>
-                        </div>
-                      </Card>
-                    </Badge.Ribbon>
-                  </List.Item>
+                              <Button 
+                                type="text"
+                                danger
+                                icon={<DeleteOutlined />}
+                              >
+                                Delete
+                              </Button>
+                            </Popconfirm>
+                          </div>
+                        </Card>
+                      </Badge.Ribbon>
+                    </List.Item>
+                  )}
+                />
+                {loading && (
+                  <div style={{ 
+                    textAlign: 'center', 
+                    padding: '20px',
+                    color: theme.textLight 
+                  }}>
+                    Loading more orders...
+                  </div>
                 )}
-              />
+                {!loading && !hasMore && orders.length > 0 && (
+                  <div style={{ 
+                    textAlign: 'center', 
+                    padding: '20px',
+                    color: theme.textLight,
+                    background: 'white',
+                    borderRadius: '8px',
+                    marginTop: '20px',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                  }}>
+                    You've reached the end of the order history
+                  </div>
+                )}
+              </>
             )}
-            {/* <Button onClick={loadMoreOrders} style={{ margin: '20px auto', display: 'block' }}>
-              Load More Orders
-            </Button> */}
           </>
         )}
       </div>
