@@ -33,10 +33,28 @@ export const AdminOrderProvider = ({ children }) => {
       
       localStorage.setItem(key, JSON.stringify(limitedData));
     } catch (error) {
-      console.warn('localStorage quota exceeded, clearing cache and retrying');
+      console.warn('localStorage quota exceeded, clearing orders cache and retrying');
       try {
-        // Clear localStorage and try again with limited data
-        localStorage.clear();
+        // Only clear specific cache keys
+        const keysToPreserve = ['orgId', 'userId', 'soundEnabled', 'theme', 'needRefresh', 'customerId', 'tableNumber', 'role', 'categoryNavigatorPosition'];
+        const preservedData = {};
+        
+        // Save important data
+        keysToPreserve.forEach(k => {
+          const value = localStorage.getItem(k);
+          if (value) preservedData[k] = value;
+        });
+
+        // Clear only order-related items
+        localStorage.removeItem('cachedOrders');
+        localStorage.removeItem('lastOrderTimestamp');
+        
+        // Restore preserved data
+        Object.entries(preservedData).forEach(([k, v]) => {
+          localStorage.setItem(k, v);
+        });
+
+        // Try setting the data again
         localStorage.setItem(key, JSON.stringify(
           Array.isArray(data) ? data.slice(0, maxItems) : data
         ));
@@ -238,8 +256,7 @@ export const AdminOrderProvider = ({ children }) => {
       setOrders,
       loading,
       updateOrder,
-      fetchOrders,
-      hasMore
+      fetchOrders
     }}>
       {children}
     </AdminOrderContext.Provider>
