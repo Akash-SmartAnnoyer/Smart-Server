@@ -16,6 +16,19 @@ const NotificationHandler = () => {
           throw new Error('Messaging not initialized');
         }
 
+        // Register service worker first
+        if ('serviceWorker' in navigator) {
+          try {
+            const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
+              scope: '/firebase-cloud-messaging-push-scope'
+            });
+            console.log('Service Worker registered with scope:', registration.scope);
+          } catch (err) {
+            console.error('Service Worker registration failed:', err);
+            throw err;
+          }
+        }
+
         const permission = await Notification.requestPermission();
         if (permission === 'granted') {
           try {

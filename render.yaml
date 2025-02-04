@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: your-app-name
+    buildCommand: npm install && npm run build
+    startCommand: npx serve -s build
+    envVars:
+      - key: NODE_VERSION
+        value: 16
+    headers:
+      - path: /firebase-messaging-sw.js
+        headers:
+          - key: Cache-Control
+            value: no-cache
+          - key: Service-Worker-Allowed
+            value: /
+          - key: Content-Type
+            value: application/javascript 

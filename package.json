@@ -45,7 +45,7 @@
   },
   "scripts": {
     "start": "node src/websocket-server.js.js",
-    "build": "react-scripts build",
+    "build": "react-scripts build && cp public/firebase-messaging-sw.js build/",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "lint": "node lint.js"
@@ -71,5 +71,16 @@
   "devDependencies": {
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
     "cross-env": "^7.0.3"
-  }
+  },
+  "headers": [
+    {
+      "source": "/firebase-messaging-sw.js",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/javascript"
+        }
+      ]
+    }
+  ]
 }

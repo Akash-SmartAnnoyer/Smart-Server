@@ -14,8 +14,10 @@ import {
 } from 'firebase/firestore';
 import { db } from '../pages/fireBaseConfig';
 
+// Move the context creation after the provider definition
 const AdminOrderContext = createContext();
 
+// Define the provider component first
 export const AdminOrderProvider = ({ children }) => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -33,28 +35,10 @@ export const AdminOrderProvider = ({ children }) => {
       
       localStorage.setItem(key, JSON.stringify(limitedData));
     } catch (error) {
-      console.warn('localStorage quota exceeded, clearing orders cache and retrying');
+      console.warn('localStorage quota exceeded, clearing cache and retrying');
       try {
-        // Only clear specific cache keys
-        const keysToPreserve = ['orgId', 'userId', 'soundEnabled', 'theme', 'needRefresh', 'customerId', 'tableNumber', 'role', 'categoryNavigatorPosition'];
-        const preservedData = {};
-        
-        // Save important data
-        keysToPreserve.forEach(k => {
-          const value = localStorage.getItem(k);
-          if (value) preservedData[k] = value;
-        });
-
-        // Clear only order-related items
-        localStorage.removeItem('cachedOrders');
-        localStorage.removeItem('lastOrderTimestamp');
-        
-        // Restore preserved data
-        Object.entries(preservedData).forEach(([k, v]) => {
-          localStorage.setItem(k, v);
-        });
-
-        // Try setting the data again
+        // Clear localStorage and try again with limited data
+        localStorage.clear();
         localStorage.setItem(key, JSON.stringify(
           Array.isArray(data) ? data.slice(0, maxItems) : data
         ));
@@ -67,7 +51,7 @@ export const AdminOrderProvider = ({ children }) => {
   const fetchOrders = async (endAt = null, batchSize = BATCH_SIZE) => {
     try {
       setLoading(true);
-    const historyRef = collection(db, 'history');
+      const historyRef = collection(db, 'history');
       let q;
 
       if (endAt) {
@@ -263,6 +247,7 @@ export const AdminOrderProvider = ({ children }) => {
   );
 };
 
+// Define the hook after the provider
 export const useAdminOrders = () => {
   const context = useContext(AdminOrderContext);
   if (!context) {

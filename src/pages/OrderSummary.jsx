@@ -12,7 +12,6 @@ import { MapPin } from 'lucide-react';
 
 import { collection, doc, getDoc, setDoc, query, where, getDocs } from 'firebase/firestore';
 import { db } from './fireBaseConfig';
-import { getMessaging } from 'firebase/messaging';
 const { Text, Title } = Typography;
 
 const MAX_DISTANCE_KM = 0.5; // Maximum allowed distance in kilometers
@@ -382,25 +381,6 @@ const verifyLocation = async () => {
   //   }
   // };
 
-  const showOrderNotification = (orderId) => {
-    // if (Notification.permission === 'granted') {
-    if (true) {
-      const notification = new Notification('Order Placed Successfully!', {
-        body: `Your order #${orderId} has been received and is being processed.`,
-        icon: '/logo192.png', // Add your restaurant logo here
-        badge: '/logo192.png',
-        vibrate: [200, 100, 200],
-        tag: orderId,
-        requireInteraction: true
-      });
-
-      notification.onclick = () => {
-        window.focus();
-        navigate(`/waiting/${orderId}`);
-      };
-    }
-  };
-
   // Modify handlePayClick to include location verification
   const handlePayClick = async () => {
     try {
@@ -424,7 +404,7 @@ const verifyLocation = async () => {
         chargesBreakdown: breakdown,
         total: calculatedTotal,
         tableNumber,
-        customerId: localStorage.getItem('customerId'),
+        customerId:localStorage.getItem('customerId'),
         timestamp: new Date().toISOString(),
         status: 'pending',
         statusMessage: 'Your order is being processed',
@@ -853,9 +833,34 @@ const styles = `
   }
 `;
 
+
 // Add the styles to the document
 const styleSheet = document.createElement("style");
 styleSheet.innerText = styles;
 document.head.appendChild(styleSheet);
+
+const showOrderNotification = (orderId) => {
+  if (Notification.permission === 'granted') {
+    // Get the base URL from window.location
+    const baseUrl = window.location.origin;
+    
+    const notification = new Notification('Order Placed Successfully!', {
+      body: `Your order #${orderId} has been received and is being processed.`,
+      icon: `${baseUrl}/logo192.png`,
+      badge: `${baseUrl}/logo192.png`,
+      vibrate: [200, 100, 200],
+      tag: orderId,
+      requireInteraction: true,
+      data: {
+        url: `${baseUrl}/waiting/${orderId}`
+      }
+    });
+
+    // notification.onclick = () => {
+    //   window.focus();
+    //   navigate(`/waiting/${orderId}`);
+    // };
+  }
+};
 
 export default OrderSummary;
