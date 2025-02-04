@@ -1,5 +1,5 @@
 // src/components/NewAdminPage.jsx
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, Tag, Select, Typography, message, Empty, Badge, Input, Switch, Button, Dropdown } from 'antd';
 import {
   CheckOutlined,
@@ -25,7 +25,7 @@ const { Option } = Select;
 const { Text } = Typography;
 
 const NewAdminPage = () => {
-  const { orders, loading, updateOrder, setOrders, fetchOrders } = useAdminOrders();
+  const { orders, loading, updateOrder, setOrders, fetchOrders, hasMore } = useAdminOrders();
   const [soundEnabled, setSoundEnabled] = useState(() => {
     // Initialize soundEnabled from localStorage
     const savedSoundSetting = localStorage.getItem('soundEnabled');
@@ -39,6 +39,7 @@ const NewAdminPage = () => {
   const orgId = localStorage.getItem('orgId');
   const [lastOrderTimestamp, setLastOrderTimestamp] = useState(null);
   const [cancelledOrders, setCancelledOrders] = useState([]);
+  const loadingRef = useRef(false);
 
   // Map customer IDs to sequential numbers
   useEffect(() => {
@@ -279,12 +280,49 @@ const NewAdminPage = () => {
     return '#108ee9';
   };
 
-  const loadMoreOrders = () => {
-    const oldestOrder = orders[orders.length - 1];
-    if (oldestOrder) {
-      fetchOrders(oldestOrder.timestamp);
+  // Update loadMoreOrders to check hasMore
+  const loadMoreOrders = useCallback(() => {
+    if (!loadingRef.current && hasMore) { // Check hasMore before loading
+      const lastOrder = orders[orders.length - 1];
+      if (lastOrder) {
+        loadingRef.current = true;
+        fetchOrders(lastOrder.timestamp).finally(() => {
+          loadingRef.current = false;
+        });
+      }
     }
-  };
+  }, [orders, fetchOrders, hasMore]);
+
+  // Add infinite scroll effect
+  useEffect(() => {
+    const handleScroll = debounce(() => {
+      // Check if we're near the bottom (within 200px)
+      if (
+        window.innerHeight + window.pageYOffset >= 
+        document.documentElement.scrollHeight - 200
+      ) {
+        loadMoreOrders();
+      }
+    }, 200); // Debounce scroll events
+
+    window.addEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      handleScroll.cancel(); // Cancel any pending debounce
+    };
+  }, [loadMoreOrders]);
+
+  // Helper function to debounce scroll events
+  function debounce(func, wait) {
+    let timeout;
+    const debouncedFunction = function(...args) {
+      const context = this;
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func.apply(context, args), wait);
+    };
+    debouncedFunction.cancel = () => clearTimeout(timeout);
+    return debouncedFunction;
+  }
 
   useEffect(() => {
     // Check if page needs refresh
@@ -470,11 +508,6 @@ const NewAdminPage = () => {
               />
               <Text>Sound Alerts</Text>
             </div>
-            {/* {filteredOrders.length > 0 && (
-              <Button onClick={loadMoreOrders} style={{ margin: '20px auto', display: 'block' }}>
-                Load More Orders
-              </Button>
-            )} */}
           </div>
         </div>
 
@@ -734,11 +767,29 @@ const NewAdminPage = () => {
             ))}
           </div>
         )}
-        {/* {filteredOrders.length > 0 && (
-          <button onClick={loadMoreOrders} style={{ margin: '20px auto', display: 'block' }}>
-            Load More Orders
-          </button>
-        )} */}
+
+        {/* Update bottom indicators */}
+        {loading && (
+          <div style={{ 
+            textAlign: 'center', 
+            padding: '20px',
+            color: '#666'
+          }}>
+            Loading more orders...
+          </div>
+        )}
+        
+        {!loading && !hasMore && orders.length > 0 && (
+          <div style={{ 
+            textAlign: 'center', 
+            padding: '20px',
+            color: '#666',
+            borderTop: '1px solid #f0f0f0',
+            marginTop: '20px'
+          }}>
+            No more orders to load
+          </div>
+        )}
       </div>
       <style>
         {`

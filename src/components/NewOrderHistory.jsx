@@ -1,5 +1,5 @@
 // src/components/NewOrderHistory.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { List, Card, Button, Popconfirm, Tag, Empty, Badge, Input, Row, Col, message, Rate } from 'antd';
 import { 
   DeleteOutlined, 
@@ -18,7 +18,7 @@ import { doc, deleteDoc } from 'firebase/firestore';
 import { db } from '../pages/fireBaseConfig';
 
 function NewOrderHistory() {
-  const { orders, loading, setOrders, fetchOrders } = useAdminOrders();
+  const { orders, loading, setOrders, fetchOrders, hasMore } = useAdminOrders();
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
@@ -26,6 +26,9 @@ function NewOrderHistory() {
   const [page, setPage] = useState(1);
   const ordersPerPage = 20; // Limit number of orders shown at once
   const [lastOrderTimestamp, setLastOrderTimestamp] = useState(null);
+
+  // Add a loading ref to prevent multiple simultaneous loads
+  const loadingRef = useRef(false);
 
   const theme = {
     primary: '#ff4d4f',
@@ -310,18 +313,48 @@ function NewOrderHistory() {
     </div>
   );
 
-  const loadMoreOrders = () => {
-    const oldestOrder = orders[orders.length - 1];
-    if (oldestOrder) {
-      fetchOrders(oldestOrder.timestamp);
+  const loadMoreOrders = useCallback(() => {
+    if (!loadingRef.current && hasMore) {
+      const lastOrder = orders[orders.length - 1];
+      if (lastOrder) {
+        loadingRef.current = true;
+        fetchOrders(lastOrder.timestamp).finally(() => {
+          loadingRef.current = false;
+        });
+      }
     }
-  };
+  }, [hasMore, orders, fetchOrders]);
 
-  // Pagination handler
-  const handleLoadMore = () => {
-    setPage(prevPage => prevPage + 1);
-    loadMoreOrders();
-  };
+  // Improved infinite scroll handler
+  useEffect(() => {
+    const handleScroll = debounce(() => {
+      // Check if we're near the bottom (within 200px)
+      if (
+        window.innerHeight + window.pageYOffset >= 
+        document.documentElement.scrollHeight - 200
+      ) {
+        loadMoreOrders();
+      }
+    }, 200); // Debounce scroll events
+
+    window.addEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      handleScroll.cancel(); // Cancel any pending debounce
+    };
+  }, [loadMoreOrders]);
+
+  // Helper function to debounce scroll events
+  function debounce(func, wait) {
+    let timeout;
+    const debouncedFunction = function(...args) {
+      const context = this;
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func.apply(context, args), wait);
+    };
+    debouncedFunction.cancel = () => clearTimeout(timeout);
+    return debouncedFunction;
+  }
 
   // Get current orders for display
   const getCurrentOrders = () => {
@@ -548,16 +581,27 @@ function NewOrderHistory() {
                     </List.Item>
                   )}
                 />
-                {filteredOrders.length > page * ordersPerPage && (
-                  <Button 
-                    onClick={handleLoadMore} 
-                    style={{ 
-                      margin: '20px auto', 
-                      display: 'block' 
-                    }}
-                  >
-                    Load More Orders
-                  </Button>
+                {loading && (
+                  <div style={{ 
+                    textAlign: 'center', 
+                    padding: '20px',
+                    color: theme.textLight 
+                  }}>
+                    Loading more orders...
+                  </div>
+                )}
+                {!loading && !hasMore && orders.length > 0 && (
+                  <div style={{ 
+                    textAlign: 'center', 
+                    padding: '20px',
+                    color: theme.textLight,
+                    background: 'white',
+                    borderRadius: '8px',
+                    marginTop: '20px',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                  }}>
+                    You've reached the end of the order history
+                  </div>
                 )}
               </>
             )}

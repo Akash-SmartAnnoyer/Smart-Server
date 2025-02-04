@@ -19,7 +19,9 @@ const AdminOrderContext = createContext();
 export const AdminOrderProvider = ({ children }) => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [hasMore, setHasMore] = useState(true);
   const orgId = localStorage.getItem('orgId');
+  const BATCH_SIZE = 50; // Number of orders to fetch per batch
 
   // Helper function to safely store data in localStorage with a limit
   const safeSetLocalStorage = (key, data, maxItems = 50) => {
@@ -44,7 +46,7 @@ export const AdminOrderProvider = ({ children }) => {
     }
   };
 
-  const fetchOrders = async (endAt = null, limit = 50) => {
+  const fetchOrders = async (endAt = null, batchSize = BATCH_SIZE) => {
     try {
       setLoading(true);
       const historyRef = collection(db, 'history');
@@ -56,14 +58,14 @@ export const AdminOrderProvider = ({ children }) => {
           where('orgId', '==', orgId),
           orderBy('timestamp', 'desc'),
           startAfter(endAt),
-          ...(limit ? [limit(limit + 1)] : [])
+          limit(batchSize + 1) // Fetch one extra to check if there are more
         );
       } else {
         q = query(
           historyRef,
           where('orgId', '==', orgId),
           orderBy('timestamp', 'desc'),
-          ...(limit ? [limit(limit)] : [])
+          limit(batchSize + 1)
         );
       }
 
@@ -73,21 +75,27 @@ export const AdminOrderProvider = ({ children }) => {
         id: doc.id
       }));
 
-      if (endAt) {
-        ordersArray.pop();
+      // Check if there are more orders
+      const hasMoreOrders = ordersArray.length > batchSize;
+      if (hasMoreOrders) {
+        ordersArray.pop(); // Remove the extra item we used to check for more
       }
+      setHasMore(hasMoreOrders);
 
       setOrders(prevOrders => {
         if (!endAt) {
+          // For initial load, just set the orders
           safeSetLocalStorage('cachedOrders', ordersArray);
           return ordersArray;
         }
         
+        // For subsequent loads, append new orders
         const existingOrderIds = new Set(prevOrders.map(order => order.id));
         const newOrders = ordersArray.filter(order => !existingOrderIds.has(order.id));
         const updatedOrders = [...prevOrders, ...newOrders];
         
-        safeSetLocalStorage('cachedOrders', updatedOrders);
+        // Only cache the most recent orders to avoid storage issues
+        safeSetLocalStorage('cachedOrders', updatedOrders.slice(0, BATCH_SIZE));
         return updatedOrders;
       });
     } catch (error) {
@@ -230,7 +238,8 @@ export const AdminOrderProvider = ({ children }) => {
       setOrders,
       loading,
       updateOrder,
-      fetchOrders
+      fetchOrders,
+      hasMore
     }}>
       {children}
     </AdminOrderContext.Provider>
