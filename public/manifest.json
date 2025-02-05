@@ -22,5 +22,6 @@
   "display": "standalone",
   "theme_color": "#ff4d4f",
   "background_color": "#ffffff",
-  "gcm_sender_id": "796625414381"
-} 
+  "gcm_sender_id": "796625414381",
+  "service_worker": "/firebase-messaging-sw.js"
+}
