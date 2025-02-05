@@ -352,11 +352,28 @@ const NewAdminPage = () => {
   const pendingOrders = orders.filter(order => order.status === 'pending');
   const pendingOrdersCount = pendingOrders.length;
 
-  // Create menu items for the dropdown
+  // Add this function to filter notifications by date
+  const filterNotificationsByDate = (orders) => {
+    if (!showTodayOnly) return orders;
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    return orders.filter(order => {
+      const orderDate = new Date(order.timestamp);
+      return orderDate >= today;
+    });
+  };
+
+  // Get filtered pending orders count
+  const filteredPendingOrders = filterNotificationsByDate(pendingOrders);
+  const filteredCancelledOrders = filterNotificationsByDate(cancelledOrders);
+
+  // Update the notificationItems to use filtered orders
   const notificationItems = {
     items: [
       // Pending orders section
-      ...(pendingOrders.length > 0 ? [{
+      ...(filteredPendingOrders.length > 0 ? [{
         key: 'pending-header',
         label: (
           <div style={{ padding: '8px', backgroundColor: '#fff7e6', fontWeight: 'bold' }}>
@@ -365,7 +382,7 @@ const NewAdminPage = () => {
         ),
         disabled: true
       },
-      ...pendingOrders.map(order => ({
+      ...filteredPendingOrders.map(order => ({
         key: order.id,
         label: (
           <div style={{ padding: '8px', borderBottom: '1px solid #f0f0f0', cursor: 'pointer' }}>
@@ -381,7 +398,7 @@ const NewAdminPage = () => {
       }))] : []),
       
       // Cancelled orders section
-      ...(cancelledOrders.length > 0 ? [{
+      ...(filteredCancelledOrders.length > 0 ? [{
         key: 'cancelled-header',
         label: (
           <div style={{ padding: '8px', backgroundColor: '#fff1f0', fontWeight: 'bold' }}>
@@ -390,7 +407,7 @@ const NewAdminPage = () => {
         ),
         disabled: true
       },
-      ...cancelledOrders.map(order => ({
+      ...filteredCancelledOrders.map(order => ({
         key: `cancelled-${order.id}`,
         label: (
           <div style={{ padding: '8px', borderBottom: '1px solid #f0f0f0', cursor: 'pointer' }}>
@@ -600,19 +617,19 @@ const NewAdminPage = () => {
             }}
           >
             <Badge 
-              count={pendingOrders.length + cancelledOrders.length} 
+              count={filteredPendingOrders.length + filteredCancelledOrders.length} 
               offset={[-5, 5]}
             >
               <BellFilled 
                 style={{ 
                   fontSize: '24px', 
-                  color: cancelledOrders.length > 0 ? '#ff4d4f' : '#ff4d4f',
+                  color: filteredCancelledOrders.length > 0 ? '#ff4d4f' : '#ff4d4f',
                   padding: '8px',
                   backgroundColor: '#fff',
                   borderRadius: '50%',
                   boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
                   cursor: 'pointer',
-                  animation: cancelledOrders.length > 0 ? 'shake 0.5s ease-in-out infinite' : 'none'
+                  animation: filteredCancelledOrders.length > 0 ? 'shake 0.5s ease-in-out infinite' : 'none'
                 }} 
               />
             </Badge>
