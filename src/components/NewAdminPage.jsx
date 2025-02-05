@@ -40,6 +40,7 @@ const NewAdminPage = () => {
   const [lastOrderTimestamp, setLastOrderTimestamp] = useState(null);
   const [cancelledOrders, setCancelledOrders] = useState([]);
   const loadingRef = useRef(false);
+  const [showTodayOnly, setShowTodayOnly] = useState(true);
 
   // Map customer IDs to sequential numbers
   useEffect(() => {
@@ -56,8 +57,21 @@ const NewAdminPage = () => {
     localStorage.setItem('soundEnabled', JSON.stringify(soundEnabled));
   }, [soundEnabled]);
 
-  // Filter orders based on search query
-  const filteredOrders = orders.filter(order => 
+  // Add this function to filter orders by date
+  const filterOrdersByDate = (orders) => {
+    if (!showTodayOnly) return orders;
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    return orders.filter(order => {
+      const orderDate = new Date(order.timestamp);
+      return orderDate >= today;
+    });
+  };
+
+  // Update the filteredOrders logic
+  const filteredOrders = filterOrdersByDate(orders).filter(order => 
     order.id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     order.tableNumber?.toString().includes(searchQuery) ||
     order.status?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -468,46 +482,103 @@ const NewAdminPage = () => {
             margin: 0,
             textTransform: 'uppercase',
             letterSpacing: '1px'
-        }}>
+          }}>
             Live Orders
           </h1>
-          <p style={{ 
-            color: '#666',
-            margin: '10px 0 20px',
-            fontSize: 'clamp(0.9rem, 2vw, 1rem)'
-          }}>
-            Track and manage your restaurant orders in real-time
-          </p>
           
+          {/* Add the new toggle switch section */}
           <div style={{
             display: 'flex',
             justifyContent: 'center',
-            gap: '20px',
+            alignItems: 'center',
+            gap: '15px',
+            margin: '15px 0',
             flexWrap: 'wrap'
           }}>
-            <Input.Search
-              placeholder="Search orders by ID, items, status, or table number..."
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ maxWidth: '500px', flex: 1 }}
-              allowClear
-            />
+            <div style={{
+              background: '#fff5f5',
+              padding: '4px',
+              borderRadius: '30px',
+              display: 'inline-flex',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+            }}>
+              <Button
+                type={showTodayOnly ? 'primary' : 'text'}
+                onClick={() => setShowTodayOnly(true)}
+                style={{
+                  borderRadius: '20px',
+                  border: 'none',
+                  background: showTodayOnly ? '#ff4d4f' : 'transparent',
+                  color: showTodayOnly ? 'white' : '#666',
+                  padding: '4px 15px'
+                }}
+              >
+                Today
+              </Button>
+              <Button
+                type={!showTodayOnly ? 'primary' : 'text'}
+                onClick={() => setShowTodayOnly(false)}
+                style={{
+                  borderRadius: '20px',
+                  border: 'none',
+                  background: !showTodayOnly ? '#ff4d4f' : 'transparent',
+                  color: !showTodayOnly ? 'white' : '#666',
+                  padding: '4px 15px'
+                }}
+              >
+                All Orders
+              </Button>
+            </div>
+
             <div style={{
               display: 'flex',
               alignItems: 'center',
               gap: '10px',
               background: '#fff5f5',
-              padding: '10px 20px',
-              borderRadius: '8px'
+              padding: '8px 15px',
+              borderRadius: '20px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
             }}>
               <Switch
                 checkedChildren={<SoundOutlined />}
                 unCheckedChildren={<SoundOutlined />}
                 checked={soundEnabled}
                 onChange={setSoundEnabled}
-                style={{ backgroundColor: soundEnabled ? '#ff4d4f' : undefined }}
+                style={{ 
+                  backgroundColor: soundEnabled ? '#ff4d4f' : undefined,
+                  minWidth: '40px'
+                }}
               />
               <Text>Sound Alerts</Text>
             </div>
+          </div>
+
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            gap: '20px',
+            flexWrap: 'wrap',
+            marginTop: '15px'
+          }}>
+            <Input.Search
+              placeholder="Search orders by ID, items, status, or table number..."
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{ 
+                maxWidth: '500px', 
+                flex: 1,
+                borderRadius: '30px'
+              }}
+              allowClear
+            />
+          </div>
+
+          {/* Add order count display */}
+          <div style={{
+            marginTop: '15px',
+            color: '#666',
+            fontSize: '0.9rem'
+          }}>
+            Showing {filteredOrders.length} {showTodayOnly ? "today's" : 'total'} orders
           </div>
         </div>
 

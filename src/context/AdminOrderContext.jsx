@@ -1,5 +1,5 @@
 // src/context/AdminOrderContext.jsx
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useRef, useCallback } from 'react';
 import { 
   collection, 
   query, 
@@ -14,60 +14,42 @@ import {
 } from 'firebase/firestore';
 import { db } from '../pages/fireBaseConfig';
 
-// Move the context creation after the provider definition
 const AdminOrderContext = createContext();
 
-// Define the provider component first
 export const AdminOrderProvider = ({ children }) => {
   const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
   const orgId = localStorage.getItem('orgId');
-  const BATCH_SIZE = 50; // Number of orders to fetch per batch
+  const BATCH_SIZE = 20;
+  const loadingRef = useRef(false);
 
-  // Helper function to safely store data in localStorage with a limit
-  const safeSetLocalStorage = (key, data, maxItems = 50) => {
+  const fetchOrders = async (lastOrderTimestamp = null) => {
     try {
-      // If data is an array, limit the number of items
-      const limitedData = Array.isArray(data) 
-        ? data.slice(0, maxItems) 
-        : data;
-      
-      localStorage.setItem(key, JSON.stringify(limitedData));
-    } catch (error) {
-      console.warn('localStorage quota exceeded, clearing cache and retrying');
-      try {
-        // Clear localStorage and try again with limited data
-        localStorage.clear();
-        localStorage.setItem(key, JSON.stringify(
-          Array.isArray(data) ? data.slice(0, maxItems) : data
-        ));
-      } catch (retryError) {
-        console.error('Failed to store data even after clearing cache:', retryError);
-      }
-    }
-  };
-
-  const fetchOrders = async (endAt = null, batchSize = BATCH_SIZE) => {
-    try {
+      if (loadingRef.current) return; // Prevent multiple simultaneous fetches
+      loadingRef.current = true;
       setLoading(true);
+
       const historyRef = collection(db, 'history');
       let q;
 
-      if (endAt) {
+      if (lastOrderTimestamp) {
+        // Fetch next batch after the last order
         q = query(
           historyRef,
           where('orgId', '==', orgId),
           orderBy('timestamp', 'desc'),
-          startAfter(endAt),
-          limit(batchSize + 1) // Fetch one extra to check if there are more
+          startAfter(lastOrderTimestamp),
+          limit(BATCH_SIZE + 1) // Get one extra to check if there are more
         );
       } else {
+        // Initial fetch
         q = query(
           historyRef,
           where('orgId', '==', orgId),
           orderBy('timestamp', 'desc'),
-          limit(batchSize + 1)
+          limit(BATCH_SIZE + 1)
         );
       }
 
@@ -78,32 +60,29 @@ export const AdminOrderProvider = ({ children }) => {
       }));
 
       // Check if there are more orders
-      const hasMoreOrders = ordersArray.length > batchSize;
+      const hasMoreOrders = ordersArray.length > BATCH_SIZE;
       if (hasMoreOrders) {
-        ordersArray.pop(); // Remove the extra item we used to check for more
+        ordersArray.pop(); // Remove the extra item
       }
       setHasMore(hasMoreOrders);
 
       setOrders(prevOrders => {
-        if (!endAt) {
-          // For initial load, just set the orders
-          safeSetLocalStorage('cachedOrders', ordersArray);
+        if (!lastOrderTimestamp) {
+          // Initial load
           return ordersArray;
         }
-        
-        // For subsequent loads, append new orders
-        const existingOrderIds = new Set(prevOrders.map(order => order.id));
-        const newOrders = ordersArray.filter(order => !existingOrderIds.has(order.id));
-        const updatedOrders = [...prevOrders, ...newOrders];
-        
-        // Only cache the most recent orders to avoid storage issues
-        safeSetLocalStorage('cachedOrders', updatedOrders.slice(0, BATCH_SIZE));
-        return updatedOrders;
+        // Append new orders
+        return [...prevOrders, ...ordersArray];
       });
+
+      return ordersArray;
     } catch (error) {
       console.error('Failed to fetch orders:', error);
+      setHasMore(false);
     } finally {
       setLoading(false);
+      setInitialLoading(false);
+      loadingRef.current = false;
     }
   };
 
@@ -158,12 +137,6 @@ export const AdminOrderProvider = ({ children }) => {
           standardizeOrderId(order.id) === standardId ? { ...order, ...updatedData, id: standardId } : order
         )
       );
-
-      // Update localStorage
-      const updatedOrders = orders.map(order =>
-        standardizeOrderId(order.id) === standardId ? { ...order, ...updatedData, id: standardId } : order
-      );
-      safeSetLocalStorage('cachedOrders', updatedOrders);
       
       return true;
     } catch (error) {
@@ -172,25 +145,22 @@ export const AdminOrderProvider = ({ children }) => {
     }
   };
 
-  // Update the initial useEffect for loading orders
+  // Initial load
   useEffect(() => {
     if (orgId) {
-      try {
-        const cachedOrders = localStorage.getItem('cachedOrders');
-        if (cachedOrders) {
-          const parsedOrders = JSON.parse(cachedOrders);
-          setOrders(parsedOrders);
-          setLoading(false);
-        }
-      } catch (error) {
-        console.warn('Error loading cached orders:', error);
-        localStorage.removeItem('cachedOrders'); // Clear corrupted cache
-      }
-      
-      // Then fetch fresh orders
       fetchOrders();
     }
   }, [orgId]);
+
+  // Function to load more orders
+  const loadMoreOrders = useCallback(async () => {
+    if (!hasMore || loading) return;
+
+    const lastOrder = orders[orders.length - 1];
+    if (lastOrder) {
+      await fetchOrders(lastOrder.timestamp);
+    }
+  }, [orders, hasMore, loading]);
 
   // Add a cleanup effect to handle page refresh
   useEffect(() => {
@@ -222,7 +192,6 @@ export const AdminOrderProvider = ({ children }) => {
               return prevOrders;
             }
             const updatedOrders = [data.order, ...prevOrders].slice(0, 50); // Limit to 50 orders
-            safeSetLocalStorage('cachedOrders', updatedOrders);
             return updatedOrders;
           });
         }
@@ -239,6 +208,9 @@ export const AdminOrderProvider = ({ children }) => {
       orders,
       setOrders,
       loading,
+      initialLoading,
+      hasMore,
+      loadMoreOrders,
       updateOrder,
       fetchOrders
     }}>
@@ -247,7 +219,6 @@ export const AdminOrderProvider = ({ children }) => {
   );
 };
 
-// Define the hook after the provider
 export const useAdminOrders = () => {
   const context = useContext(AdminOrderContext);
   if (!context) {

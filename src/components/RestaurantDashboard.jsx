@@ -18,7 +18,9 @@ import {
   query, 
   where, 
   getDocs,
-  orderBy
+  orderBy,
+  startAfter,
+  limit
 } from 'firebase/firestore';
 
 const { Title, Text } = Typography;
@@ -886,6 +888,7 @@ export const RestaurantDashboard = () => {
   const [dateRange, setDateRange] = useState([null, null]);
   const [timeFrame, setTimeFrame] = useState('today');
   const orgId = localStorage.getItem('orgId');
+  const BATCH_SIZE = 100; // Larger batch size for analytics
 
   // Fetch Data
   useEffect(() => {
@@ -907,43 +910,43 @@ export const RestaurantDashboard = () => {
     };
   }, []);
 
-  const fetchDashboardData = async () => {
-    try {
-      setLoading(true);
-      const orgId = localStorage.getItem('orgId');
-      
-      if (!orgId) {
-        throw new Error('Organization ID not found');
-      }
+  const fetchAllOrders = async (orgId) => {
+    let allOrders = [];
+    let lastDoc = null;
+    let hasMore = true;
 
-      // Create timestamp for 3 months ago
-      const threeMonthsAgo = new Date();
-      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+    while (hasMore) {
+      try {
+        let q;
+        if (lastDoc) {
+          q = query(
+            collection(db, 'history'),
+            where('orgId', '==', orgId),
+            orderBy('timestamp', 'desc'),
+            startAfter(lastDoc),
+            limit(BATCH_SIZE)
+          );
+        } else {
+          q = query(
+            collection(db, 'history'),
+            where('orgId', '==', orgId),
+            orderBy('timestamp', 'desc'),
+            limit(BATCH_SIZE)
+          );
+        }
 
-      const historyRef = collection(db, 'history');
-      const ordersQuery = query(
-        historyRef, 
-        where('orgId', '==', orgId), // Compare with string orgId
-        orderBy('timestamp', 'desc')  // Remove timestamp filter temporarily for testing
-      );
+        const snapshot = await getDocs(q);
+        
+        if (snapshot.empty) {
+          hasMore = false;
+          break;
+        }
 
-      // Fetch all data
-      const [ordersSnapshot, categoriesSnapshot, menuItemsSnapshot] = await Promise.all([
-        getDocs(ordersQuery),
-        getDocs(query(collection(db, 'categories'), where('orgId', '==', orgId))),
-        getDocs(query(collection(db, 'menu_items'), where('orgId', '==', orgId)))
-      ]);
-
-      // Debug log
-      console.log('Raw orders count:', ordersSnapshot.docs.length);
-
-      // Process orders with detailed logging
-      const processedOrders = ordersSnapshot.docs
-        .map(doc => {
+        const docs = snapshot.docs;
+        lastDoc = docs[docs.length - 1];
+        
+        const processedOrders = docs.map(doc => {
           const data = doc.data();
-          // Debug log
-          console.log('Processing order:', doc.id, data);
-
           const timestamp = data.timestamp?.toDate?.() 
             || (typeof data.timestamp === 'string' ? new Date(data.timestamp) 
             : data.timestamp instanceof Date ? data.timestamp 
@@ -959,57 +962,65 @@ export const RestaurantDashboard = () => {
             status: data.status || 'pending',
             tableNumber: data.tableNumber || '',
           };
-        })
-        .filter(order => {
-          // Debug log for filtered orders
-          if (!order.timestamp || isNaN(order.total)) {
-            console.log('Filtered out order:', order);
-          }
-          return order.timestamp && !isNaN(order.total);
-        });
+        }).filter(order => order.timestamp && !isNaN(order.total));
 
-      // Process categories
-      const processedCategories = categoriesSnapshot.docs
-        .map(doc => {
-          const data = doc.data();
-          return {
-            ...data,
-            id: doc.id,
-            firebaseId: doc.id,
-            name: data.name || 'Unnamed Category'
-          };
-        });
+        allOrders = [...allOrders, ...processedOrders];
 
-      // Process menu items
-      const processedMenuItems = menuItemsSnapshot.docs
-        .map(doc => {
-          const data = doc.data();
-          return {
-            ...data,
-            id: doc.id,
-            firebaseId: doc.id,
-            name: data.name || 'Unnamed Item',
-            price: parseFloat(data.price || 0),
-            categoryId: data.categoryId || ''
-          };
-        });
+        if (docs.length < BATCH_SIZE) {
+          hasMore = false;
+        }
 
-      // Debug logs
-      console.log('Processed orders:', processedOrders);
-      console.log('Processed categories:', processedCategories);
-      console.log('Processed menu items:', processedMenuItems);
+      } catch (error) {
+        console.error('Error fetching orders batch:', error);
+        hasMore = false;
+      }
+    }
+
+    return allOrders;
+  };
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      const orgId = localStorage.getItem('orgId');
+      
+      if (!orgId) {
+        throw new Error('Organization ID not found');
+      }
+
+      // Fetch all data in parallel
+      const [orders, categoriesSnapshot, menuItemsSnapshot] = await Promise.all([
+        fetchAllOrders(orgId),
+        getDocs(query(collection(db, 'categories'), where('orgId', '==', orgId))),
+        getDocs(query(collection(db, 'menu_items'), where('orgId', '==', orgId)))
+      ]);
+
+      // Process categories and menu items as before
+      const processedCategories = categoriesSnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          ...data,
+          id: doc.id,
+          firebaseId: doc.id,
+          name: data.name || 'Unnamed Category'
+        };
+      });
+      const processedMenuItems = menuItemsSnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          ...data,
+          id: doc.id,
+          firebaseId: doc.id,
+          name: data.name || 'Unnamed Item',
+          price: parseFloat(data.price || 0),
+          categoryId: data.categoryId || ''
+        };
+      });
 
       // Update state
-      setOrders(processedOrders);
+      setOrders(orders);
       setCategories(processedCategories);
       setMenuItems(processedMenuItems);
-
-      // Success log
-      console.log(`Successfully fetched: 
-        ${processedOrders.length} orders, 
-        ${processedCategories.length} categories, 
-        ${processedMenuItems.length} menu items`
-      );
 
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
