@@ -14,7 +14,7 @@ import {
 } from '@ant-design/icons';
 import { useAdminOrders } from '../context/AdminOrderContext';
 import FoodLoader from './FoodLoader';
-import { doc, deleteDoc } from 'firebase/firestore';
+import { doc, deleteDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../pages/fireBaseConfig';
 
 function NewOrderHistory() {
@@ -80,6 +80,18 @@ function NewOrderHistory() {
       const standardId = orderId.startsWith('ORD-') ? orderId : `ORD-${orderId.replace(/\D/g, '')}`;
       const orderRef = doc(db, 'history', standardId);
       
+      // Log the deletion activity before deleting the order
+      const chronicleRef = collection(db, 'chronicle');
+      await addDoc(chronicleRef, {
+        timestamp: serverTimestamp(),
+        orgId: localStorage.getItem('orgId'),
+        action: 'order_deleted',
+        details: {
+          orderId: standardId
+        },
+        userId: localStorage.getItem('userId') || 'system'
+      });
+
       await deleteDoc(orderRef);
 
       message.success('Order deleted successfully');

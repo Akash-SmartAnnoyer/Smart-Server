@@ -62,6 +62,8 @@ const ActivityLog = () => {
         return '📝';
       case 'status_update':
         return '🔄';
+      case 'order_deleted':
+        return '🗑️';
       default:
         return '📋';
     }
@@ -73,6 +75,8 @@ const ActivityLog = () => {
         return `New order #${activity.details.orderId} created for table ${activity.details.tableNumber} with ${activity.details.items} items`;
       case 'status_update':
         return `Order #${activity.details.orderId} status changed from ${activity.details.oldStatus} to ${activity.details.newStatus}`;
+      case 'order_deleted':
+        return `Order #${activity.details.orderId} was deleted`;
       default:
         return 'Unknown activity';
     }
