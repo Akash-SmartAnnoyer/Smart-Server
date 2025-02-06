@@ -27,18 +27,18 @@ export const messaging = (async () => {
       
       if ('serviceWorker' in navigator) {
         try {
-          // First, request notification permission
+          // First, check current permission status
+          console.log('Current notification permission:', Notification.permission);
+          
+          // Request permission if not granted
           const permission = await Notification.requestPermission();
-          console.log('Notification permission status:', permission);
+          console.log('New notification permission status:', permission);
           
           if (permission !== 'granted') {
             throw new Error('Notification permission not granted');
           }
 
-          // Clear any existing service workers to avoid conflicts
-          const existingRegistrations = await navigator.serviceWorker.getRegistrations();
-          await Promise.all(existingRegistrations.map(reg => reg.unregister()));
-          
+          // Register service worker
           const registration = await navigator.serviceWorker.register(
             '/firebase-messaging-sw.js',
             { scope: '/' }
@@ -48,27 +48,31 @@ export const messaging = (async () => {
           await navigator.serviceWorker.ready;
           console.log('Service worker is ready');
 
-          // Verify the service worker state
-          if (registration.active) {
-            console.log('Service worker is active');
-            
-            // Get the push manager subscription
-            const subscription = await registration.pushManager.getSubscription();
-            console.log('Push subscription:', subscription);
-            
-            return messagingInstance;
-          } else {
-            console.error('Service worker is not active:', registration.active);
-            throw new Error('Service worker not active');
+          // Get FCM token
+          try {
+            const currentToken = await getToken(messagingInstance, {
+              serviceWorkerRegistration: registration,
+              vapidKey: 'YOUR_VAPID_KEY' // Make sure you have this configured
+            });
+            if (currentToken) {
+              console.log('FCM Token:', currentToken);
+            } else {
+              console.log('No FCM token available');
+            }
+          } catch (tokenError) {
+            console.error('Error getting FCM token:', tokenError);
           }
+
+          return messagingInstance;
         } catch (err) {
           console.error('Service worker registration failed:', err);
           throw err;
         }
       } else {
         console.error('Service workers are not supported');
-        throw new Error('Service workers not supported');
       }
+      
+      return messagingInstance;
     }
     console.log('Firebase messaging is not supported');
     return null;

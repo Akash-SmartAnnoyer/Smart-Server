@@ -12,17 +12,9 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-self.addEventListener('install', (event) => {
-  console.log('Service Worker installing.');
-  event.waitUntil(self.skipWaiting());
-});
-
-self.addEventListener('activate', (event) => {
-  console.log('Service Worker activating.');
-  event.waitUntil(self.clients.claim());
-});
-
 messaging.onBackgroundMessage((payload) => {
+  console.log('Received background message:', payload);
+  
   const notificationTitle = payload.notification.title;
   const notificationOptions = {
     body: payload.notification.body,
@@ -33,7 +25,18 @@ messaging.onBackgroundMessage((payload) => {
     requireInteraction: true
   };
 
-  self.registration.showNotification(notificationTitle, notificationOptions);
+  console.log('Showing notification with:', {
+    title: notificationTitle,
+    options: notificationOptions
+  });
+
+  return self.registration.showNotification(notificationTitle, notificationOptions)
+    .then(() => {
+      console.log('Notification shown successfully');
+    })
+    .catch((error) => {
+      console.error('Error showing notification:', error);
+    });
 });
 
 self.addEventListener('notificationclick', (event) => {
@@ -55,4 +58,12 @@ self.addEventListener('notificationclick', (event) => {
       }
     })
   );
+});
+
+// Add this to test if the service worker is receiving messages
+self.addEventListener('push', function(event) {
+  console.log('Push event received:', event);
+  if (event.data) {
+    console.log('Push event data:', event.data.json());
+  }
 });
