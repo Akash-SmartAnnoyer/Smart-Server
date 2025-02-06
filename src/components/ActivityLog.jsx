@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { collection, query, orderBy, limit, getDocs, where } from 'firebase/firestore';
 import { db } from '../pages/fireBaseConfig';
 import { format } from 'date-fns';
+import FoodLoader from './FoodLoader';
 
 const ActivityLog = () => {
   const [activities, setActivities] = useState([]);
@@ -79,10 +80,9 @@ const ActivityLog = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-48">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-        <div className="ml-2">Loading activities...</div>
-      </div>
+        <div style={{ marginTop: '100px' }}>
+            <FoodLoader/>
+        </div>
     );
   }
 
@@ -95,27 +95,54 @@ const ActivityLog = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-4">
+    <div className="max-w-6xl mx-auto p-4" style={{ marginTop: '100px' }}>
       <h2 className="text-2xl font-bold mb-6">Activity Log</h2>
       <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="divide-y divide-gray-200">
-          {activities.map((activity) => (
-            <div key={activity.id} className="p-4 hover:bg-gray-50 transition-colors">
-              <div className="flex items-start space-x-4">
-                <div className="text-2xl">{getActivityIcon(activity.action)}</div>
-                <div className="flex-1">
-                  <p className="text-sm text-gray-900">{getActivityMessage(activity)}</p>
-                  <div className="mt-1 flex items-center space-x-2">
-                    <span className="text-xs text-gray-500">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Type
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Description
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Date & Time
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  User
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {activities.map((activity) => (
+                <tr key={activity.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-2xl">
+                      {getActivityIcon(activity.action)}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-sm text-gray-900">
+                      {getActivityMessage(activity)}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-500">
                       {activity.timestamp ? format(activity.timestamp, 'MMM d, yyyy h:mm a') : 'No timestamp'}
-                    </span>
-                    <span className="text-xs text-gray-400">•</span>
-                    <span className="text-xs text-gray-500">By {activity.userId}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-500">
+                      {activity.userId}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
