@@ -1,19 +1,36 @@
-importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js');
+// Log the service worker initialization
+console.log('Firebase messaging service worker initializing...');
 
-firebase.initializeApp({
+importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js');
+
+const firebaseConfig = {
   apiKey: "AIzaSyARms0nFhoQqtAojws1H4ffJfxKH9MBuJ4",
   authDomain: "production-firestore-db.firebaseapp.com",
   projectId: "production-firestore-db",
   storageBucket: "production-firestore-db.appspot.com",
   messagingSenderId: "796625414381",
   appId: "1:796625414381:web:1dcbd55e84a3502b8744e4"
-});
+};
 
+firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
+// Log service worker installation
+self.addEventListener('install', (event) => {
+  console.log('[Firebase SW] Installing Service Worker...', event);
+  event.waitUntil(self.skipWaiting());
+});
+
+// Log service worker activation
+self.addEventListener('activate', (event) => {
+  console.log('[Firebase SW] Activating Service Worker...', event);
+  event.waitUntil(self.clients.claim());
+});
+
+// Handle background messages
 messaging.onBackgroundMessage((payload) => {
-  console.log('Received background message:', payload);
+  console.log('[Firebase SW] Received background message:', payload);
   
   const notificationTitle = payload.notification.title;
   const notificationOptions = {
@@ -25,21 +42,32 @@ messaging.onBackgroundMessage((payload) => {
     requireInteraction: true
   };
 
-  console.log('Showing notification with:', {
+  console.log('[Firebase SW] Showing notification:', {
     title: notificationTitle,
     options: notificationOptions
   });
 
   return self.registration.showNotification(notificationTitle, notificationOptions)
     .then(() => {
-      console.log('Notification shown successfully');
+      console.log('[Firebase SW] Notification shown successfully');
     })
     .catch((error) => {
-      console.error('Error showing notification:', error);
+      console.error('[Firebase SW] Error showing notification:', error);
     });
 });
 
+// Handle push events
+self.addEventListener('push', function(event) {
+  console.log('[Firebase SW] Push event received:', event);
+  if (event.data) {
+    const data = event.data.json();
+    console.log('[Firebase SW] Push event data:', data);
+  }
+});
+
+// Handle notification clicks
 self.addEventListener('notificationclick', (event) => {
+  console.log('[Firebase SW] Notification clicked:', event);
   event.notification.close();
   const orderId = event.notification.tag;
   
@@ -58,12 +86,4 @@ self.addEventListener('notificationclick', (event) => {
       }
     })
   );
-});
-
-// Add this to test if the service worker is receiving messages
-self.addEventListener('push', function(event) {
-  console.log('Push event received:', event);
-  if (event.data) {
-    console.log('Push event data:', event.data.json());
-  }
 });
