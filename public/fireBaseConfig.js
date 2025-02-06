@@ -22,17 +22,23 @@ export const messaging = (async () => {
     console.log('Is browser supported:', isSupportedBrowser);
     
     if (isSupportedBrowser) {
+      console.log('Browser supports FCM');
       const messagingInstance = getMessaging(app);
       
       if ('serviceWorker' in navigator) {
         try {
           const baseUrl = window.location.origin;
-          console.log('Base URL:', baseUrl);
+          console.log('Attempting to register service worker');
+          console.log('Current origin:', baseUrl);
+          
+          // Check for existing service worker registrations
+          const existingRegistrations = await navigator.serviceWorker.getRegistrations();
+          console.log('Existing SW registrations:', existingRegistrations);
           
           const registration = await navigator.serviceWorker.register(
             '/firebase-messaging-sw.js',
             {
-              scope: baseUrl.startsWith('http://localhost') ? '/' : '/'
+              scope: baseUrl.startsWith('http://localhost') ? '/' : '/Smart-Server/'
             }
           );
           console.log('Service worker registered:', registration);
