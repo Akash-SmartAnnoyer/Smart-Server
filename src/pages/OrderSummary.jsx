@@ -841,18 +841,25 @@ document.head.appendChild(styleSheet);
 
 const showOrderNotification = (orderId) => {
   if (Notification.permission === 'granted') {
+    // Get the base URL from window.location
+    const baseUrl = window.location.origin;
+    
     const notification = new Notification('Order Placed Successfully!', {
       body: `Your order #${orderId} has been received and is being processed.`,
-      icon: '/logo192.png',
-      badge: '/logo192.png',
+      icon: `${baseUrl}/logo192.png`,
+      badge: `${baseUrl}/logo192.png`,
+      vibrate: [200, 100, 200],
       tag: orderId,
-      requireInteraction: true
+      requireInteraction: true,
+      data: {
+        url: `${baseUrl}/waiting/${orderId}`
+      }
     });
 
-    notification.onclick = () => {
-      window.focus();
-      window.location.href = `/waiting/${orderId}`;
-    };
+    // notification.onclick = () => {
+    //   window.focus();
+    //   navigate(`/waiting/${orderId}`);
+    // };
   }
 };
 

@@ -1,7 +1,7 @@
 import { initializeApp } from 'firebase/app';
 
 import { getFirestore } from 'firebase/firestore';
-import { getMessaging, isSupported } from 'firebase/messaging';
+import { getMessaging, isSupported, getToken } from 'firebase/messaging';
 
 const firebaseConfig = {
   apiKey: "AIzaSyARms0nFhoQqtAojws1H4ffJfxKH9MBuJ4",
@@ -15,85 +15,89 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 
-// Simple notification setup
-export const initializeNotifications = async () => {
-  try {
-    if (!('Notification' in window)) {
-      console.log('This browser does not support notifications');
-      return false;
-    }
+// Add your VAPID key here - this is critical for web push notifications
+const VAPID_KEY = 'YOUR_VAPID_KEY_HERE'; // Make sure this is your actual VAPID key from Firebase Console
 
-    const permission = await Notification.requestPermission();
-    return permission === 'granted';
-  } catch (error) {
-    console.error('Error initializing notifications:', error);
-    return false;
-  }
-};
-
-// Initialize messaging only if supported
 export const messaging = (async () => {
   try {
     const isSupportedBrowser = await isSupported();
-    console.log('Is browser supported:', isSupportedBrowser);
+    console.log('[FCM] Is browser supported:', isSupportedBrowser);
     
-    if (isSupportedBrowser) {
-      console.log('Browser supports FCM');
-      const messagingInstance = getMessaging(app);
-      
-      if ('serviceWorker' in navigator) {
-        try {
-          // First, check current permission status
-          console.log('Current notification permission:', Notification.permission);
-          
-          // Request permission if not granted
-          const permission = await Notification.requestPermission();
-          console.log('New notification permission status:', permission);
-          
-          if (permission !== 'granted') {
-            throw new Error('Notification permission not granted');
-          }
-
-          // Register service worker
-          const registration = await navigator.serviceWorker.register(
-            '/firebase-messaging-sw.js',
-            { scope: '/' }
-          );
-          
-          // Wait for the service worker to be ready
-          await navigator.serviceWorker.ready;
-          console.log('Service worker is ready');
-
-          // Get FCM token
-          try {
-            const currentToken = await getToken(messagingInstance, {
-              serviceWorkerRegistration: registration,
-              vapidKey: 'YOUR_VAPID_KEY' // Make sure you have this configured
-            });
-            if (currentToken) {
-              console.log('FCM Token:', currentToken);
-            } else {
-              console.log('No FCM token available');
-            }
-          } catch (tokenError) {
-            console.error('Error getting FCM token:', tokenError);
-          }
-
-          return messagingInstance;
-        } catch (err) {
-          console.error('Service worker registration failed:', err);
-          throw err;
-        }
-      } else {
-        console.error('Service workers are not supported');
-      }
-      
-      return messagingInstance;
+    if (!isSupportedBrowser) {
+      throw new Error('Firebase messaging is not supported in this browser');
     }
-    console.log('Firebase messaging is not supported');
-    return null;
+
+    const messagingInstance = getMessaging(app);
+    
+    if (!('serviceWorker' in navigator)) {
+      throw new Error('Service workers are not supported in this browser');
+    }
+
+    // Check if notifications are supported
+    if (!('Notification' in window)) {
+      throw new Error('Notifications are not supported in this browser');
+    }
+
+    // Check notification permission
+    let permission = Notification.permission;
+    console.log('[FCM] Current notification permission:', permission);
+    
+    if (permission === 'default') {
+      permission = await Notification.requestPermission();
+      console.log('[FCM] New notification permission status:', permission);
+    }
+
+    if (permission !== 'granted') {
+      throw new Error('Notification permission not granted');
+    }
+
+    // Unregister any existing service workers
+    const existingRegistrations = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(existingRegistrations.map(reg => reg.unregister()));
+
+    // Register new service worker
+    const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
+      scope: '/'
+    });
+
+    // Wait for the service worker to be ready and active
+    await navigator.serviceWorker.ready;
+    
+    if (!registration.active) {
+      throw new Error('Service worker is not active');
+    }
+
+    console.log('[FCM] Service worker registered and active');
+
+    // Get FCM token
+    try {
+      const currentToken = await getToken(messagingInstance, {
+        serviceWorkerRegistration: registration,
+        vapidKey: VAPID_KEY
+      });
+
+      if (!currentToken) {
+        throw new Error('No FCM token received');
+      }
+
+      console.log('[FCM] Token received:', currentToken);
+      
+      // Store the token in localStorage for debugging
+      localStorage.setItem('fcmToken', currentToken);
+      
+      // Test notification permission with a direct notification
+      await registration.showNotification('Test Notification', {
+        body: 'This is a test notification from initialization',
+        icon: '/logo192.png'
+      });
+
+      return messagingInstance;
+    } catch (tokenError) {
+      console.error('[FCM] Error getting token:', tokenError);
+      throw tokenError;
+    }
   } catch (err) {
-    console.error('Firebase messaging error:', err);
+    console.error('[FCM] Setup error:', err);
     return null;
   }
 })();

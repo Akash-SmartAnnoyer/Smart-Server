@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Header from './components/Header';
 import FooterNavigation from './components/FooterNavigation';
@@ -28,26 +28,11 @@ import { AdminOrderProvider } from './context/AdminOrderContext';
 import NewAdminPage from './components/NewAdminPage';
 import { NewOrderHistory } from './components/NewOrderHistory';
 import AllOrdersSummary from './components/AllOrdersSummary';
+import NotificationHandler from './components/NotificationHandler';
 import ActivityLog from './components/ActivityLog';
+
 const App = () => {
   const [searchTerm, setSearchTerm] = useState('');
-
-  useEffect(() => {
-// Simple notification setup
- const initializeNotifications = async () => {
-  try {
-    if (!('Notification' in window)) {
-      console.log('This browser does not support notifications');
-      return false;
-    }
-
-    const permission = await Notification.requestPermission();
-    return permission === 'granted';
-  } catch (error) {
-    console.error('Error initializing notifications:', error);
-    return false;
-  }
-};  }, []);
 
   const handleSearch = (value) => {
     setSearchTerm(value);
