@@ -29,6 +29,7 @@ import NewAdminPage from './components/NewAdminPage';
 import { NewOrderHistory } from './components/NewOrderHistory';
 import AllOrdersSummary from './components/AllOrdersSummary';
 import NotificationHandler from './components/NotificationHandler';
+import ActivityLog from './components/ActivityLog';
 
 const App = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -92,6 +93,7 @@ const App = () => {
                               <Route path="/menu-suggestion" element={<MenuSuggestionManager />} />
                               <Route path='/charges-management' element={<ChargesManagement />} />
                               <Route path="/all-orders-summary" element={<AllOrdersSummary />} />
+                              <Route path="/activity-log" element={<ActivityLog />} />
                             </Routes>
                           </div>
                           <FooterNavigation />

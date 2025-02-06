@@ -10,7 +10,9 @@ import {
   startAfter,
   doc,
   updateDoc,
-  setDoc
+  setDoc,
+  serverTimestamp,
+  addDoc
 } from 'firebase/firestore';
 import { db } from '../pages/fireBaseConfig';
 
@@ -109,9 +111,17 @@ export const AdminOrderProvider = ({ children }) => {
       const orderRef = doc(db, 'history', standardId);
       await setDoc(orderRef, {
         ...order,
-        id: standardId, // Ensure the ID in the document data is also standardized
+        id: standardId,
         timestamp: new Date().toISOString(),
         status: 'pending'
+      });
+
+      // Log the order creation
+      await logActivity('order_created', {
+        orderId: standardId,
+        tableNumber: order.tableNumber,
+        items: order.items.length,
+        total: order.total
       });
     } catch (error) {
       console.error('Failed to store order in history:', error);
@@ -131,10 +141,17 @@ export const AdminOrderProvider = ({ children }) => {
 
       await updateDoc(orderRef, updatedData);
       
-      // Update local state using the standardized ID
+      // Log the status update
+      await logActivity('status_update', {
+        orderId: standardId,
+        oldStatus: orders.find(o => standardizeOrderId(o.id) === standardId)?.status,
+        newStatus: updates.status,
+        tableNumber: orders.find(o => standardizeOrderId(o.id) === standardId)?.tableNumber
+      });
+
       setOrders(prevOrders =>
         prevOrders.map(order =>
-          standardizeOrderId(order.id) === standardId ? { ...order, ...updatedData, id: standardId } : order
+          standardizeOrderId(order.id) === standardId ? { ...order, ...updatedData } : order
         )
       );
       
@@ -202,6 +219,22 @@ export const AdminOrderProvider = ({ children }) => {
       };
     }
   }, [orgId]);
+
+  const logActivity = async (action, details) => {
+    try {
+      const chronicleRef = collection(db, 'chronicle');
+      const entry = {
+        timestamp: serverTimestamp(),
+        orgId,
+        action,
+        details,
+        userId: localStorage.getItem('userId') || 'system'
+      };
+      await addDoc(chronicleRef, entry);
+    } catch (error) {
+      console.error('Failed to log activity:', error);
+    }
+  };
 
   return (
     <AdminOrderContext.Provider value={{
