@@ -19,19 +19,32 @@ export const db = getFirestore(app);
 export const messaging = (async () => {
   try {
     const isSupportedBrowser = await isSupported();
+    console.log('Is browser supported:', isSupportedBrowser);
+    
     if (isSupportedBrowser) {
       const messagingInstance = getMessaging(app);
       
-      // Register service worker for FCM
       if ('serviceWorker' in navigator) {
         try {
-          const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
-            scope: '/'
-          });
+          const baseUrl = window.location.origin;
+          console.log('Base URL:', baseUrl);
+          
+          const registration = await navigator.serviceWorker.register(
+            '/firebase-messaging-sw.js',
+            {
+              scope: baseUrl.startsWith('http://localhost') ? '/' : '/'
+            }
+          );
           console.log('Service worker registered:', registration);
+          
+          // Check if the service worker is active
+          const swState = registration.active ? 'active' : 'inactive';
+          console.log('Service worker state:', swState);
         } catch (err) {
           console.error('Service worker registration failed:', err);
         }
+      } else {
+        console.error('Service workers are not supported');
       }
       
       return messagingInstance;
@@ -39,7 +52,7 @@ export const messaging = (async () => {
     console.log('Firebase messaging is not supported');
     return null;
   } catch (err) {
-    console.log('Firebase messaging error:', err);
+    console.error('Firebase messaging error:', err);
     return null;
   }
 })();
