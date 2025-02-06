@@ -294,10 +294,13 @@ const NewAdminPage = () => {
     return '#108ee9';
   };
 
-  // Update loadMoreOrders to check hasMore
+  // Update the loadMoreOrders callback
   const loadMoreOrders = useCallback(() => {
-    if (!loadingRef.current && hasMore) { // Check hasMore before loading
-      const lastOrder = orders[orders.length - 1];
+    if (!loadingRef.current && hasMore) {
+      // Get the last order from filtered orders when showing today only
+      const relevantOrders = showTodayOnly ? filteredOrders : orders;
+      const lastOrder = relevantOrders[relevantOrders.length - 1];
+      
       if (lastOrder) {
         loadingRef.current = true;
         fetchOrders(lastOrder.timestamp).finally(() => {
@@ -305,26 +308,49 @@ const NewAdminPage = () => {
         });
       }
     }
-  }, [orders, fetchOrders, hasMore]);
+  }, [orders, fetchOrders, hasMore, showTodayOnly, filteredOrders]);
 
-  // Add infinite scroll effect
+  // Update the scroll handler
   useEffect(() => {
     const handleScroll = debounce(() => {
-      // Check if we're near the bottom (within 200px)
+      const relevantOrders = showTodayOnly ? filteredOrders : orders;
+      
+      // Only trigger load more if we're near bottom AND
+      // (showing all orders OR showing today's orders and there might be more today's orders)
       if (
         window.innerHeight + window.pageYOffset >= 
         document.documentElement.scrollHeight - 200
       ) {
-        loadMoreOrders();
+        // Check if we need to load more
+        if (!showTodayOnly || (showTodayOnly && hasMoreTodayOrders())) {
+          loadMoreOrders();
+        }
       }
-    }, 200); // Debounce scroll events
+    }, 200);
 
     window.addEventListener('scroll', handleScroll);
     return () => {
       window.removeEventListener('scroll', handleScroll);
-      handleScroll.cancel(); // Cancel any pending debounce
+      handleScroll.cancel();
     };
-  }, [loadMoreOrders]);
+  }, [loadMoreOrders, showTodayOnly, filteredOrders, orders]);
+
+  // Add helper function to check if there might be more today's orders
+  const hasMoreTodayOrders = () => {
+    if (!hasMore) return false;
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Get the timestamp of the last loaded order
+    const lastOrder = orders[orders.length - 1];
+    if (!lastOrder) return false;
+    
+    const lastOrderDate = new Date(lastOrder.timestamp);
+    
+    // If the last loaded order is from today, there might be more today's orders
+    return lastOrderDate >= today;
+  };
 
   // Helper function to debounce scroll events
   function debounce(func, wait) {
