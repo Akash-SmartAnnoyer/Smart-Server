@@ -27,33 +27,48 @@ export const messaging = (async () => {
       
       if ('serviceWorker' in navigator) {
         try {
-          const baseUrl = window.location.origin;
-          console.log('Attempting to register service worker');
-          console.log('Current origin:', baseUrl);
+          // First, request notification permission
+          const permission = await Notification.requestPermission();
+          console.log('Notification permission status:', permission);
           
-          // Check for existing service worker registrations
+          if (permission !== 'granted') {
+            throw new Error('Notification permission not granted');
+          }
+
+          // Clear any existing service workers to avoid conflicts
           const existingRegistrations = await navigator.serviceWorker.getRegistrations();
-          console.log('Existing SW registrations:', existingRegistrations);
+          await Promise.all(existingRegistrations.map(reg => reg.unregister()));
           
           const registration = await navigator.serviceWorker.register(
             '/firebase-messaging-sw.js',
-            {
-              scope: baseUrl.startsWith('http://localhost') ? '/' : '/Smart-Server/'
-            }
+            { scope: '/' }
           );
-          console.log('Service worker registered:', registration);
           
-          // Check if the service worker is active
-          const swState = registration.active ? 'active' : 'inactive';
-          console.log('Service worker state:', swState);
+          // Wait for the service worker to be ready
+          await navigator.serviceWorker.ready;
+          console.log('Service worker is ready');
+
+          // Verify the service worker state
+          if (registration.active) {
+            console.log('Service worker is active');
+            
+            // Get the push manager subscription
+            const subscription = await registration.pushManager.getSubscription();
+            console.log('Push subscription:', subscription);
+            
+            return messagingInstance;
+          } else {
+            console.error('Service worker is not active:', registration.active);
+            throw new Error('Service worker not active');
+          }
         } catch (err) {
           console.error('Service worker registration failed:', err);
+          throw err;
         }
       } else {
         console.error('Service workers are not supported');
+        throw new Error('Service workers not supported');
       }
-      
-      return messagingInstance;
     }
     console.log('Firebase messaging is not supported');
     return null;
