@@ -16,7 +16,7 @@ const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 
 // Add your VAPID key here - this is critical for web push notifications
-const VAPID_KEY = 'YOUR_VAPID_KEY_HERE'; // Make sure this is your actual VAPID key from Firebase Console
+const VAPID_KEY = 'BC8DuLFuRoc15xWGyACC0F8I535dyWPW4sHFkPIEXHfEu9YGMjEt5Phvj_-HS66VDozCpAOZCqp6zL6S_FlKeUk'; // Make sure this is your actual VAPID key from Firebase Console
 
 export const messaging = (async () => {
   try {
@@ -56,9 +56,12 @@ export const messaging = (async () => {
     await Promise.all(existingRegistrations.map(reg => reg.unregister()));
 
     // Register new service worker
-    const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
-      scope: '/'
-    });
+    const registration = await navigator.serviceWorker.register(
+      `${window.location.origin}/firebase-messaging-sw.js`,
+      {
+        scope: '/'
+      }
+    );
 
     // Wait for the service worker to be ready and active
     await navigator.serviceWorker.ready;
@@ -71,6 +74,7 @@ export const messaging = (async () => {
 
     // Get FCM token
     try {
+      console.log('[FCM] Requesting token with VAPID key:', VAPID_KEY);
       const currentToken = await getToken(messagingInstance, {
         serviceWorkerRegistration: registration,
         vapidKey: VAPID_KEY
@@ -86,10 +90,15 @@ export const messaging = (async () => {
       localStorage.setItem('fcmToken', currentToken);
       
       // Test notification permission with a direct notification
-      await registration.showNotification('Test Notification', {
-        body: 'This is a test notification from initialization',
-        icon: '/logo192.png'
-      });
+      try {
+        await registration.showNotification('Test Notification', {
+          body: 'This is a test notification from initialization',
+          icon: '/logo192.png'
+        });
+        console.log('[FCM] Test notification sent successfully');
+      } catch (notificationError) {
+        console.error('[FCM] Test notification failed:', notificationError);
+      }
 
       return messagingInstance;
     } catch (tokenError) {
