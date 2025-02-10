@@ -27,33 +27,17 @@ export const AdminOrderProvider = ({ children }) => {
   const BATCH_SIZE = 20;
   const loadingRef = useRef(false);
 
-  const fetchOrders = async (lastOrderTimestamp = null) => {
+  const fetchOrders = async () => {
     try {
-      if (loadingRef.current) return; // Prevent multiple simultaneous fetches
-      loadingRef.current = true;
       setLoading(true);
+      loadingRef.current = true;
 
       const historyRef = collection(db, 'history');
-      let q;
-
-      if (lastOrderTimestamp) {
-        // Fetch next batch after the last order
-        q = query(
-          historyRef,
-          where('orgId', '==', orgId),
-          orderBy('timestamp', 'desc'),
-          startAfter(lastOrderTimestamp),
-          limit(BATCH_SIZE + 1) // Get one extra to check if there are more
-        );
-      } else {
-        // Initial fetch
-        q = query(
-          historyRef,
-          where('orgId', '==', orgId),
-          orderBy('timestamp', 'desc'),
-          limit(BATCH_SIZE + 1)
-        );
-      }
+      let q = query(
+        historyRef,
+        where('orgId', '==', orgId),
+        orderBy('timestamp', 'desc')
+      );
 
       const querySnapshot = await getDocs(q);
       const ordersArray = querySnapshot.docs.map(doc => ({
@@ -61,26 +45,12 @@ export const AdminOrderProvider = ({ children }) => {
         id: doc.id
       }));
 
-      // Check if there are more orders
-      const hasMoreOrders = ordersArray.length > BATCH_SIZE;
-      if (hasMoreOrders) {
-        ordersArray.pop(); // Remove the extra item
-      }
-      setHasMore(hasMoreOrders);
-
-      setOrders(prevOrders => {
-        if (!lastOrderTimestamp) {
-          // Initial load
-          return ordersArray;
-        }
-        // Append new orders
-        return [...prevOrders, ...ordersArray];
-      });
+      setOrders(ordersArray);
+      setHasMore(false); // No longer needed with pagination
 
       return ordersArray;
     } catch (error) {
       console.error('Failed to fetch orders:', error);
-      setHasMore(false);
     } finally {
       setLoading(false);
       setInitialLoading(false);
@@ -169,16 +139,6 @@ export const AdminOrderProvider = ({ children }) => {
     }
   }, [orgId]);
 
-  // Function to load more orders
-  const loadMoreOrders = useCallback(async () => {
-    if (!hasMore || loading) return;
-
-    const lastOrder = orders[orders.length - 1];
-    if (lastOrder) {
-      await fetchOrders(lastOrder.timestamp);
-    }
-  }, [orders, hasMore, loading]);
-
   // Add a cleanup effect to handle page refresh
   useEffect(() => {
     // Check if page needs refresh
@@ -243,7 +203,6 @@ export const AdminOrderProvider = ({ children }) => {
       loading,
       initialLoading,
       hasMore,
-      loadMoreOrders,
       updateOrder,
       fetchOrders
     }}>
