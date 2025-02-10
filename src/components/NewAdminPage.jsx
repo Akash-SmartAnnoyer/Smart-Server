@@ -909,7 +909,7 @@ const NewAdminPage = () => {
             <div style={{
               display: 'flex',
               justifyContent: 'center',
-              padding: '20px',
+              padding: '10px',
               background: 'white',
               borderRadius: '8px',
               marginTop: '20px',
@@ -922,7 +922,7 @@ const NewAdminPage = () => {
                 onChange={handlePageChange}
                 showSizeChanger
                 showQuickJumper
-                showTotal={(total, range) => `${range[0]}-${range[1]} of ${total} orders`}
+                // showTotal={(total, range) => `${range[0]}-${range[1]} of ${total} orders`}
                 pageSizeOptions={['10', '20', '50', '100']}
                 style={{
                   margin: '10px 0'
