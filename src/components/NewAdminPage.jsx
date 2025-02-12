@@ -20,6 +20,7 @@ import { useAdminOrders } from '../context/AdminOrderContext';
 import FoodLoader from './FoodLoader';
 import notificationSound from './notification.mp3';
 import { NotebookPen } from 'lucide-react';
+import { generateToken } from '../pages/fireBaseConfig';
 
 const { Option } = Select;
 const { Text } = Typography;
@@ -55,6 +56,11 @@ const NewAdminPage = () => {
     }, {});
     setCustomerIdMap(map);
   }, [orders]);
+
+  useEffect( () => {
+    generateToken();
+
+  }, [])
 
   // Update localStorage whenever soundEnabled changes
   useEffect(() => {
