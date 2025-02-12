@@ -95,23 +95,11 @@ function NewOrderHistory() {
       await deleteDoc(orderRef);
 
       message.success('Order deleted successfully');
-      setOrders((prevOrders) => {
-        const updatedOrders = prevOrders.filter((order) => 
+      setOrders((prevOrders) => 
+        prevOrders.filter((order) => 
           order.id !== orderId && order.id !== standardId
-        );
-        
-        // Safely update localStorage with limited data
-        try {
-          const limitedOrders = updatedOrders.slice(0, 50);
-          localStorage.setItem('cachedOrders', JSON.stringify(limitedOrders));
-        } catch (error) {
-          console.warn('Failed to update localStorage:', error);
-          // Clear localStorage if needed
-          localStorage.removeItem('cachedOrders');
-        }
-        
-        return updatedOrders;
-      });
+        )
+      );
     } catch (error) {
       console.error('Failed to delete order:', error);
       message.error('Failed to delete order. Please try again.');
