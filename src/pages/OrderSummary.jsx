@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Modal, Button, Checkbox, Input, Typography, message, Card, Alert } from 'antd';
-import { CoffeeOutlined, SmileOutlined,ExclamationCircleOutlined, PlusCircleOutlined, CheckOutlined, ShoppingCartOutlined, GifOutlined, ThunderboltFilled } from '@ant-design/icons';
+import { CoffeeOutlined, SmileOutlined,ExclamationCircleOutlined, PlusCircleOutlined, CheckOutlined, ShoppingCartOutlined, GifOutlined, ThunderboltFilled, CreditCardOutlined, RestOutlined, CheckSquareOutlined, ShoppingOutlined, RestFilled } from '@ant-design/icons';
 import { useCart } from '../contexts/CartContext';
 import { useNavigate } from 'react-router-dom';
 import './OrderSummary.css'; // Assuming you're using CSS modules or a custom CSS file
@@ -8,10 +8,13 @@ import FoodLoader from '../components/FoodLoader';
 import { calculateCharges } from '../utils/calculateCharges';
 import { useOrders } from '../context/OrderContext';
 import { MapPin } from 'lucide-react';
+import { useMediaQuery } from 'react-responsive';
+
 
 
 import { collection, doc, getDoc, setDoc, query, where, getDocs } from 'firebase/firestore';
 import { db } from './fireBaseConfig';
+import { MdFastfood } from 'react-icons/md';
 const { Text, Title } = Typography;
 
 const MAX_DISTANCE_KM = 0.5; // Maximum allowed distance in kilometers
@@ -40,6 +43,8 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
   return Number(distance.toFixed(3));
 };
 
+// Add this import at the top
+
 function OrderSummary() {
   const { cart } = useCart();
   const { clearCart } = useCart();
@@ -63,6 +68,27 @@ function OrderSummary() {
   const { restaurantDetails, charges: contextCharges, addOrder } = useOrders();
   const [locationError, setLocationError] = useState(null);
   const [restaurantData, setRestaurantData] = useState(null);
+
+  // Add this near the top of your component with other state declarations
+  const isMobile = useMediaQuery({ maxWidth: 768 });
+  const [isSliding, setIsSliding] = useState(false);
+  const [slideValue, setSlideValue] = useState(0);
+
+  // Add this function to handle slide completion
+  const handleSlideComplete = () => {
+    if (slideValue >= 100) {
+      handlePayClick();
+      setSlideValue(0);
+      setIsSliding(false);
+    }
+  };
+
+  // Add this effect to monitor slide value
+  useEffect(() => {
+    if (slideValue >= 100) {
+      handleSlideComplete();
+    }
+  }, [slideValue]);
 
   // Add WebSocket connection setup
 useEffect(() => {
@@ -539,6 +565,170 @@ const verifyLocation = async () => {
     return <FoodLoader />;
   }
 
+  // Replace the existing button with the conditional render
+  const renderOrderConfirmation = () => {
+    if (!isMobile) {
+      // Desktop version - Button
+      return (
+        <button 
+          className="pay-button" 
+          onClick={handlePayClick}
+          disabled={chargesLoading}
+          style={{
+            width: '100%',
+            padding: '15px',
+            backgroundColor: chargesLoading ? '#ccc' : '#ff4d4f',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            fontSize: '18px',
+            fontWeight: 'bold',
+            marginTop: '25px',
+            cursor: chargesLoading ? 'not-allowed' : 'pointer',
+            transition: 'all 0.3s ease',
+            boxShadow: '0 4px 12px rgba(255, 77, 79, 0.2)',
+          }}
+        >
+          <CheckOutlined style={{ marginRight: '10px' }} />
+          Confirm Order
+        </button>
+      );
+    }
+
+    // Mobile version - Slider
+    return (
+      <div className="slider-container" style={{
+        width: '100%',
+        height: '60px',
+        position: 'relative',
+        marginTop: '25px',
+        backgroundColor: '#f8f8f8',
+        borderRadius: '30px',
+        overflow: 'hidden',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+        border: '1px solid rgba(255, 77, 79, 0.2)',
+      }}>
+        {/* Background Track */}
+        <div className="slider-background" style={{
+          position: 'absolute',
+          width: '100%',
+          height: '100%',
+          background: 'red',
+        }} />
+
+        {/* Active Track */}
+        <div className="slider-track" style={{
+          width: `${slideValue}%`,
+          height: '100%',
+          background: 'linear-gradient(45deg, #ff4d4f 0%, #ff7875 100%)',
+          transition: isSliding ? 'none' : 'width 0.3s ease',
+          position: 'absolute',
+        }} />
+
+        {/* Thumb */}
+        <div className="slider-thumb" style={{
+          position: 'absolute',
+          left: `calc(${slideValue}%)`,
+          top: '50%',
+          transform: 'translateY(-50%)',
+          width: '50px',
+          height: '50px',
+          backgroundColor: '#fff',
+          borderRadius: '25px',
+          cursor: 'grab',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          transition: isSliding ? 'none' : 'left 0.3s ease',
+          boxShadow: '0 2px 8px rgba(255, 77, 79, 0.3)',
+          border: '2px solid #ff4d4f',
+        }}>
+          <div style={{
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#ff4d4f',
+            fontSize: '24px',
+          }}>
+            {slideValue < 100 ? 
+              <MdFastfood /> : 
+              <CheckOutlined />
+            }
+          </div>
+        </div>
+
+        {/* Text Layer */}
+        <div className="slider-text" style={{
+          position: 'absolute',
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: slideValue > 50 ? '#fff' : 'white',
+          fontSize: '18px',
+          fontWeight: '600',
+          pointerEvents: 'none',
+          textShadow: slideValue > 50 ? '0 1px 2px rgba(0,0,0,0.2)' : 'none',
+          letterSpacing: '0.5px',
+        }}>
+          <div style={{
+            opacity: slideValue < 100 ? 1 : 0,
+            transition: 'opacity 0.3s ease',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+          }}>
+            <span style={{ 
+              marginLeft: slideValue > 20 ? '50px' : '0',
+              transition: 'margin 0.3s ease'
+            }}>
+              Slide to Confirm Order
+            </span>
+          </div>
+          <div style={{
+            position: 'absolute',
+            opacity: slideValue >= 100 ? 1 : 0,
+            transition: 'opacity 0.3s ease',
+            color: '#fff',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+          }}>
+            <CheckOutlined />
+            <span>Order Confirmed!</span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Add touch event handlers
+  const handleTouchStart = (e) => {
+    setIsSliding(true);
+  };
+
+  const handleTouchMove = (e) => {
+    if (!isSliding) return;
+    
+    const touch = e.touches[0];
+    const slider = e.currentTarget;
+    const rect = slider.getBoundingClientRect();
+    const x = touch.clientX - rect.left;
+    const percentage = Math.min(Math.max((x / rect.width) * 100, 0), 100);
+    
+    setSlideValue(percentage);
+  };
+
+  const handleTouchEnd = () => {
+    setIsSliding(false);
+    if (slideValue < 100) {
+      setSlideValue(0);
+    }
+  };
+
   return (
     <div className="order-summary-container" style={{ 
       marginTop: '145px',
@@ -785,33 +975,14 @@ const verifyLocation = async () => {
       </Modal>
 
 
-      {/* Confirm Order Button */}
-      <button 
-        className="pay-button" 
-        onClick={handlePayClick}
-        disabled={chargesLoading}
-        style={{
-          width: '100%',
-          padding: '15px',
-          backgroundColor: chargesLoading ? '#ccc' : '#ff4d4f',
-          color: 'white',
-          border: 'none',
-          borderRadius: '8px',
-          fontSize: '18px',
-          fontWeight: 'bold',
-          marginTop: '25px',
-          cursor: chargesLoading ? 'not-allowed' : 'pointer',
-          transition: 'all 0.3s ease',
-          boxShadow: '0 4px 12px rgba(255, 77, 79, 0.2)',
-          ':hover': {
-            backgroundColor: chargesLoading ? '#ccc' : '#ff7875',
-            transform: chargesLoading ? 'none' : 'translateY(-2px)'
-          }
-        }}
+      {/* Replace the existing button with the conditional render */}
+      <div
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       >
-        <CheckOutlined style={{ marginRight: '10px' }} />
-        Confirm Order
-      </button>
+        {renderOrderConfirmation()}
+      </div>
     </div>
   );
 }
