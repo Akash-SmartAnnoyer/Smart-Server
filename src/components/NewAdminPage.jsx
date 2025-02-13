@@ -93,7 +93,7 @@ const NewAdminPage = () => {
     
     setTotalOrders(filtered.length);
     setFilteredOrders(filtered);
-    setCurrentPage(1); // Reset to first page when filters change
+    // setCurrentPage(1); 
   }, [orders, searchQuery, showTodayOnly]); // Add dependencies
 
   // Calculate paginated orders
@@ -103,11 +103,35 @@ const NewAdminPage = () => {
     return filteredOrders.slice(startIndex, endIndex);
   }, [filteredOrders, currentPage, pageSize]);
 
-  // Add pagination change handler
-  const handlePageChange = (page, size) => {
-    setCurrentPage(page);
-    setPageSize(size);
+  // Load pagination state from local storage on component mount
+  useEffect(() => {
+    const savedPage = localStorage.getItem('currentPage');
+    const savedPageSize = localStorage.getItem('pageSize');
+    console.log('Loading saved page:', savedPage);
+    if (savedPage) setCurrentPage(Number(savedPage));
+    if (savedPageSize) setPageSize(Number(savedPageSize));
+  }, []); // Empty dependency array ensures this runs only once on mount
+
+  const handlePageChange = (newPage, newPageSize) => {
+    console.log('Changing to page:', newPage);
+    setCurrentPage(newPage);
+    setPageSize(newPageSize);
+    localStorage.setItem('currentPage', newPage);
+    localStorage.setItem('pageSize', newPageSize);
+    fetchOrders(newPage, newPageSize);
   };
+
+  // Ensure fetchOrders is called with the correct page and pageSize
+  useEffect(() => {
+    console.log('Fetching orders for page:', currentPage, 'pageSize:', pageSize);
+    fetchOrders(currentPage, pageSize);
+  }, [currentPage, pageSize]);
+
+  // Debugging: Log state changes
+  useEffect(() => {
+    console.log('Current Page:', currentPage);
+    console.log('Page Size:', pageSize);
+  }, [currentPage, pageSize]);
 
   useEffect(() => {
     // Function to establish WebSocket connection

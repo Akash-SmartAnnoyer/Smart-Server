@@ -363,6 +363,12 @@ function NewOrderHistory() {
     return filteredOrders.slice(startIndex, endIndex);
   };
 
+  const handlePageChange = (newPage, newPageSize) => {
+    setPage(newPage);
+    setOrdersPerPage(newPageSize);
+    fetchOrders(newPage, newPageSize); // Fetch orders for the new page
+  };
+
   if (loading) {
     return (
       <div style={{
@@ -591,13 +597,7 @@ function NewOrderHistory() {
                 current={page}
                 pageSize={ordersPerPage}
                 total={filteredOrders.length}
-                onChange={(newPage, pageSize) => {
-                  setPage(newPage);
-                  // Update ordersPerPage if it changes
-                  if (pageSize !== ordersPerPage) {
-                    setOrdersPerPage(pageSize);
-                  }
-                }}
+                onChange={handlePageChange}
                 showSizeChanger
                 showQuickJumper
                 pageSizeOptions={['10', '20', '50', '100']}
