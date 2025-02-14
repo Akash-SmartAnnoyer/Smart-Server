@@ -613,14 +613,18 @@ const verifyLocation = async () => {
           position: 'absolute',
           width: '100%',
           height: '100%',
-          background: 'red',
+          background: 'linear-gradient(90deg, #ff4d4f 0%, #ff7875 100%)',
+          // opacity: 0.2,
+          // background: 'red',
+
         }} />
 
         {/* Active Track */}
         <div className="slider-track" style={{
           width: `${slideValue}%`,
           height: '100%',
-          background: 'linear-gradient(45deg, #ff4d4f 0%, #ff7875 100%)',
+          // background: 'linear-gradient(90deg, #ff4d4f 0%, #ff7875 100%)',
+          background: 'red',
           transition: isSliding ? 'none' : 'width 0.3s ease',
           position: 'absolute',
         }} />
@@ -681,9 +685,6 @@ const verifyLocation = async () => {
             alignItems: 'center',
             gap: '8px',
           }}>
-                        <span className="flashing-arrow">»»</span> 
-                        <span className="flashing-arrow">»»</span> 
-
             <span style={{ 
               marginLeft: slideValue > 20 ? '50px' : '0',
               transition: 'margin 0.3s ease',
