@@ -681,12 +681,18 @@ const verifyLocation = async () => {
             alignItems: 'center',
             gap: '8px',
           }}>
+                        <span className="flashing-arrow">»»</span> 
+                        <span className="flashing-arrow">»»</span> 
+
             <span style={{ 
               marginLeft: slideValue > 20 ? '50px' : '0',
-              transition: 'margin 0.3s ease'
+              transition: 'margin 0.3s ease',
+              fontSize: '18px',
             }}>
-              Slide to Confirm Order
+              Slide to Confirm
             </span>
+            <span className="flashing-arrow">»»</span> 
+            <span className="flashing-arrow">»»</span> 
           </div>
           <div style={{
             position: 'absolute',
@@ -987,7 +993,7 @@ const verifyLocation = async () => {
   );
 }
 
-// Add some CSS for the loading spinner
+// Add some CSS for the loading spinner and arrow animation
 const styles = `
   .loading-spinner {
     width: 20px;
@@ -1001,6 +1007,17 @@ const styles = `
   @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+  }
+
+  @keyframes flash {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  .flashing-arrow {
+    display: inline-block;
+    animation: flash 1s infinite;
+    margin-left: 5px;
   }
 `;
 
