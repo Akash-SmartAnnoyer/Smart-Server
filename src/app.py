@@ -11,16 +11,16 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key')
 
 # Mock credentials with different orgIds (replace with database in production)
 users = {
-    'royalspice@smartserver.com': {'password': 'R0y@!$p!ce', 'orgId': 3},
-    'ammammagarillu': {'password': 'ammammagarillu', 'orgId': 2},
-    'biryanis': {'password': 'biryanis', 'orgId': 1},
-    'johndoe@example.com': {'password': 'J0hn!D0e#2024', 'orgId': 4},
-    'janedoe@example.com': {'password': 'J@neD03!24', 'orgId': 5},
-    'spicychicken@restaurant.com': {'password': 'Sp!cyCh!ck3n', 'orgId': 6},
-    'foodlover@mail.com': {'password': 'F00dL0v3r#2024', 'orgId': 7},
-    'tastytreats@delights.com': {'password': 'T@styTreaT$', 'orgId': 8},
-    'deliciousbites@foodies.com': {'password': 'D3l!c10usB!t3s', 'orgId': 9},
-    'spicybiryani@spicydishes.com': {'password': 'Sp!cYB!rY@N!', 'orgId': 10}
+    'royalspice@smartserver.com': {'password': 'R0y@!$p!ce', 'orgId': 3, 'role': 'captain'},
+    'ammammagarillu': {'password': 'ammammagarillu', 'orgId': 2, 'role': 'admin'},
+    'biryanis': {'password': 'biryanis', 'orgId': 1, 'role': 'admin'},
+    'johndoe@example.com': {'password': 'J0hn!D0e#2024', 'orgId': 4, 'role': 'admin'},
+    'janedoe@example.com': {'password': 'J@neD03!24', 'orgId': 5, 'role': 'admin'},
+    'spicychicken@restaurant.com': {'password': 'Sp!cyCh!ck3n', 'orgId': 6, 'role': 'captain'},
+    'foodlover@mail.com': {'password': 'F00dL0v3r#2024', 'orgId': 7, 'role': 'captain'},
+    'tastytreats@delights.com': {'password': 'T@styTreaT$', 'orgId': 8, 'role': 'admin'},
+    'deliciousbites@foodies.com': {'password': 'D3l!c10usB!t3s', 'orgId': 9, 'role': 'captain'},
+    'spicybiryani@spicydishes.com': {'password': 'Sp!cYB!rY@N!', 'orgId': 10, 'role': 'admin'}
 }
 
 # Token verification decorator
@@ -50,7 +50,7 @@ def admin_login():
             'username': auth['username'],
             'exp': datetime.utcnow() + timedelta(hours=24)
         }, app.config['SECRET_KEY'])
-        return jsonify({'token': token, 'orgId': user['orgId']})  # Return orgId along with token
+        return jsonify({'token': token, 'orgId': user['orgId'], 'role': user['role']})  # Return role along with token
     
     return jsonify({'message': 'Invalid credentials'}), 401
 

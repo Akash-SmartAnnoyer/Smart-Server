@@ -105,6 +105,7 @@ function Header({ onSearch }) {
     localStorage.removeItem('adminToken');
     localStorage.removeItem('role');
     localStorage.removeItem('orgId');
+    localStorage.removeItem('isCaptain');
     setIsSignOutModalVisible(false);
     navigate('/');
   };

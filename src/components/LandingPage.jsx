@@ -41,6 +41,7 @@ const LandingPage = () => {
                 localStorage.setItem('adminToken', data.token);
                 localStorage.setItem('role', 'admin');
                 localStorage.setItem('orgId', data.orgId);
+                localStorage.setItem('isCaptain', data.role === 'captain');
                 localStorage.setItem('needRefresh', 'yes');
                 navigate('/admin');
             } else {
