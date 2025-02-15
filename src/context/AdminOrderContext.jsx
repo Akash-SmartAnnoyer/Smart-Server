@@ -39,6 +39,17 @@ export const AdminOrderProvider = ({ children }) => {
         orderBy('timestamp', 'desc')
       );
 
+      // Check if isCaptain is true in localStorage
+      const isCaptain = localStorage.getItem('isCaptain') === 'true';
+      if (isCaptain) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        q = query(
+          q,
+          where('timestamp', '>=', today.toISOString())
+        );
+      }
+
       const querySnapshot = await getDocs(q);
       const ordersArray = querySnapshot.docs.map(doc => ({
         ...doc.data(),

@@ -552,72 +552,74 @@ const NewAdminPage = () => {
             Live Orders
           </h1>
           
-          {/* Add the new toggle switch section */}
-          <div style={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            gap: '15px',
-            margin: '15px 0',
-            flexWrap: 'wrap'
-          }}>
-            <div style={{
-              background: '#fff5f5',
-              padding: '4px',
-              borderRadius: '30px',
-              display: 'inline-flex',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-            }}>
-              <Button
-                type={showTodayOnly ? 'primary' : 'text'}
-                onClick={() => setShowTodayOnly(true)}
-                style={{
-                  borderRadius: '20px',
-                  border: 'none',
-                  background: showTodayOnly ? '#ff4d4f' : 'transparent',
-                  color: showTodayOnly ? 'white' : '#666',
-                  padding: '4px 15px'
-                }}
-              >
-                Today
-              </Button>
-              <Button
-                type={!showTodayOnly ? 'primary' : 'text'}
-                onClick={() => setShowTodayOnly(false)}
-                style={{
-                  borderRadius: '20px',
-                  border: 'none',
-                  background: !showTodayOnly ? '#ff4d4f' : 'transparent',
-                  color: !showTodayOnly ? 'white' : '#666',
-                  padding: '4px 15px'
-                }}
-              >
-                All Orders
-              </Button>
-            </div>
-
+          {/* Conditionally render the toggle switch section */}
+          {localStorage.getItem('isCaptain') !== 'true' && (
             <div style={{
               display: 'flex',
+              justifyContent: 'center',
               alignItems: 'center',
-              gap: '10px',
-              background: '#fff5f5',
-              padding: '8px 15px',
-              borderRadius: '20px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+              gap: '15px',
+              margin: '15px 0',
+              flexWrap: 'wrap'
             }}>
-              <Switch
-                checkedChildren={<SoundOutlined />}
-                unCheckedChildren={<SoundOutlined />}
-                checked={soundEnabled}
-                onChange={setSoundEnabled}
-                style={{ 
-                  backgroundColor: soundEnabled ? '#ff4d4f' : undefined,
-                  minWidth: '40px'
-                }}
-              />
-              <Text>Sound Alerts</Text>
+              <div style={{
+                background: '#fff5f5',
+                padding: '4px',
+                borderRadius: '30px',
+                display: 'inline-flex',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+              }}>
+                <Button
+                  type={showTodayOnly ? 'primary' : 'text'}
+                  onClick={() => setShowTodayOnly(true)}
+                  style={{
+                    borderRadius: '20px',
+                    border: 'none',
+                    background: showTodayOnly ? '#ff4d4f' : 'transparent',
+                    color: showTodayOnly ? 'white' : '#666',
+                    padding: '4px 15px'
+                  }}
+                >
+                  Today
+                </Button>
+                <Button
+                  type={!showTodayOnly ? 'primary' : 'text'}
+                  onClick={() => setShowTodayOnly(false)}
+                  style={{
+                    borderRadius: '20px',
+                    border: 'none',
+                    background: !showTodayOnly ? '#ff4d4f' : 'transparent',
+                    color: !showTodayOnly ? 'white' : '#666',
+                    padding: '4px 15px'
+                  }}
+                >
+                  All Orders
+                </Button>
+              </div>
+
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                background: '#fff5f5',
+                padding: '8px 15px',
+                borderRadius: '20px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+              }}>
+                <Switch
+                  checkedChildren={<SoundOutlined />}
+                  unCheckedChildren={<SoundOutlined />}
+                  checked={soundEnabled}
+                  onChange={setSoundEnabled}
+                  style={{ 
+                    backgroundColor: soundEnabled ? '#ff4d4f' : undefined,
+                    minWidth: '40px'
+                  }}
+                />
+                <Text>Sound Alerts</Text>
+              </div>
             </div>
-          </div>
+          )}
 
           <div style={{
             display: 'flex',
