@@ -26,17 +26,14 @@ export const AdminOrderProvider = ({ children }) => {
   const orgId = localStorage.getItem('orgId');
   const BATCH_SIZE = 20;
   const loadingRef = useRef(false);
-  const [lastOrderTimestamp, setLastOrderTimestamp] = useState(null);
 
-  const fetchOrders = async (page = 1, pageSize = BATCH_SIZE) => {
+  const fetchOrders = async () => {
     try {
       setLoading(true);
       loadingRef.current = true;
 
-      console.log(`Fetching orders for page: ${page}, pageSize: ${pageSize}`);
-
       const historyRef = collection(db, 'history');
-      const q = query(
+      let q = query(
         historyRef,
         where('orgId', '==', orgId),
         orderBy('timestamp', 'desc')
@@ -49,7 +46,7 @@ export const AdminOrderProvider = ({ children }) => {
       }));
 
       setOrders(ordersArray);
-      setHasMore(querySnapshot.size === pageSize); // Check if there are more orders to fetch
+      setHasMore(false); // No longer needed with pagination
 
       return ordersArray;
     } catch (error) {

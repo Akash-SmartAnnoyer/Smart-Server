@@ -20,7 +20,6 @@ import { useAdminOrders } from '../context/AdminOrderContext';
 import FoodLoader from './FoodLoader';
 import notificationSound from './notification.mp3';
 import { NotebookPen } from 'lucide-react';
-import { generateToken } from '../pages/fireBaseConfig';
 
 const { Option } = Select;
 const { Text } = Typography;
@@ -57,11 +56,6 @@ const NewAdminPage = () => {
     setCustomerIdMap(map);
   }, [orders]);
 
-  useEffect( () => {
-    generateToken();
-
-  }, [])
-
   // Update localStorage whenever soundEnabled changes
   useEffect(() => {
     localStorage.setItem('soundEnabled', JSON.stringify(soundEnabled));
@@ -93,7 +87,7 @@ const NewAdminPage = () => {
     
     setTotalOrders(filtered.length);
     setFilteredOrders(filtered);
-    // setCurrentPage(1); 
+    setCurrentPage(1); // Reset to first page when filters change
   }, [orders, searchQuery, showTodayOnly]); // Add dependencies
 
   // Calculate paginated orders
@@ -103,35 +97,11 @@ const NewAdminPage = () => {
     return filteredOrders.slice(startIndex, endIndex);
   }, [filteredOrders, currentPage, pageSize]);
 
-  // Load pagination state from local storage on component mount
-  useEffect(() => {
-    const savedPage = localStorage.getItem('currentPage');
-    const savedPageSize = localStorage.getItem('pageSize');
-    console.log('Loading saved page:', savedPage);
-    if (savedPage) setCurrentPage(Number(savedPage));
-    if (savedPageSize) setPageSize(Number(savedPageSize));
-  }, []); // Empty dependency array ensures this runs only once on mount
-
-  const handlePageChange = (newPage, newPageSize) => {
-    console.log('Changing to page:', newPage);
-    setCurrentPage(newPage);
-    setPageSize(newPageSize);
-    localStorage.setItem('currentPage', newPage);
-    localStorage.setItem('pageSize', newPageSize);
-    fetchOrders(newPage, newPageSize);
+  // Add pagination change handler
+  const handlePageChange = (page, size) => {
+    setCurrentPage(page);
+    setPageSize(size);
   };
-
-  // Ensure fetchOrders is called with the correct page and pageSize
-  useEffect(() => {
-    console.log('Fetching orders for page:', currentPage, 'pageSize:', pageSize);
-    fetchOrders(currentPage, pageSize);
-  }, [currentPage, pageSize]);
-
-  // Debugging: Log state changes
-  useEffect(() => {
-    console.log('Current Page:', currentPage);
-    console.log('Page Size:', pageSize);
-  }, [currentPage, pageSize]);
 
   useEffect(() => {
     // Function to establish WebSocket connection
