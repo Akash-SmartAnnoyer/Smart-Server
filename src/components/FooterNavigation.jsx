@@ -5,6 +5,7 @@ import { ShoppingBag, FileText, Home, History, Settings, ChefHat, LayoutDashboar
 const FooterNavigation = () => {
   const location = useLocation();
   const role = localStorage.getItem('role') || 'customer';
+  const isCaptain = localStorage.getItem('isCaptain') === 'true';
 
   const isActive = (path) => location.pathname === path;
 
@@ -25,7 +26,11 @@ const FooterNavigation = () => {
     { path: '/management', icon: User, label: 'Profile' },
   ];
 
-  const links = role === 'customer' ? customerLinks : adminLinks;
+  const filteredAdminLinks = isCaptain
+    ? adminLinks.filter(link => !['/charges-management', '/dashboard', '/order-history'].includes(link.path))
+    : adminLinks.filter(link => link.path !== '/admin');
+
+  const links = role === 'customer' ? customerLinks : filteredAdminLinks;
 
   return (
     <nav className="footer-nav">
