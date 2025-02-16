@@ -387,15 +387,15 @@ const NewAdminPage = () => {
     return debouncedFunction;
   }
 
-  // useEffect(() => {
-  //   // Check if page needs refresh
-  //   const needRefresh = localStorage.getItem('needRefresh');
-  //   if (needRefresh !== 'no') {
-  //     // Set flag to 'no' before refreshing to prevent refresh loop
-  //     localStorage.setItem('needRefresh', 'no');
-  //     window.location.reload();
-  //   }
-  // }, []); // Empty dependency array ensures this runs only once on mount
+  useEffect(() => {
+    // Check if page needs refresh
+    const needRefresh = localStorage.getItem('needRefresh');
+    if (needRefresh !== 'no') {
+      // Set flag to 'no' before refreshing to prevent refresh loop
+      localStorage.setItem('needRefresh', 'no');
+      window.location.reload();
+    }
+  }, []); // Empty dependency array ensures this runs only once on mount
 
   // Get pending orders count
   const pendingOrders = orders.filter(order => order.status === 'pending');
