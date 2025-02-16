@@ -64,7 +64,11 @@ def admin_login():
             'exp': datetime.utcnow() + timedelta(hours=24),
             'orgId': user['orgId']  # Include orgId in the token
         }, app.config['SECRET_KEY'])
-        return jsonify({'token': token, 'orgId': user['orgId']})  # Return orgId along with token
+        return jsonify({
+            'token': token,
+            'orgId': user['orgId'],
+            'role': user['role']  # Include role in the response
+        })  # Return orgId and role along with token
     
     return jsonify({'message': 'Invalid credentials'}), 401
 
