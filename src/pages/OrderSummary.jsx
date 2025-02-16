@@ -573,7 +573,7 @@ const verifyLocation = async () => {
         <button 
           className="pay-button" 
           onClick={handlePayClick}
-          disabled={chargesLoading}
+          disabled={chargesLoading} // Disable button when charges are loading
           style={{
             width: '100%',
             padding: '15px',
@@ -607,23 +607,23 @@ const verifyLocation = async () => {
         overflow: 'hidden',
         boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
         border: '1px solid rgba(255, 77, 79, 0.2)',
-      }}>
+      }}
+      onTouchStart={chargesLoading ? null : handleTouchStart} // Disable touch events when charges are loading
+      onTouchMove={chargesLoading ? null : handleTouchMove}
+      onTouchEnd={chargesLoading ? null : handleTouchEnd}
+      >
         {/* Background Track */}
         <div className="slider-background" style={{
           position: 'absolute',
           width: '100%',
           height: '100%',
           background: 'linear-gradient(90deg, #ff4d4f 0%, #ff7875 100%)',
-          // opacity: 0.2,
-          // background: 'red',
-
         }} />
 
         {/* Active Track */}
         <div className="slider-track" style={{
           width: `${slideValue}%`,
           height: '100%',
-          // background: 'linear-gradient(90deg, #ff4d4f 0%, #ff7875 100%)',
           background: 'red',
           transition: isSliding ? 'none' : 'width 0.3s ease',
           position: 'absolute',
@@ -639,7 +639,7 @@ const verifyLocation = async () => {
           height: '50px',
           backgroundColor: '#fff',
           borderRadius: '25px',
-          cursor: 'grab',
+          cursor: chargesLoading ? 'not-allowed' : 'grab', // Change cursor when charges are loading
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
