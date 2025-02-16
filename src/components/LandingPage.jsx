@@ -19,8 +19,13 @@ const LandingPage = () => {
     useEffect(() => {
         // Check if user is already logged in
         const role = localStorage.getItem('role');
+        const isCaptain = localStorage.getItem('isCaptain') === 'true';
         if (role === 'admin') {
-            navigate('/admin');
+            if (isCaptain) {
+                navigate('/admin');
+            } else {
+                navigate('/order-history');
+            }
         }
     }, [navigate]);
 
@@ -43,7 +48,12 @@ const LandingPage = () => {
                 localStorage.setItem('orgId', data.orgId);
                 localStorage.setItem('isCaptain', data.role === 'captain');
                 localStorage.setItem('needRefresh', 'yes');
-                navigate('/admin');
+                
+                if (data.role === 'captain') {
+                    navigate('/admin');
+                } else {
+                    navigate('/order-history');
+                }
             } else {
                 const errorData = await response.json();
                 setError(errorData.message || 'Invalid credentials. Please try again.');
