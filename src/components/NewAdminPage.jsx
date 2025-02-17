@@ -597,7 +597,10 @@ const NewAdminPage = () => {
                 </Button>
               </div>
 
-              <div style={{
+
+            </div>
+          )}
+                        <div style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: '10px',
@@ -618,8 +621,6 @@ const NewAdminPage = () => {
                 />
                 <Text>Sound Alerts</Text>
               </div>
-            </div>
-          )}
 
           <div style={{
             display: 'flex',
