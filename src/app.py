@@ -11,12 +11,12 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key')
 
 # Mock credentials with different orgIds (replace with database in production)
 users = {
-    'smartannoyers-captain@smartserver.com': {'password': 'SmartAnnoyers@2025', 'orgId': 3, 'role': 'captain'},
-    'smartannoyers-admin@smartserver.com': {'password': 'SmartAnnoyers@0000', 'orgId': 3, 'role': 'admin'},
+    'sa-captain@smartserver.com': {'password': 'Test@Captain', 'orgId': 3, 'role': 'captain'},
+    'sa-admin@smartserver.com': {'password': 'Test@Admin', 'orgId': 3, 'role': 'admin'},
     'siri-captain@smartserver.com': {'password': 'siri@2025', 'orgId': 7, 'role': 'captain'},
     'siri@smartserver.com': {'password': 'siri@0000', 'orgId': 7, 'role': 'admin'},
-    'hotelmuntaz-captain@smartserver.com': {'password': 'HotelMuntaz@2025', 'orgId': 4, 'role': 'captain'},
-    'hotelmuntaz-admin@smartserver.com': {'password': 'HotelMuntaz@0000', 'orgId': 4, 'role': 'admin'},
+    'hotelmuntaz-captain@smartserver.com': {'password': 'Test@Captain', 'orgId': 4, 'role': 'captain'},
+    'hotelmuntaz-admin@smartserver.com': {'password': 'Test@Admin', 'orgId': 4, 'role': 'admin'},
     'naidugarikundabiryani-captain@smartserver.com': {'password': 'PotBiryani@2025', 'orgId': 1, 'role': 'captain'},
     'naidugarikundabiryani-admin@smartserver.com': {'password': 'PotBiryani@0000', 'orgId': 1, 'role': 'admin'},
     'ammammagarillu-captain': {'password': 'ammammagarillu@2025', 'orgId': 2, 'role': 'captain'},
