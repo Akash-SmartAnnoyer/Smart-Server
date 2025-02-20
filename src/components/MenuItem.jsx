@@ -7,6 +7,7 @@ import FlyingItemAnimation from './FlyingItemAnimation';
 import FoodLoader from './FoodLoader';
 import RecommendationSection from './RecommendationSection';
 import CookingRequestDrawer from './CookingRequestDrawer';
+import './MenuItem.css';
 
 const MenuItem = ({ item, onItemAdded, recommendations }) => {
   const [showRecommendations, setShowRecommendations] = useState(false);
@@ -22,6 +23,8 @@ const MenuItem = ({ item, onItemAdded, recommendations }) => {
   const [selectedTags, setSelectedTags] = useState([]);
   const itemRef = useRef(null);
   const descriptionRef = useRef(null);
+  const unavailableGif = process.env.PUBLIC_URL + "/assets/unavailableGif.gif";
+
 
   const styles = {
     editIcon: {
@@ -335,6 +338,11 @@ const MenuItem = ({ item, onItemAdded, recommendations }) => {
       border: '1px solid #ffe0e9',
       marginBottom: '8px',
     },
+    unavailableGif: {
+      width: '96px',
+      height: '96px',
+      objectFit: 'cover',
+    },
   };
 
   // Function to check if description needs truncation
@@ -392,11 +400,9 @@ const MenuItem = ({ item, onItemAdded, recommendations }) => {
       updateQuantity(item.id, quantity + 1);
     }
     setQuantity(quantity + 1);
-    // Only show recommendations if they exist for this item
     if (recommendations?.length > 0) {
       setShowRecommendations(true);
     }
-    // triggerAnimation();
     if (onItemAdded) onItemAdded();
   };
 
@@ -518,13 +524,25 @@ const MenuItem = ({ item, onItemAdded, recommendations }) => {
                 </button>
               </div>
             ) : (
-              <button
-                onClick={item.isAvailable ? handleAddToCart : undefined}
-                disabled={!item.isAvailable}
-                style={styles.addButton}
-              >
-                ADD
-              </button>
+              <Tooltip title={item.isAvailable ? "Add to cart" : "Item unavailable"}>
+                <button
+                  onClick={item.isAvailable ? handleAddToCart : undefined}
+                  disabled={!item.isAvailable}
+                  style={{
+                    ...styles.addButton,
+                    ...(item.isAvailable ? {} : styles.disabledAddToCartButton),
+                  }}
+                >
+                  {item.isAvailable ? "ADD" : "Unavailable"}
+                </button>
+              </Tooltip>
+            )}
+            {!item.isAvailable && (
+              <img
+                src={unavailableGif}
+                alt="Unavailable"
+                style={styles.unavailableGif}
+              />
             )}
             {quantity > 0 && item.isCustomizable && (
               <Tooltip title="Customize your order">

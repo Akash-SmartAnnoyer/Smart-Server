@@ -10,6 +10,7 @@ import FoodTypeFilter from '../components/FoodTypeFilter';
 import HomeCarousel from '../components/HomeCarousel';
 import WelcomeSection from '../components/WelcomeSection';
 import { useMenu } from '../contexts/MenuProvider';
+import IntroLoader from '../components/IntroLoader';
 
 function Home({ cartIconRef, onItemAdded, searchTerm }) {
   const { 
@@ -217,9 +218,9 @@ useEffect(() => {
                   backgroundColor: 'rgba(255, 255, 255, 0.8)',
                   zIndex: 1000,
                 }}>
-                  <FoodLoader />
+                  <IntroLoader />
                   <div style={{
-                    marginTop: '1rem',
+                    marginTop: '3rem',
                     color: '#FF0000',
                     fontWeight: 'bold',
                     fontSize: '1.2rem',
