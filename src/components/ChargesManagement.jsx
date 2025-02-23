@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Form, Input, Button, Select, message, Switch, Typography, Popconfirm } from 'antd';
+import { Card, Form, Input, Button, Select, message, Switch, Typography, Popconfirm, Spin } from 'antd';
 import { DeleteOutlined, EditOutlined, PlusOutlined, PercentageOutlined, TagOutlined } from '@ant-design/icons';
 import { RiMoneyDollarCircleLine } from 'react-icons/ri';
 import { db } from '../pages/fireBaseConfig';
@@ -13,6 +13,7 @@ import {
   updateDoc,
   deleteDoc
 } from 'firebase/firestore';
+import FoodLoader from './FoodLoader';
 
 const { Option } = Select;
 const { Text } = Typography;
@@ -22,6 +23,7 @@ const ChargesManagement = () => {
   const [charges, setCharges] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [restaurantDocId, setRestaurantDocId] = useState(null);
+  const [loading, setLoading] = useState(false);
   const orgId = localStorage.getItem('orgId');
 
   useEffect(() => {
@@ -29,6 +31,7 @@ const ChargesManagement = () => {
   }, []);
 
   const fetchRestaurantAndCharges = async () => {
+    setLoading(true);
     try {
       // First, get the restaurant document ID
       const restaurantsRef = collection(db, 'restaurants');
@@ -52,6 +55,8 @@ const ChargesManagement = () => {
     } catch (error) {
       console.error('Error fetching charges:', error);
       message.error('Failed to fetch charges');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -249,99 +254,106 @@ const ChargesManagement = () => {
           marginTop: '16px',
           marginBottom: '70px'
         }}>
-          {charges.map(charge => (
-            <Card
-              key={charge.id}
-              style={{ 
-                marginBottom: '12px',
-                borderRadius: '12px',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-                border: '1px solid #f0f0f0'
-              }}
-              bodyStyle={{ 
-                padding: '10px'
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '8px',
-                    marginBottom: '4px'
-                  }}>
-                    {charge.type === 'percentage' ? 
-                      <PercentageOutlined style={{ color: '#ff4d4f' }} /> : 
-                      <RiMoneyDollarCircleLine style={{ color: '#ff4d4f', fontSize: '16px' }} />
-                    }
-                    <Text strong>{charge.name}</Text>
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: '20px' }}>
+              {/* <Spin size='large' /> */}
+              <FoodLoader />              
+            </div>
+          ) : (
+            charges.map(charge => (
+              <Card
+                key={charge.id}
+                style={{ 
+                  marginBottom: '12px',
+                  borderRadius: '12px',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                  border: '1px solid #f0f0f0'
+                }}
+                bodyStyle={{ 
+                  padding: '10px'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '8px',
+                      marginBottom: '4px'
+                    }}>
+                      {charge.type === 'percentage' ? 
+                        <PercentageOutlined style={{ color: '#ff4d4f' }} /> : 
+                        <RiMoneyDollarCircleLine style={{ color: '#ff4d4f', fontSize: '16px' }} />
+                      }
+                      <Text strong>{charge.name}</Text>
+                    </div>
+                    {charge.description && (
+                      <Text type="secondary" style={{ fontSize: '12px' }}>
+                        {charge.description}
+                      </Text>
+                    )}
                   </div>
-                  {charge.description && (
-                    <Text type="secondary" style={{ fontSize: '12px' }}>
-                      {charge.description}
+
+                  <div style={{ 
+                    background: charge.type === 'percentage' ? '#fff1f0' : '#fff1f0',
+                    padding: '4px 8px',
+                    borderRadius: '12px',
+                    marginRight: '12px'
+                  }}>
+                    <Text style={{ 
+                      color: '#ff4d4f',
+                      fontWeight: 'bold'
+                    }}>
+                      {charge.type === 'percentage' ? `${charge.value}%` : `₹${charge.value}`}
                     </Text>
-                  )}
+                  </div>
+
+                  <Switch
+                    checked={charge.isEnabled}
+                    onChange={(checked) => handleToggleCharge(charge, checked)}
+                    size="small"
+                    style={{ 
+                      backgroundColor: charge.isEnabled ? '#ff4d4f' : '#f5f5f5'
+                    }}
+                  />
                 </div>
 
                 <div style={{ 
-                  background: charge.type === 'percentage' ? '#fff1f0' : '#fff1f0',
-                  padding: '4px 8px',
-                  borderRadius: '12px',
-                  marginRight: '12px'
+                  display: 'flex', 
+                  justifyContent: 'flex-end',
+                  gap: '8px',
+                  marginTop: '12px',
+                  borderTop: '1px solid #f0f0f0',
+                  paddingTop: '12px'
                 }}>
-                  <Text style={{ 
-                    color: '#ff4d4f',
-                    fontWeight: 'bold'
-                  }}>
-                    {charge.type === 'percentage' ? `${charge.value}%` : `₹${charge.value}`}
-                  </Text>
-                </div>
-
-                <Switch
-                  checked={charge.isEnabled}
-                  onChange={(checked) => handleToggleCharge(charge, checked)}
-                  size="small"
-                  style={{ 
-                    backgroundColor: charge.isEnabled ? '#ff4d4f' : '#f5f5f5'
-                  }}
-                />
-              </div>
-
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'flex-end',
-                gap: '8px',
-                marginTop: '12px',
-                borderTop: '1px solid #f0f0f0',
-                paddingTop: '12px'
-              }}>
-                <Button 
-                  type="text"
-                  icon={<EditOutlined />}
-                  onClick={() => handleEdit(charge)}
-                  size="small"
-                  style={{
-                    color: '#ff4d4f'
-                  }}
-                >
-                  Edit
-                </Button>
-                <Popconfirm
-                  title="Delete this charge?"
-                  onConfirm={() => handleDelete(charge.id)}
-                >
                   <Button 
                     type="text"
-                    danger
-                    icon={<DeleteOutlined />}
+                    icon={<EditOutlined />}
+                    onClick={() => handleEdit(charge)}
                     size="small"
+                    style={{
+                      color: '#ff4d4f'
+                    }}
                   >
-                    Delete
+                    Edit
                   </Button>
-                </Popconfirm>
-              </div>
-            </Card>
-          ))}
+                  <Popconfirm
+                    title="Delete this charge?"
+                    onConfirm={() => handleDelete(charge.id)}
+                  >
+                    <Button 
+                      type="text"
+                      danger
+                      icon={<DeleteOutlined />}
+                      size="small"
+                    >
+                      Delete
+                    </Button>
+                  </Popconfirm>
+                </div>
+              </Card>
+            ))
+          )}
         </div>
       </Card>
 
