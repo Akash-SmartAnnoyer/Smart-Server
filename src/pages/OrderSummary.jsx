@@ -567,24 +567,26 @@ const verifyLocation = async () => {
 
   // Replace the existing button with the conditional render
   const renderOrderConfirmation = () => {
+    const isDisabled = cart.length === 0 || chargesLoading;
+
     if (!isMobile) {
       // Desktop version - Button
       return (
         <button 
           className="pay-button" 
           onClick={handlePayClick}
-          disabled={chargesLoading} // Disable button when charges are loading
+          disabled={isDisabled} // Disable button when no items or charges are loading
           style={{
             width: '100%',
             padding: '15px',
-            backgroundColor: chargesLoading ? '#ccc' : '#ff4d4f',
+            backgroundColor: isDisabled ? '#ccc' : '#ff4d4f',
             color: 'white',
             border: 'none',
             borderRadius: '8px',
             fontSize: '18px',
             fontWeight: 'bold',
             marginTop: '25px',
-            cursor: chargesLoading ? 'not-allowed' : 'pointer',
+            cursor: isDisabled ? 'not-allowed' : 'pointer',
             transition: 'all 0.3s ease',
             boxShadow: '0 4px 12px rgba(255, 77, 79, 0.2)',
           }}
@@ -595,7 +597,26 @@ const verifyLocation = async () => {
       );
     }
 
-    // Mobile version - Slider
+    // Mobile version - Slider or Loading Indicator
+    if (isDisabled) {
+      return (
+        <div style={{
+          width: '100%',
+          height: '60px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginTop: '25px',
+          backgroundColor: '#f8f8f8',
+          borderRadius: '30px',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+          border: '1px solid rgba(255, 77, 79, 0.2)',
+        }}>
+          <span>{cart.length === 0 ? "Your cart is empty" : "Loading..."}</span>
+        </div>
+      );
+    }
+
     return (
       <div className="slider-container" style={{
         width: '100%',
@@ -608,9 +629,9 @@ const verifyLocation = async () => {
         boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
         border: '1px solid rgba(255, 77, 79, 0.2)',
       }}
-      onTouchStart={chargesLoading ? null : handleTouchStart} // Disable touch events when charges are loading
-      onTouchMove={chargesLoading ? null : handleTouchMove}
-      onTouchEnd={chargesLoading ? null : handleTouchEnd}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
       >
         {/* Background Track */}
         <div className="slider-background" style={{
@@ -639,7 +660,7 @@ const verifyLocation = async () => {
           height: '50px',
           backgroundColor: '#fff',
           borderRadius: '25px',
-          cursor: chargesLoading ? 'not-allowed' : 'grab', // Change cursor when charges are loading
+          cursor: 'grab',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
