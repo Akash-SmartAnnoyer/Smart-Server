@@ -22,8 +22,10 @@ function OrderNotifications({ userRole }) {
           await showNotification({
             title: 'New Order Received!',
             body: `Order #${data.order.displayOrderId} - Table ${data.order.tableNumber}`,
+            icon: '/assets/logo-transparent-png.png',
+            badge: '/assets/logo-transparent-png.png',
             data: {
-              url: `/admin/orders/${data.order.id}`,
+              url: `/admin`,
               orderId: data.order.id
             }
           });

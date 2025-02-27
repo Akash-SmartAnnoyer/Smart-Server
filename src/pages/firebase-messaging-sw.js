@@ -16,8 +16,8 @@ messaging.onBackgroundMessage((payload) => {
   const notificationTitle = payload.notification.title;
   const notificationOptions = {
     body: payload.notification.body,
-    icon: '/logo192.png',
-    badge: '/logo192.png',
+    icon: '/assets/logo-transparent-png.png',
+    badge: '/assets/logo-transparent-png.png',
     data: payload.data,
     tag: payload.data?.orderId,
     requireInteraction: true

@@ -93,7 +93,7 @@ export const messaging = (async () => {
       try {
         await registration.showNotification('Test Notification', {
           body: 'This is a test notification from initialization',
-          icon: '/logo192.png'
+          icon: '/assets/logo-transparent-png.png'
         });
         console.log('[FCM] Test notification sent successfully');
       } catch (notificationError) {
