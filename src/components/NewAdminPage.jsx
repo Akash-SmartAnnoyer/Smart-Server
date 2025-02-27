@@ -20,6 +20,7 @@ import { useAdminOrders } from '../context/AdminOrderContext';
 import FoodLoader from './FoodLoader';
 import notificationSound from './notification.mp3';
 import { NotebookPen } from 'lucide-react';
+import OrderNotifications from './OrderNotifications';
 
 const { Option } = Select;
 const { Text } = Typography;
@@ -519,444 +520,447 @@ const NewAdminPage = () => {
   }
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: `
-        linear-gradient(135deg, rgba(255, 77, 79, 0.05) 0%, rgba(255, 255, 255, 0.1) 100%),
-        repeating-linear-gradient(45deg, rgba(255, 77, 79, 0.02) 0px, rgba(255, 77, 79, 0.02) 2px, transparent 2px, transparent 8px)
-      `,
-      padding: '8px',
-      paddingTop: '90px'
-    }}>
+    <>
+      <OrderNotifications userRole="admin" />
       <div style={{
-        maxWidth: '100%',
-        margin: '0 auto',
-        padding: '5px',
+        minHeight: '100vh',
+        background: `
+          linear-gradient(135deg, rgba(255, 77, 79, 0.05) 0%, rgba(255, 255, 255, 0.1) 100%),
+          repeating-linear-gradient(45deg, rgba(255, 77, 79, 0.02) 0px, rgba(255, 77, 79, 0.02) 2px, transparent 2px, transparent 8px)
+        `,
+        padding: '8px',
+        paddingTop: '90px'
       }}>
         <div style={{
-          textAlign: 'center',
-          marginBottom: '30px',
-          padding: '20px',
-          background: 'white',
-          borderRadius: '15px',
-          boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
+          maxWidth: '100%',
+          margin: '0 auto',
+          padding: '5px',
         }}>
-          <h1 style={{ 
-            color: '#ff4d4f',
-            fontSize: 'clamp(1.8rem, 4vw, 2.2rem)',
-            fontWeight: '700',
-            margin: 0,
-            textTransform: 'uppercase',
-            letterSpacing: '1px'
+          <div style={{
+            textAlign: 'center',
+            marginBottom: '30px',
+            padding: '20px',
+            background: 'white',
+            borderRadius: '15px',
+            boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
           }}>
-            Live Orders
-          </h1>
-          
-          {/* Conditionally render the toggle switch section */}
-          {localStorage.getItem('isCaptain') !== 'true' && (
+            <h1 style={{ 
+              color: '#ff4d4f',
+              fontSize: 'clamp(1.8rem, 4vw, 2.2rem)',
+              fontWeight: '700',
+              margin: 0,
+              textTransform: 'uppercase',
+              letterSpacing: '1px'
+            }}>
+              Live Orders
+            </h1>
+            
+            {/* Conditionally render the toggle switch section */}
+            {localStorage.getItem('isCaptain') !== 'true' && (
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                gap: '15px',
+                margin: '15px 0',
+                flexWrap: 'wrap'
+              }}>
+                <div style={{
+                  background: '#fff5f5',
+                  padding: '4px',
+                  borderRadius: '30px',
+                  display: 'inline-flex',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                }}>
+                  <Button
+                    type={showTodayOnly ? 'primary' : 'text'}
+                    onClick={() => setShowTodayOnly(true)}
+                    style={{
+                      borderRadius: '20px',
+                      border: 'none',
+                      background: showTodayOnly ? '#ff4d4f' : 'transparent',
+                      color: showTodayOnly ? 'white' : '#666',
+                      padding: '4px 15px'
+                    }}
+                  >
+                    Today
+                  </Button>
+                  <Button
+                    type={!showTodayOnly ? 'primary' : 'text'}
+                    onClick={() => setShowTodayOnly(false)}
+                    style={{
+                      borderRadius: '20px',
+                      border: 'none',
+                      background: !showTodayOnly ? '#ff4d4f' : 'transparent',
+                      color: !showTodayOnly ? 'white' : '#666',
+                      padding: '4px 15px'
+                    }}
+                  >
+                    All Orders
+                  </Button>
+                </div>
+
+
+              </div>
+            )}
+                      <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    background: '#fff5f5',
+                    padding: '8px 15px',
+                    borderRadius: '20px',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                  }}>
+                    <Switch
+                      checkedChildren={<SoundOutlined />}
+                      unCheckedChildren={<SoundOutlined />}
+                      checked={soundEnabled}
+                      onChange={setSoundEnabled}
+                      style={{ 
+                        backgroundColor: soundEnabled ? '#ff4d4f' : undefined,
+                        minWidth: '40px'
+                      }}
+                    />
+                    <Text>Sound Alerts</Text>
+                  </div>
+
             <div style={{
               display: 'flex',
               justifyContent: 'center',
-              alignItems: 'center',
-              gap: '15px',
-              margin: '15px 0',
-              flexWrap: 'wrap'
-            }}>
-              <div style={{
-                background: '#fff5f5',
-                padding: '4px',
-                borderRadius: '30px',
-                display: 'inline-flex',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-              }}>
-                <Button
-                  type={showTodayOnly ? 'primary' : 'text'}
-                  onClick={() => setShowTodayOnly(true)}
-                  style={{
-                    borderRadius: '20px',
-                    border: 'none',
-                    background: showTodayOnly ? '#ff4d4f' : 'transparent',
-                    color: showTodayOnly ? 'white' : '#666',
-                    padding: '4px 15px'
-                  }}
-                >
-                  Today
-                </Button>
-                <Button
-                  type={!showTodayOnly ? 'primary' : 'text'}
-                  onClick={() => setShowTodayOnly(false)}
-                  style={{
-                    borderRadius: '20px',
-                    border: 'none',
-                    background: !showTodayOnly ? '#ff4d4f' : 'transparent',
-                    color: !showTodayOnly ? 'white' : '#666',
-                    padding: '4px 15px'
-                  }}
-                >
-                  All Orders
-                </Button>
-              </div>
-
-
-            </div>
-          )}
-                        <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                background: '#fff5f5',
-                padding: '8px 15px',
-                borderRadius: '20px',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-              }}>
-                <Switch
-                  checkedChildren={<SoundOutlined />}
-                  unCheckedChildren={<SoundOutlined />}
-                  checked={soundEnabled}
-                  onChange={setSoundEnabled}
-                  style={{ 
-                    backgroundColor: soundEnabled ? '#ff4d4f' : undefined,
-                    minWidth: '40px'
-                  }}
-                />
-                <Text>Sound Alerts</Text>
-              </div>
-
-          <div style={{
-            display: 'flex',
-            justifyContent: 'center',
-            gap: '20px',
-            flexWrap: 'wrap',
-            marginTop: '15px'
-          }}>
-            <Input.Search
-              placeholder="Search orders by ID, items, status, or table number..."
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ 
-                maxWidth: '500px', 
-                flex: 1,
-                borderRadius: '30px'
-              }}
-              allowClear
-            />
-          </div>
-
-          {/* Add order count display */}
-          <div style={{
-            marginTop: '15px',
-            color: '#666',
-            fontSize: '0.9rem'
-          }}>
-            Showing {filteredOrders.length} {showTodayOnly ? "today's" : 'total'} orders
-          </div>
-        </div>
-
-        {/* Add notification bell */}
-        <div style={{
-          position: 'fixed',
-          top: '70px',
-          left: '15px',
-          zIndex: 1000
-        }}>
-          <Dropdown
-            menu={notificationItems}
-            placement="bottomRight"
-            trigger={['click']}
-            overlayStyle={{
-              maxHeight: '400px',
-              overflowY: 'auto',
-              width: '300px'
-            }}
-          >
-            <Badge 
-              count={filteredPendingOrders.length + filteredCancelledOrders.length} 
-              offset={[-5, 5]}
-            >
-              <BellFilled 
-                style={{ 
-                  fontSize: '24px', 
-                  color: filteredCancelledOrders.length > 0 ? '#ff4d4f' : '#ff4d4f',
-                  padding: '8px',
-                  backgroundColor: '#fff',
-                  borderRadius: '50%',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                  cursor: 'pointer',
-                  animation: filteredCancelledOrders.length > 0 ? 'shake 0.5s ease-in-out infinite' : 'none'
-                }} 
-              />
-            </Badge>
-          </Dropdown>
-        </div>
-
-        {paginatedOrders.length === 0 ? (
-          <Empty
-            description={
-              <span style={{ color: '#666', fontSize: '1.1rem' }}>
-                {searchQuery ? 'No matching orders found' : 'No active orders'}
-              </span>
-            }
-            style={{
-              backgroundColor: 'white',
-              padding: '60px',
-              borderRadius: '15px',
-              boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
-            }}
-          />
-        ) : (
-          <>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
               gap: '20px',
-              padding: '10px'
+              flexWrap: 'wrap',
+              marginTop: '15px'
             }}>
-              {paginatedOrders.map(order => (
-                <Badge.Ribbon
-                  key={order.id}
-                  text={getStatusConfig(order.status).text}
-                  color={getStatusConfig(order.status).color}
-                >
-                  <Card
-                    id={`order-${order.id}`}
-                    hoverable
-                    style={{
-                      borderRadius: '15px',
-                      boxShadow: newOrders.includes(order.id) 
-                        ? '0 0 20px rgba(255, 77, 79, 0.3)'
-                        : '0 4px 12px rgba(0,0,0,0.05)',
-                      animation: newOrders.includes(order.id)
-                        ? 'pulse 2s infinite'
-                        : 'none',
-                      border: 'none',
-                      background: getStatusConfig(order.status).bgColor
-                    }}
+              <Input.Search
+                placeholder="Search orders by ID, items, status, or table number..."
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{ 
+                  maxWidth: '500px', 
+                  flex: 1,
+                  borderRadius: '30px'
+                }}
+                allowClear
+              />
+            </div>
+
+            {/* Add order count display */}
+            <div style={{
+              marginTop: '15px',
+              color: '#666',
+              fontSize: '0.9rem'
+            }}>
+              Showing {filteredOrders.length} {showTodayOnly ? "today's" : 'total'} orders
+            </div>
+          </div>
+
+          {/* Add notification bell */}
+          <div style={{
+            position: 'fixed',
+            top: '70px',
+            left: '15px',
+            zIndex: 1000
+          }}>
+            <Dropdown
+              menu={notificationItems}
+              placement="bottomRight"
+              trigger={['click']}
+              overlayStyle={{
+                maxHeight: '400px',
+                overflowY: 'auto',
+                width: '300px'
+              }}
+            >
+              <Badge 
+                count={filteredPendingOrders.length + filteredCancelledOrders.length} 
+                offset={[-5, 5]}
+              >
+                <BellFilled 
+                  style={{ 
+                    fontSize: '24px', 
+                    color: filteredCancelledOrders.length > 0 ? '#ff4d4f' : '#ff4d4f',
+                    padding: '8px',
+                    backgroundColor: '#fff',
+                    borderRadius: '50%',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                    cursor: 'pointer',
+                    animation: filteredCancelledOrders.length > 0 ? 'shake 0.5s ease-in-out infinite' : 'none'
+                  }} 
+                />
+              </Badge>
+            </Dropdown>
+          </div>
+
+          {paginatedOrders.length === 0 ? (
+            <Empty
+              description={
+                <span style={{ color: '#666', fontSize: '1.1rem' }}>
+                  {searchQuery ? 'No matching orders found' : 'No active orders'}
+                </span>
+              }
+              style={{
+                backgroundColor: 'white',
+                padding: '60px',
+                borderRadius: '15px',
+                boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
+              }}
+            />
+          ) : (
+            <>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                gap: '20px',
+                padding: '10px'
+              }}>
+                {paginatedOrders.map(order => (
+                  <Badge.Ribbon
+                    key={order.id}
+                    text={getStatusConfig(order.status).text}
+                    color={getStatusConfig(order.status).color}
                   >
-                    <div style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      marginBottom: '15px'
-                    }}>
-                      <div>
-                        <Text strong style={{ fontSize: '1.2rem', color: '#ff4d4f' }}>
-                          #{order.id}
-                        </Text>
+                    <Card
+                      id={`order-${order.id}`}
+                      hoverable
+                      style={{
+                        borderRadius: '15px',
+                        boxShadow: newOrders.includes(order.id) 
+                          ? '0 0 20px rgba(255, 77, 79, 0.3)'
+                          : '0 4px 12px rgba(0,0,0,0.05)',
+                        animation: newOrders.includes(order.id)
+                          ? 'pulse 2s infinite'
+                          : 'none',
+                        border: 'none',
+                        background: getStatusConfig(order.status).bgColor
+                      }}
+                    >
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginBottom: '15px'
+                      }}>
+                        <div>
+                          <Text strong style={{ fontSize: '1.2rem', color: '#ff4d4f' }}>
+                            #{order.id}
+                          </Text>
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            marginTop: '5px'
+                          }}>
+                            <TableOutlined style={{ color: '#ff4d4f' }} />
+                            <Text>Table {order.tableNumber}</Text>
+                            Customer {customerIdMap[order.customerId]}
+                          </div>
+                        </div>
+                        <div style={{
+                          background: '#fff5f5',
+                          padding: '8px 12px',
+                          borderRadius: '8px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '5px'
+                        }}>
+                          <Text strong style={{ color: '#ff4d4f' }}>
+                            ₹{parseFloat(order.total).toFixed(2)}
+                          </Text>
+                        </div>
+                      </div>
+                      {order.description && (
                         <div style={{
                           display: 'flex',
                           alignItems: 'center',
                           gap: '8px',
-                          marginTop: '5px'
+                          marginBottom: '8px'
                         }}>
-                          <TableOutlined style={{ color: '#ff4d4f' }} />
-                          <Text>Table {order.tableNumber}</Text>
-                          Customer {customerIdMap[order.customerId]}
+                          <NotebookPen />
+                          <Text>
+                            {order.description}
+                          </Text>
                         </div>
-                      </div>
-                      <div style={{
-                        background: '#fff5f5',
-                        padding: '8px 12px',
-                        borderRadius: '8px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '5px'
-                      }}>
-                        <Text strong style={{ color: '#ff4d4f' }}>
-                          ₹{parseFloat(order.total).toFixed(2)}
-                        </Text>
-                      </div>
-                    </div>
-                    {order.description && (
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        marginBottom: '8px'
-                      }}>
-                        <NotebookPen />
-                        <Text>
-                          {order.description}
-                        </Text>
-                      </div>
-                    )}
+                      )}
 
-                    <div style={{
-                      background: 'rgba(255, 255, 255, 0.8)',
-                      borderRadius: '10px',
-                      padding: '15px',
-                      marginBottom: '15px'
-                    }}>
-                      {order?.items?.map((item, index) => (
-                        <div key={index} style={{
-                          background: '#fff',
-                          padding: '12px',
-                          borderRadius: '12px',
-                          marginBottom: '12px',
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
-                        }}>
-                          <div style={{ 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            gap: '8px',
-                            marginBottom: '8px'
+                      <div style={{
+                        background: 'rgba(255, 255, 255, 0.8)',
+                        borderRadius: '10px',
+                        padding: '15px',
+                        marginBottom: '15px'
+                      }}>
+                        {order?.items?.map((item, index) => (
+                          <div key={index} style={{
+                            background: '#fff',
+                            padding: '12px',
+                            borderRadius: '12px',
+                            marginBottom: '12px',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
                           }}>
-                            <div style={{
-                              background: '#ff4d4f',
-                              color: 'white',
-                              width: '24px',
-                              height: '24px',
-                              borderRadius: '50%',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              fontSize: '0.9rem',
-                              fontWeight: 'bold'
+                            <div style={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              gap: '8px',
+                              marginBottom: '8px'
                             }}>
-                              {item.quantity}
-                            </div>
-                            <Text strong style={{ flex: 1 }}>{item.name}</Text>
-                            {item.specialInstructions && (
-                              <Tag color="#722ed1" style={{ margin: 0 }}>
-                                <EditOutlined /> Custom
-                              </Tag>
-                            )}
-                          </div>
-                          
-                          {(item.specialInstructions || item.selectedTags?.length > 0) && (
-                            <div style={{
-                              fontSize: '0.9rem',
-                              color: '#666',
-                              background: '#f8f8f8',
-                              padding: '10px',
-                              borderRadius: '8px',
-                              marginTop: '8px'
-                            }}>
+                              <div style={{
+                                background: '#ff4d4f',
+                                color: 'white',
+                                width: '24px',
+                                height: '24px',
+                                borderRadius: '50%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '0.9rem',
+                                fontWeight: 'bold'
+                              }}>
+                                {item.quantity}
+                              </div>
+                              <Text strong style={{ flex: 1 }}>{item.name}</Text>
                               {item.specialInstructions && (
-                                <div style={{ 
-                                  display: 'flex', 
-                                  alignItems: 'flex-start',
-                                  gap: '6px',
-                                  marginBottom: item.selectedTags?.length > 0 ? '8px' : 0
-                                }}>
-                                  <MessageOutlined style={{ 
-                                    color: '#722ed1',
-                                    marginTop: '3px'
-                                  }} />
-                                  <Text type="secondary" style={{ flex: 1 }}>
-                                    {item.specialInstructions}
-                                  </Text>
-                                </div>
+                                <Tag color="#722ed1" style={{ margin: 0 }}>
+                                  <EditOutlined /> Custom
+                                </Tag>
                               )}
-                              
-                              {item.selectedTags?.length > 0 && (
-                                <div style={{ 
-                                  display: 'flex',
-                                  alignItems: 'flex-start',
-                                  gap: '6px'
-                                }}>
-                                  <TagsOutlined style={{ 
-                                    color: '#108ee9',
-                                    marginTop: '3px'
-                                  }} />
+                            </div>
+                            
+                            {(item.specialInstructions || item.selectedTags?.length > 0) && (
+                              <div style={{
+                                fontSize: '0.9rem',
+                                color: '#666',
+                                background: '#f8f8f8',
+                                padding: '10px',
+                                borderRadius: '8px',
+                                marginTop: '8px'
+                              }}>
+                                {item.specialInstructions && (
                                   <div style={{ 
                                     display: 'flex', 
-                                    flexWrap: 'wrap', 
-                                    gap: '4px',
-                                    flex: 1
+                                    alignItems: 'flex-start',
+                                    gap: '6px',
+                                    marginBottom: item.selectedTags?.length > 0 ? '8px' : 0
                                   }}>
-                                    {item.selectedTags.map((tagId) => (
-                                      <Tag 
-                                        key={tagId} 
-                                        color={getTagColor(tagId)}
-                                        style={{ 
-                                          margin: 0,
-                                          padding: '2px 8px',
-                                          fontSize: '0.8rem'
-                                        }}
-                                      >
-                                        {getTagLabel(tagId)}
-                                      </Tag>
-                                    ))}
+                                    <MessageOutlined style={{ 
+                                      color: '#722ed1',
+                                      marginTop: '3px'
+                                    }} />
+                                    <Text type="secondary" style={{ flex: 1 }}>
+                                      {item.specialInstructions}
+                                    </Text>
                                   </div>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                    <Select
-                      value={order.status}
-                      style={{ width: '100%', marginBottom: '10px' }}
-                      onChange={(newStatus) => handleUpdateStatus(order.id, newStatus)}
-                    >
-                      {['pending', 'preparing', 'ready', 'delayed', 'cancelled', 'completed'].map((status) => (
-                        <Option key={status} value={status}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            {getStatusConfig(status).icon}
-                            <span>{status.charAt(0).toUpperCase() + status.slice(1)}</span>
+                                )}
+                                
+                                {item.selectedTags?.length > 0 && (
+                                  <div style={{ 
+                                    display: 'flex',
+                                    alignItems: 'flex-start',
+                                    gap: '6px'
+                                  }}>
+                                    <TagsOutlined style={{ 
+                                      color: '#108ee9',
+                                      marginTop: '3px'
+                                    }} />
+                                    <div style={{ 
+                                      display: 'flex', 
+                                      flexWrap: 'wrap', 
+                                      gap: '4px',
+                                      flex: 1
+                                    }}>
+                                      {item.selectedTags.map((tagId) => (
+                                        <Tag 
+                                          key={tagId} 
+                                          color={getTagColor(tagId)}
+                                          style={{ 
+                                            margin: 0,
+                                            padding: '2px 8px',
+                                            fontSize: '0.8rem'
+                                          }}
+                                        >
+                                          {getTagLabel(tagId)}
+                                        </Tag>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
-                        </Option>
-                      ))}
-                    </Select>
+                        ))}
+                      </div>
+                      <Select
+                        value={order.status}
+                        style={{ width: '100%', marginBottom: '10px' }}
+                        onChange={(newStatus) => handleUpdateStatus(order.id, newStatus)}
+                      >
+                        {['pending', 'preparing', 'ready', 'delayed', 'cancelled', 'completed'].map((status) => (
+                          <Option key={status} value={status}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              {getStatusConfig(status).icon}
+                              <span>{status.charAt(0).toUpperCase() + status.slice(1)}</span>
+                            </div>
+                          </Option>
+                        ))}
+                      </Select>
 
-                    <Text type="secondary" style={{ fontSize: '0.9rem' }}>
-                      <ClockCircleOutlined style={{ marginRight: '8px' }} />
-                      {new Date(order.timestamp).toLocaleString()}
-                    </Text>
-                  </Card>
-                </Badge.Ribbon>
-              ))}
-            </div>
+                      <Text type="secondary" style={{ fontSize: '0.9rem' }}>
+                        <ClockCircleOutlined style={{ marginRight: '8px' }} />
+                        {new Date(order.timestamp).toLocaleString()}
+                      </Text>
+                    </Card>
+                  </Badge.Ribbon>
+                ))}
+              </div>
 
-            {/* Pagination component */}
-            <div style={{
-              display: 'flex',
-              justifyContent: 'center',
-              padding: '10px',
-              background: 'white',
-              borderRadius: '8px',
-              marginTop: '20px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+              {/* Pagination component */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                padding: '10px',
+                background: 'white',
+                borderRadius: '8px',
+                marginTop: '20px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+              }}>
+                <Pagination
+                  current={currentPage}
+                  pageSize={pageSize}
+                  total={totalOrders}
+                  onChange={handlePageChange}
+                  showSizeChanger
+                  showQuickJumper
+                  // showTotal={(total, range) => `${range[0]}-${range[1]} of ${total} orders`}
+                  pageSizeOptions={['10', '20', '50', '100']}
+                  style={{
+                    margin: '10px 0'
+                  }}
+                />
+              </div>
+            </>
+          )}
+
+          {/* Update bottom indicators */}
+          {loading && (
+            <div style={{ 
+              textAlign: 'center', 
+              padding: '20px',
+              color: '#666'
             }}>
-              <Pagination
-                current={currentPage}
-                pageSize={pageSize}
-                total={totalOrders}
-                onChange={handlePageChange}
-                showSizeChanger
-                showQuickJumper
-                // showTotal={(total, range) => `${range[0]}-${range[1]} of ${total} orders`}
-                pageSizeOptions={['10', '20', '50', '100']}
-                style={{
-                  margin: '10px 0'
-                }}
-              />
+              Loading more orders...
             </div>
-          </>
-        )}
-
-        {/* Update bottom indicators */}
-        {loading && (
-          <div style={{ 
-            textAlign: 'center', 
-            padding: '20px',
-            color: '#666'
-          }}>
-            Loading more orders...
-          </div>
-        )}
-        
-        {!loading && !hasMore && orders.length > 0 && (
-          <div style={{ 
-            textAlign: 'center', 
-            padding: '20px',
-            color: '#666',
-            borderTop: '1px solid #f0f0f0',
-            marginTop: '20px'
-          }}>
-            No more orders to load
-          </div>
-        )}
+          )}
+          
+          {!loading && !hasMore && orders.length > 0 && (
+            <div style={{ 
+              textAlign: 'center', 
+              padding: '20px',
+              color: '#666',
+              borderTop: '1px solid #f0f0f0',
+              marginTop: '20px'
+            }}>
+              No more orders to load
+            </div>
+          )}
+        </div>
       </div>
       <style>
         {`
@@ -969,7 +973,7 @@ const NewAdminPage = () => {
           }
         `}
       </style>
-    </div>
+    </>
   );
 };
 

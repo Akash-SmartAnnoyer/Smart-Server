@@ -444,7 +444,7 @@ const verifyLocation = async () => {
         chargesBreakdown: breakdown,
         total: calculatedTotal,
         tableNumber,
-        customerId:localStorage.getItem('customerId'),
+        customerId: localStorage.getItem('customerId'),
         timestamp: new Date().toISOString(),
         status: 'pending',
         statusMessage: 'Your order is being processed',
@@ -455,26 +455,23 @@ const verifyLocation = async () => {
       // Add to context first for immediate UI update
       addOrder(orderDetails);
 
-      // Send WebSocket notification before navigation
+      // Send WebSocket notification to admin and captain
       if (ws.current?.readyState === WebSocket.OPEN) {
         await new Promise((resolve) => {
           ws.current.send(JSON.stringify({ 
             type: 'newOrder', 
-            order: orderDetails 
+            order: orderDetails,
+            notifyRoles: ['admin', 'captain'] // Specify roles to notify
           }));
           resolve();
         });
       }
 
-      // Save to Firestore
-      await setDoc(doc(db, 'history', orderId), orderDetails);
-
-      // Show notification with error handling
-      try {
-        await showOrderNotification(orderId);
-      } catch (error) {
-        console.error('Error showing notification:', error);
-      }
+      // Save to Firestore and also store which roles should be notified
+      await setDoc(doc(db, 'history', orderId), {
+        ...orderDetails,
+        notifyRoles: ['admin', 'captain']
+      });
 
       clearCart();
       navigate(`/waiting/${orderId}`);
