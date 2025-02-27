@@ -1,23 +1,23 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Modal, Button, Checkbox, Input, Typography, message, Card, Alert } from 'antd';
-import { CoffeeOutlined, SmileOutlined,ExclamationCircleOutlined, PlusCircleOutlined, CheckOutlined, ShoppingCartOutlined, GifOutlined, ThunderboltFilled, CreditCardOutlined, RestOutlined, CheckSquareOutlined, ShoppingOutlined, RestFilled } from '@ant-design/icons';
+import { CoffeeOutlined, SmileOutlined, ExclamationCircleOutlined, PlusCircleOutlined, CheckOutlined, ShoppingCartOutlined, GifOutlined, ThunderboltFilled, CreditCardOutlined, RestOutlined, CheckSquareOutlined, ShoppingOutlined, RestFilled } from '@ant-design/icons';
 import { useCart } from '../contexts/CartContext';
 import { useNavigate } from 'react-router-dom';
-import './OrderSummary.css'; // Assuming you're using CSS modules or a custom CSS file
+import { collection, doc, getDoc, setDoc, query, where, getDocs } from 'firebase/firestore';
+import { MapPin } from 'lucide-react';
+import { useMediaQuery } from 'react-responsive';
+import { MdFastfood } from 'react-icons/md';
+import { db } from './fireBaseConfig';
+import { initializeNotifications, showNotification } from '../utils/notifications';
+
+import './OrderSummary.css';
 import FoodLoader from '../components/FoodLoader';
 import { calculateCharges } from '../utils/calculateCharges';
 import { useOrders } from '../context/OrderContext';
-import { MapPin } from 'lucide-react';
-import { useMediaQuery } from 'react-responsive';
 
-
-
-import { collection, doc, getDoc, setDoc, query, where, getDocs } from 'firebase/firestore';
-import { db } from './fireBaseConfig';
-import { MdFastfood } from 'react-icons/md';
 const { Text, Title } = Typography;
 
-const MAX_DISTANCE_KM = 0.5; // Maximum allowed distance in kilometers
+const MAX_DISTANCE_KM = 0.5;
 
 // First, let's improve the distance calculation function
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -43,59 +43,6 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
   return Number(distance.toFixed(3));
 };
 
-// Add this import at the top
-
-// Add this function at the top of the file
-const requestNotificationPermission = async () => {
-  try {
-    // Check if the browser supports notifications
-    if (!('Notification' in window)) {
-      console.log('This browser does not support notifications');
-      return;
-    }
-
-    // Check if we're on a mobile device
-    const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    
-    if (isMobileDevice) {
-      // For mobile devices, check if service worker is supported
-      if ('serviceWorker' in navigator) {
-        try {
-          const registration = await navigator.serviceWorker.register('/notification-sw.js');
-          const permission = await Notification.requestPermission();
-          
-          // Request push subscription
-          const pushSubscription = await registration.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: 'YOUR_VAPID_PUBLIC_KEY' // You'll need to set up VAPID keys
-          });
-          
-          console.log('Push subscription:', pushSubscription);
-          return permission === 'granted';
-        } catch (error) {
-          console.error('Error registering service worker:', error);
-          return false;
-        }
-      }
-      return false;
-    } else {
-      // Desktop browser flow
-      if (Notification.permission === 'granted') {
-        return true;
-      }
-
-      const permission = await Notification.requestPermission();
-      return permission === 'granted';
-    }
-  } catch (error) {
-    console.error('Error requesting notification permission:', error);
-    return false;
-  }
-};
-
-// Add to imports
-import { initializeNotifications, showNotification } from '../utils/notifications';
-
 function OrderSummary() {
   const { cart } = useCart();
   const { clearCart } = useCart();
@@ -119,13 +66,11 @@ function OrderSummary() {
   const { restaurantDetails, charges: contextCharges, addOrder } = useOrders();
   const [locationError, setLocationError] = useState(null);
   const [restaurantData, setRestaurantData] = useState(null);
-
-  // Add this near the top of your component with other state declarations
   const isMobile = useMediaQuery({ maxWidth: 768 });
   const [isSliding, setIsSliding] = useState(false);
   const [slideValue, setSlideValue] = useState(0);
 
-  // Add this function to handle slide completion
+  // Add handleSlideComplete function definition
   const handleSlideComplete = () => {
     if (slideValue >= 100) {
       handlePayClick();
@@ -134,14 +79,11 @@ function OrderSummary() {
     }
   };
 
-  // Add this effect to monitor slide value
+  // Group all useEffect hooks at the top
   useEffect(() => {
-    if (slideValue >= 100) {
-      handleSlideComplete();
-    }
-  }, [slideValue]);
+    initializeNotifications();
+  }, []);
 
-  // Add WebSocket connection setup
   useEffect(() => {
     ws.current = new WebSocket('wss://smart-menu-web-socket-server.onrender.com');
     ws.current.onopen = () => {
@@ -154,6 +96,12 @@ function OrderSummary() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (slideValue >= 100) {
+      handleSlideComplete();
+    }
+  }, [slideValue]);
 
   useEffect(() => {
     const fetchSeatingCapacity = async () => {
@@ -477,9 +425,6 @@ const verifyLocation = async () => {
   const handlePayClick = async () => {
     try {
       setLoading(true);
-      
-      // Request notification permission early
-      await requestNotificationPermission();
       
       // Verify location before proceeding
       const isLocationValid = await verifyLocation();
@@ -830,10 +775,20 @@ const verifyLocation = async () => {
     }
   };
 
-  // Add this to your useEffect hooks
-  useEffect(() => {
-    initializeNotifications();
-  }, []);
+  // Move showOrderNotification inside the component but before any JSX
+  const showOrderNotification = async (orderId) => {
+    try {
+      await showNotification({
+        title: 'Order Placed Successfully!',
+        body: `Your order #${orderId} has been received and is being processed.`,
+        data: {
+          url: `${window.location.origin}/waiting/${orderId}`
+        }
+      });
+    } catch (error) {
+      console.error('Error showing notification:', error);
+    }
+  };
 
   return (
     <div className="order-summary-container" style={{ 
@@ -1093,7 +1048,7 @@ const verifyLocation = async () => {
   );
 }
 
-// Add some CSS for the loading spinner and arrow animation
+// Add styles before the component export
 const styles = `
   .loading-spinner {
     width: 20px;
@@ -1121,25 +1076,9 @@ const styles = `
   }
 `;
 
-
 // Add the styles to the document
 const styleSheet = document.createElement("style");
 styleSheet.innerText = styles;
 document.head.appendChild(styleSheet);
-
-// Modify the showOrderNotification function
-const showOrderNotification = async (orderId) => {
-  try {
-    await showNotification({
-      title: 'Order Placed Successfully!',
-      body: `Your order #${orderId} has been received and is being processed.`,
-      data: {
-        url: `${window.location.origin}/waiting/${orderId}`
-      }
-    });
-  } catch (error) {
-    console.error('Error showing notification:', error);
-  }
-};
 
 export default OrderSummary;
