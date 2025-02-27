@@ -1,26 +1,54 @@
+import { messaging, requestFCMToken } from '../pages/fireBaseConfig';
+import { onMessage } from 'firebase/messaging';
+
 export const initializeNotifications = async () => {
   try {
-    const permission = await Notification.requestPermission();
-    return permission === 'granted';
+    const fcmToken = await requestFCMToken();
+    if (fcmToken) {
+      // Store the token in your database if needed
+      console.log('FCM Token:', fcmToken);
+      
+      // Handle foreground messages
+      onMessage(messaging, (payload) => {
+        console.log('Received foreground message:', payload);
+        showNotification(payload.notification);
+      });
+
+      return true;
+    }
+    return false;
   } catch (error) {
-    console.error('Error requesting notification permission:', error);
+    console.error('Error initializing notifications:', error);
     return false;
   }
 };
 
-export const showNotification = (title, options = {}) => {
-  if (Notification.permission === 'granted') {
-    const defaultOptions = {
-      icon: '/logo192.png',
-      badge: '/logo192.png',
-      vibrate: [200, 100, 200],
-      requireInteraction: true,
-      ...options
-    };
+export const showNotification = async (notification) => {
+  const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-    return new Notification(title, defaultOptions);
+  if (isMobileDevice) {
+    if ('serviceWorker' in navigator) {
+      const registration = await navigator.serviceWorker.ready;
+      await registration.showNotification(notification.title, {
+        body: notification.body,
+        icon: '/favicon.ico',
+        badge: '/favicon.ico',
+        vibrate: [200, 100, 200],
+        data: notification.data,
+        actions: [
+          {
+            action: 'view',
+            title: 'View Order'
+          }
+        ]
+      });
+    }
+  } else {
+    new Notification(notification.title, {
+      body: notification.body,
+      icon: '/favicon.ico'
+    });
   }
-  return null;
 };
 
 export const showOrderNotification = (orderId, status = 'placed') => {
@@ -45,10 +73,6 @@ export const showOrderNotification = (orderId, status = 'placed') => {
 
   const notificationData = notifications[status];
   if (notificationData) {
-    return showNotification(notificationData.title, {
-      body: notificationData.body,
-      tag: orderId,
-      data: { orderId, status }
-    });
+    return showNotification(notificationData);
   }
 }; 

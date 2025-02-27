@@ -93,6 +93,9 @@ const requestNotificationPermission = async () => {
   }
 };
 
+// Add to imports
+import { initializeNotifications, showNotification } from '../utils/notifications';
+
 function OrderSummary() {
   const { cart } = useCart();
   const { clearCart } = useCart();
@@ -827,6 +830,11 @@ const verifyLocation = async () => {
     }
   };
 
+  // Add this to your useEffect hooks
+  useEffect(() => {
+    initializeNotifications();
+  }, []);
+
   return (
     <div className="order-summary-container" style={{ 
       marginTop: '145px',
@@ -1122,57 +1130,15 @@ document.head.appendChild(styleSheet);
 // Modify the showOrderNotification function
 const showOrderNotification = async (orderId) => {
   try {
-    const hasPermission = await requestNotificationPermission();
-    if (!hasPermission) {
-      console.log('Notification permission not granted');
-      return;
-    }
-
-    const baseUrl = window.location.origin;
-    const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
-    if (isMobileDevice) {
-      // For mobile devices, use service worker to show notification
-      if ('serviceWorker' in navigator) {
-        const registration = await navigator.serviceWorker.ready;
-        await registration.showNotification('Order Placed Successfully!', {
-          body: `Your order #${orderId} has been received and is being processed.`,
-          icon: `${baseUrl}/favicon.ico`,
-          badge: `${baseUrl}/favicon.ico`,
-          vibrate: [200, 100, 200],
-          tag: orderId,
-          requireInteraction: true,
-          data: {
-            url: `${baseUrl}/waiting/${orderId}`
-          },
-          actions: [
-            {
-              action: 'view',
-              title: 'View Order'
-            }
-          ]
-        });
+    await showNotification({
+      title: 'Order Placed Successfully!',
+      body: `Your order #${orderId} has been received and is being processed.`,
+      data: {
+        url: `${window.location.origin}/waiting/${orderId}`
       }
-    } else {
-      // Desktop notification
-      const notification = new Notification('Order Placed Successfully!', {
-        body: `Your order #${orderId} has been received and is being processed.`,
-        icon: `${baseUrl}/favicon.ico`,
-        badge: `${baseUrl}/favicon.ico`,
-        vibrate: [200, 100, 200],
-        tag: orderId,
-        requireInteraction: true,
-        data: {
-          url: `${baseUrl}/waiting/${orderId}`
-        }
-      });
-
-      notification.onerror = (err) => {
-        console.error('Notification error:', err);
-      };
-    }
+    });
   } catch (error) {
-    console.error('Error in showOrderNotification:', error);
+    console.error('Error showing notification:', error);
   }
 };
 
