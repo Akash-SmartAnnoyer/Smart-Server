@@ -54,21 +54,42 @@ const requestNotificationPermission = async () => {
       return;
     }
 
-    // Check if we already have permission
-    if (Notification.permission === 'granted') {
-      return;
-    }
-
-    // Request permission
-    const permission = await Notification.permission;
-    if (permission !== 'granted') {
-      const result = await Notification.requestPermission();
-      if (result !== 'granted') {
-        throw new Error('Notification permission denied');
+    // Check if we're on a mobile device
+    const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    if (isMobileDevice) {
+      // For mobile devices, check if service worker is supported
+      if ('serviceWorker' in navigator) {
+        try {
+          const registration = await navigator.serviceWorker.register('/notification-sw.js');
+          const permission = await Notification.requestPermission();
+          
+          // Request push subscription
+          const pushSubscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: 'YOUR_VAPID_PUBLIC_KEY' // You'll need to set up VAPID keys
+          });
+          
+          console.log('Push subscription:', pushSubscription);
+          return permission === 'granted';
+        } catch (error) {
+          console.error('Error registering service worker:', error);
+          return false;
+        }
       }
+      return false;
+    } else {
+      // Desktop browser flow
+      if (Notification.permission === 'granted') {
+        return true;
+      }
+
+      const permission = await Notification.requestPermission();
+      return permission === 'granted';
     }
   } catch (error) {
     console.error('Error requesting notification permission:', error);
+    return false;
   }
 };
 
@@ -1101,32 +1122,54 @@ document.head.appendChild(styleSheet);
 // Modify the showOrderNotification function
 const showOrderNotification = async (orderId) => {
   try {
-    await requestNotificationPermission();
+    const hasPermission = await requestNotificationPermission();
+    if (!hasPermission) {
+      console.log('Notification permission not granted');
+      return;
+    }
 
-    if (Notification.permission === 'granted') {
-      const baseUrl = window.location.origin;
-      
-      // Create the notification with error handling
-      try {
-        const notification = new Notification('Order Placed Successfully!', {
+    const baseUrl = window.location.origin;
+    const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+    if (isMobileDevice) {
+      // For mobile devices, use service worker to show notification
+      if ('serviceWorker' in navigator) {
+        const registration = await navigator.serviceWorker.ready;
+        await registration.showNotification('Order Placed Successfully!', {
           body: `Your order #${orderId} has been received and is being processed.`,
-          icon: `${baseUrl}/favicon.ico`, // Use favicon.ico as fallback
+          icon: `${baseUrl}/favicon.ico`,
           badge: `${baseUrl}/favicon.ico`,
           vibrate: [200, 100, 200],
           tag: orderId,
           requireInteraction: true,
           data: {
             url: `${baseUrl}/waiting/${orderId}`
-          }
+          },
+          actions: [
+            {
+              action: 'view',
+              title: 'View Order'
+            }
+          ]
         });
-
-        notification.onerror = (err) => {
-          console.error('Notification error:', err);
-        };
-
-      } catch (error) {
-        console.error('Error creating notification:', error);
       }
+    } else {
+      // Desktop notification
+      const notification = new Notification('Order Placed Successfully!', {
+        body: `Your order #${orderId} has been received and is being processed.`,
+        icon: `${baseUrl}/favicon.ico`,
+        badge: `${baseUrl}/favicon.ico`,
+        vibrate: [200, 100, 200],
+        tag: orderId,
+        requireInteraction: true,
+        data: {
+          url: `${baseUrl}/waiting/${orderId}`
+        }
+      });
+
+      notification.onerror = (err) => {
+        console.error('Notification error:', err);
+      };
     }
   } catch (error) {
     console.error('Error in showOrderNotification:', error);
