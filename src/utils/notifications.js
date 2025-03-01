@@ -36,7 +36,7 @@ export const showNotification = async (notification) => {
         vibrate: [200, 100, 200],
         data: { 
           orderId: notification.data?.orderId,
-          url: '/admin'
+          url: `/admin?highlight=${notification.data?.orderId}`
         },
         actions: [
           {
@@ -44,7 +44,15 @@ export const showNotification = async (notification) => {
             title: 'View Order'
           }
         ],
-        requireInteraction: true // This makes the notification persist until user interaction
+        requireInteraction: true
+      });
+
+      // Add click handler for the service worker
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data && event.data.type === 'notificationClick') {
+          const orderId = event.data.orderId;
+          window.location.href = `/admin?highlight=${orderId}`;
+        }
       });
     }
   } else {
@@ -53,9 +61,9 @@ export const showNotification = async (notification) => {
       icon: '/assets/logo-transparent-png.png',
       data: { 
         orderId: notification.data?.orderId,
-        url: '/admin'
+        url: `/admin?highlight=${notification.data?.orderId}`
       },
-      requireInteraction: true // This makes the notification persist until user interaction
+      requireInteraction: true
     });
 
     notif.onclick = function(event) {
