@@ -36,3 +36,22 @@ importScripts(
   
     self.registration.showNotification(notificationTitle, notificationOptions);
   });
+
+  self.addEventListener('notificationclick', function(event) {
+    event.notification.close();
+
+    // Handle action button clicks
+    if (event.action === 'view') {
+      const adminUrl = 'https://www.app.smart-server.in/admin';
+      event.waitUntil(
+        clients.openWindow(adminUrl)
+      );
+      return;
+    }
+
+    // Handle notification body clicks
+    const urlToOpen = event.notification.data?.url || 'https://www.app.smart-server.in/admin';
+    event.waitUntil(
+      clients.openWindow(urlToOpen)
+    );
+  });

@@ -26,7 +26,6 @@ export const initializeNotifications = async () => {
 export const showNotification = async (notification) => {
   const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   
-  // Use the full URL for the admin page
   const adminUrl = 'https://www.app.smart-server.in/admin';
   
   console.log('Showing notification:', notification);
@@ -45,12 +44,12 @@ export const showNotification = async (notification) => {
           vibrate: [200, 100, 200],
           data: { 
             orderId: notification.data?.orderId,
-            url: adminUrl // Use the full URL
+            url: adminUrl
           },
           actions: [
             {
               action: 'view',
-              title: 'View Order!!!!'
+              title: 'View Order'
             }
           ],
           requireInteraction: true,
@@ -65,21 +64,25 @@ export const showNotification = async (notification) => {
     }
   } else {
     // Desktop notification handling
-    const notif = new Notification(notification.title || 'New Notification', {
-      body: notification.body || '',
-      icon: '/assets/logo-transparent-png.png',
-      data: { 
-        orderId: notification.data?.orderId,
-        url: adminUrl // Use the full URL
-      },
-      requireInteraction: true,
-      tag: notification.data?.orderId || 'default'
-    });
+    if (Notification.permission === 'granted') {
+      const notif = new Notification(notification.title || 'New Notification', {
+        body: notification.body || '',
+        icon: '/assets/logo-transparent-png.png',
+        data: { 
+          orderId: notification.data?.orderId,
+          url: adminUrl
+        },
+        requireInteraction: true,
+        tag: notification.data?.orderId || 'default'
+      });
 
-    notif.onclick = function(event) {
-      event.preventDefault();
-      window.open(this.data.url, '_blank');
-    };
+      notif.onclick = function(event) {
+        event.preventDefault();
+        window.open(adminUrl, '_blank').focus();
+      };
+    } else {
+      console.warn('Notification permission not granted');
+    }
   }
 };
 

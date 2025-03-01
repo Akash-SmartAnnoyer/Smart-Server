@@ -4,20 +4,15 @@ import { initializeNotifications, showNotification } from '../utils/notification
 
 function OrderNotifications({ userRole }) {
   useEffect(() => {
-    // Add notification click handler
-    const handleNotificationClick = (event) => {
-      event.preventDefault();
-      const url = event.notification.data?.url;
-      if (url) {
-        // Open in new tab
-        window.open(url, '_blank');
+    // Request notification permission on component mount
+    const requestNotificationPermission = async () => {
+      if ('Notification' in window) {
+        const permission = await Notification.requestPermission();
+        console.log('Notification permission:', permission);
       }
     };
 
-    // Add the click listener when the component mounts
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.addEventListener('notificationclick', handleNotificationClick);
-    }
+    requestNotificationPermission();
 
     const ws = new WebSocket('wss://smart-menu-web-socket-server.onrender.com');
 
@@ -38,7 +33,7 @@ function OrderNotifications({ userRole }) {
             icon: '/assets/logo-transparent-png.png',
             badge: '/assets/logo-transparent-png.png',
             data: {
-              url: 'https://www.app.smart-server.in/admin', // Use the full production URL
+              url: 'https://www.app.smart-server.in/admin',
               orderId: data.order.id
             }
           });
@@ -59,9 +54,6 @@ function OrderNotifications({ userRole }) {
 
     return () => {
       if (ws) ws.close();
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.removeEventListener('notificationclick', handleNotificationClick);
-      }
     };
   }, [userRole]);
 
