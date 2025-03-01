@@ -27,20 +27,31 @@ export const showNotification = async (notification) => {
   const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
   // Extract orderId from notification body if not provided in data
-  const orderMatch = notification.body.match(/Order #([\w-]+)/);
-  const orderId = notification.data?.orderId || (orderMatch ? orderMatch[1] : null);
+  let orderId = null;
+  
+  // First try to get orderId from notification.data
+  if (notification.data?.orderId) {
+    orderId = notification.data.orderId;
+  } 
+  // If not found in data, try to extract from body
+  else if (notification.body) {
+    const orderMatch = notification.body.match(/Order #([\w-]+)/);
+    if (orderMatch) {
+      orderId = orderMatch[1];
+    }
+  }
 
   if (isMobileDevice) {
     if ('serviceWorker' in navigator) {
       const registration = await navigator.serviceWorker.ready;
-      await registration.showNotification(notification.title, {
-        body: notification.body,
+      await registration.showNotification(notification.title || 'New Notification', {
+        body: notification.body || '',
         icon: '/assets/logo-transparent-png.png',
         badge: '/assets/logo-transparent-png.png',
         vibrate: [200, 100, 200],
         data: { 
           orderId: orderId,
-          url: `/admin?highlight=${orderId}`
+          url: orderId ? `/admin?highlight=${orderId}` : '/admin'
         },
         actions: [
           {
@@ -49,25 +60,27 @@ export const showNotification = async (notification) => {
           }
         ],
         requireInteraction: true,
-        tag: orderId // Add this to prevent duplicate notifications
+        tag: orderId || 'default' // Add fallback tag
       });
     }
   } else {
-    const notif = new Notification(notification.title, {
-      body: notification.body,
+    const notif = new Notification(notification.title || 'New Notification', {
+      body: notification.body || '',
       icon: '/assets/logo-transparent-png.png',
       data: { 
         orderId: orderId,
-        url: `/admin?highlight=${orderId}`
+        url: orderId ? `/admin?highlight=${orderId}` : '/admin'
       },
       requireInteraction: true,
-      tag: orderId // Add this to prevent duplicate notifications
+      tag: orderId || 'default' // Add fallback tag
     });
 
     notif.onclick = function(event) {
       event.preventDefault();
       window.focus();
-      window.location.href = `/admin?highlight=${this.data.orderId}`;
+      window.location.href = this.data.orderId ? 
+        `/admin?highlight=${this.data.orderId}` : 
+        '/admin';
     };
   }
 };
