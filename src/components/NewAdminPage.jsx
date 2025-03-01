@@ -491,6 +491,28 @@ const NewAdminPage = () => {
     setCancelledOrders(prev => prev.filter(order => order.id !== orderId));
   };
 
+  // Add message listener for order highlighting
+  useEffect(() => {
+    const handleMessage = (event) => {
+      if (event.data.type === 'highlightOrder') {
+        const orderElement = document.getElementById(`order-${event.data.orderId}`);
+        if (orderElement) {
+          orderElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          orderElement.style.backgroundColor = '#fff3f0';
+          setTimeout(() => {
+            orderElement.style.backgroundColor = '';
+          }, 2000);
+        }
+      }
+    };
+
+    navigator.serviceWorker.addEventListener('message', handleMessage);
+
+    return () => {
+      navigator.serviceWorker.removeEventListener('message', handleMessage);
+    };
+  }, []);
+
   if (loading) {
     return (
       <div style={{

@@ -34,7 +34,10 @@ export const showNotification = async (notification) => {
         icon: '/assets/logo-transparent-png.png',
         badge: '/assets/logo-transparent-png.png',
         vibrate: [200, 100, 200],
-        data: notification.data,
+        data: { 
+          orderId: notification.data?.orderId,
+          url: '/admin'
+        },
         actions: [
           {
             action: 'view',
@@ -44,10 +47,30 @@ export const showNotification = async (notification) => {
       });
     }
   } else {
-    new Notification(notification.title, {
+    const notif = new Notification(notification.title, {
       body: notification.body,
-      icon: '/assets/logo-transparent-png.png'
+      icon: '/assets/logo-transparent-png.png',
+      data: { 
+        orderId: notification.data?.orderId,
+        url: '/admin'
+      }
     });
+
+    notif.onclick = function(event) {
+      event.preventDefault();
+      window.focus();
+      window.location.href = this.data.url;
+      setTimeout(() => {
+        const orderElement = document.getElementById(`order-${this.data.orderId}`);
+        if (orderElement) {
+          orderElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          orderElement.style.backgroundColor = '#fff3f0';
+          setTimeout(() => {
+            orderElement.style.backgroundColor = '';
+          }, 2000);
+        }
+      }, 500);
+    };
   }
 };
 
@@ -55,19 +78,23 @@ export const showOrderNotification = (orderId, status = 'placed') => {
   const notifications = {
     placed: {
       title: 'Order Placed Successfully!',
-      body: `Your order #${orderId} has been received and is being processed.`
+      body: `Your order #${orderId} has been received and is being processed.`,
+      data: { orderId }
     },
     accepted: {
       title: 'Order Accepted',
-      body: `Your order #${orderId} has been accepted by the restaurant.`
+      body: `Your order #${orderId} has been accepted by the restaurant.`,
+      data: { orderId }
     },
     preparing: {
       title: 'Order Being Prepared',
-      body: `Your order #${orderId} is now being prepared.`
+      body: `Your order #${orderId} is now being prepared.`,
+      data: { orderId }
     },
     ready: {
       title: 'Order Ready!',
-      body: `Your order #${orderId} is ready for pickup!`
+      body: `Your order #${orderId} is ready for pickup!`,
+      data: { orderId }
     }
   };
 
