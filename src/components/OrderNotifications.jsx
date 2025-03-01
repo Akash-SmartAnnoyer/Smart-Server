@@ -1,20 +1,16 @@
 import { useEffect } from 'react';
 import { message } from 'antd';
-import { useNavigate } from 'react-router-dom';
 import { initializeNotifications, showNotification } from '../utils/notifications';
 
 function OrderNotifications({ userRole }) {
-  const navigate = useNavigate();
-
   useEffect(() => {
     // Add notification click handler
     const handleNotificationClick = (event) => {
       event.preventDefault();
       const url = event.notification.data?.url;
       if (url) {
-        // Extract the path from the full URL
-        const path = new URL(url).pathname;
-        navigate(path);
+        // Open in new tab
+        window.open(url, '_blank');
       }
     };
 
@@ -34,22 +30,19 @@ function OrderNotifications({ userRole }) {
         const data = JSON.parse(event.data);
         
         if (data.type === 'newOrder' && data.notifyRoles?.includes(userRole)) {
-          // Initialize notifications if not already done
           await initializeNotifications();
           
-          // Show notification for new order
           await showNotification({
             title: 'New Order Received!',
             body: `Order #${data.order.displayOrderId} - Table ${data.order.tableNumber}`,
             icon: '/assets/logo-transparent-png.png',
             badge: '/assets/logo-transparent-png.png',
             data: {
-              url: `${window.location.origin}/admin`, // Use full URL
+              url: 'https://www.app.smart-server.in/admin', // Use the full production URL
               orderId: data.order.id
             }
           });
 
-          // Also show an antd message
           message.info({
             content: `New order received for Table ${data.order.tableNumber}`,
             duration: 5
@@ -66,14 +59,13 @@ function OrderNotifications({ userRole }) {
 
     return () => {
       if (ws) ws.close();
-      // Remove the notification click listener
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.removeEventListener('notificationclick', handleNotificationClick);
       }
     };
-  }, [userRole, navigate]);
+  }, [userRole]);
 
-  return null; // This component doesn't render anything
+  return null;
 }
 
 export default OrderNotifications; 

@@ -25,8 +25,10 @@ export const initializeNotifications = async () => {
 
 export const showNotification = async (notification) => {
   const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
-  // Add debug logging
+  
+  // Use the full URL for the admin page
+  const adminUrl = 'https://www.app.smart-server.in/admin';
+  
   console.log('Showing notification:', notification);
   console.log('Is mobile device:', isMobileDevice);
 
@@ -43,9 +45,7 @@ export const showNotification = async (notification) => {
           vibrate: [200, 100, 200],
           data: { 
             orderId: notification.data?.orderId,
-            url: notification.data?.orderId ? 
-              `/admin?highlight=${notification.data.orderId}` : 
-              '/admin'
+            url: adminUrl // Use the full URL
           },
           actions: [
             {
@@ -64,15 +64,13 @@ export const showNotification = async (notification) => {
       console.warn('Service Worker not supported');
     }
   } else {
-    // Desktop notification handling remains the same
+    // Desktop notification handling
     const notif = new Notification(notification.title || 'New Notification', {
       body: notification.body || '',
       icon: '/assets/logo-transparent-png.png',
       data: { 
         orderId: notification.data?.orderId,
-        url: notification.data?.orderId ? 
-          `/admin?highlight=${notification.data.orderId}` : 
-          '/admin'
+        url: adminUrl // Use the full URL
       },
       requireInteraction: true,
       tag: notification.data?.orderId || 'default'
@@ -80,10 +78,7 @@ export const showNotification = async (notification) => {
 
     notif.onclick = function(event) {
       event.preventDefault();
-      window.focus();
-      window.location.href = this.data.orderId ? 
-        `/admin?highlight=${this.data.orderId}` : 
-        '/admin';
+      window.open(this.data.url, '_blank');
     };
   }
 };
