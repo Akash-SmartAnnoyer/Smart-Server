@@ -513,6 +513,29 @@ const NewAdminPage = () => {
     };
   }, []);
 
+  // Add this new useEffect to handle URL parameters
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const highlightOrderId = urlParams.get('highlight');
+    
+    if (highlightOrderId) {
+      // Remove the parameter from URL without refreshing
+      window.history.replaceState({}, '', '/admin');
+      
+      // Small delay to ensure the orders are loaded
+      setTimeout(() => {
+        const orderElement = document.getElementById(`order-${highlightOrderId}`);
+        if (orderElement) {
+          orderElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          orderElement.style.backgroundColor = '#fff3f0';
+          setTimeout(() => {
+            orderElement.style.backgroundColor = '';
+          }, 2000);
+        }
+      }, 1000);
+    }
+  }, []);
+
   if (loading) {
     return (
       <div style={{

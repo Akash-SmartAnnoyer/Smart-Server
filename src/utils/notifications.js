@@ -43,7 +43,8 @@ export const showNotification = async (notification) => {
             action: 'view',
             title: 'View Order'
           }
-        ]
+        ],
+        requireInteraction: true // This makes the notification persist until user interaction
       });
     }
   } else {
@@ -53,23 +54,14 @@ export const showNotification = async (notification) => {
       data: { 
         orderId: notification.data?.orderId,
         url: '/admin'
-      }
+      },
+      requireInteraction: true // This makes the notification persist until user interaction
     });
 
     notif.onclick = function(event) {
       event.preventDefault();
       window.focus();
-      window.location.href = this.data.url;
-      setTimeout(() => {
-        const orderElement = document.getElementById(`order-${this.data.orderId}`);
-        if (orderElement) {
-          orderElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          orderElement.style.backgroundColor = '#fff3f0';
-          setTimeout(() => {
-            orderElement.style.backgroundColor = '';
-          }, 2000);
-        }
-      }, 500);
+      window.location.href = `/admin?highlight=${this.data.orderId}`;
     };
   }
 };
