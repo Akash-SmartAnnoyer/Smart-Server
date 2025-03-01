@@ -26,53 +26,56 @@ export const initializeNotifications = async () => {
 export const showNotification = async (notification) => {
   const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-  // Extract orderId from notification body if not provided in data
-  let orderId = null;
-  
-  // First try to get orderId from notification.data
-  if (notification.data?.orderId) {
-    orderId = notification.data.orderId;
-  } 
-  // If not found in data, try to extract from body
-  else if (notification.body) {
-    const orderMatch = notification.body.match(/Order #([\w-]+)/);
-    if (orderMatch) {
-      orderId = orderMatch[1];
-    }
-  }
+  // Add debug logging
+  console.log('Showing notification:', notification);
+  console.log('Is mobile device:', isMobileDevice);
 
   if (isMobileDevice) {
     if ('serviceWorker' in navigator) {
-      const registration = await navigator.serviceWorker.ready;
-      await registration.showNotification(notification.title || 'New Notification', {
-        body: notification.body || '',
-        icon: '/assets/logo-transparent-png.png',
-        badge: '/assets/logo-transparent-png.png',
-        vibrate: [200, 100, 200],
-        data: { 
-          orderId: orderId,
-          url: orderId ? `/admin?highlight=${orderId}` : '/admin'
-        },
-        actions: [
-          {
-            action: 'view',
-            title: 'View Order'
-          }
-        ],
-        requireInteraction: true,
-        tag: orderId || 'default' // Add fallback tag
-      });
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        console.log('Service Worker ready:', registration);
+
+        await registration.showNotification(notification.title || 'New Notification', {
+          body: notification.body || '',
+          icon: '/assets/logo-transparent-png.png',
+          badge: '/assets/logo-transparent-png.png',
+          vibrate: [200, 100, 200],
+          data: { 
+            orderId: notification.data?.orderId,
+            url: notification.data?.orderId ? 
+              `/admin?highlight=${notification.data.orderId}` : 
+              '/admin'
+          },
+          actions: [
+            {
+              action: 'view',
+              title: 'View Order'
+            }
+          ],
+          requireInteraction: true,
+          tag: notification.data?.orderId || 'default'
+        });
+        console.log('Notification shown successfully');
+      } catch (error) {
+        console.error('Error showing notification:', error);
+      }
+    } else {
+      console.warn('Service Worker not supported');
     }
   } else {
+    // Desktop notification handling remains the same
     const notif = new Notification(notification.title || 'New Notification', {
       body: notification.body || '',
       icon: '/assets/logo-transparent-png.png',
       data: { 
-        orderId: orderId,
-        url: orderId ? `/admin?highlight=${orderId}` : '/admin'
+        orderId: notification.data?.orderId,
+        url: notification.data?.orderId ? 
+          `/admin?highlight=${notification.data.orderId}` : 
+          '/admin'
       },
       requireInteraction: true,
-      tag: orderId || 'default' // Add fallback tag
+      tag: notification.data?.orderId || 'default'
     });
 
     notif.onclick = function(event) {
