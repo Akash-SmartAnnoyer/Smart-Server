@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { message } from 'antd';
 import { initializeNotifications, showNotification } from '../utils/notifications';
+import notificationIcon from '../assets/logo-transparent-png.png';
 
 function OrderNotifications({ userRole }) {
   useEffect(() => {
@@ -20,7 +21,7 @@ function OrderNotifications({ userRole }) {
           
           // Show notification for new order
           await showNotification({
-            title: 'New Order Received!',
+            title: 'Modern Order Received!',
             body: `Order #${data.order.displayOrderId} - Table ${data.order.tableNumber}`,
             icon: '/assets/logo-transparent-png.png',
             badge: '/assets/logo-transparent-png.png',
