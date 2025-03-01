@@ -21,12 +21,12 @@ function OrderNotifications({ userRole }) {
           
           // Show notification for new order
           await showNotification({
-            title: 'Modern Order Received!',
+            title: 'New Order Received!',
             body: `Order #${data.order.displayOrderId} - Table ${data.order.tableNumber}`,
             icon: '/assets/logo-transparent-png.png' || <img src="/assets/logo-transparent-png.png" alt="Notification Icon" />,
             badge: '/assets/logo-transparent-png.png' || <img src="/assets/logo-transparent-png.png" alt="Notification Icon" />,
             data: {
-              url: `/admin`,
+              url: `www.smart-server.com/admin`,
               orderId: data.order.id
             }
           });

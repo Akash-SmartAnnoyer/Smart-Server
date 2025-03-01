@@ -51,6 +51,18 @@ function OrderConfirmation() {
     const unsubscribe = onSnapshot(orderDocRef, (doc) => {
       if (doc.exists()) {
         setOrderData(doc.data());
+
+        // Show notification when order data updates
+        if (Notification.permission === 'granted') {
+          const notification = new Notification('Order Update', {
+            body: `Your order status is now ${doc.data().status}`,
+            icon: '/assets/logo-transparent-png.png', // Update with your logo path
+          });
+
+          notification.onclick = () => {
+            window.location.href = 'www.smart-server.com/admin'; // Navigate to NewAdminPage
+          };
+        }
       }
     });
 
