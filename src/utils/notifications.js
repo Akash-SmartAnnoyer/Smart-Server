@@ -26,6 +26,10 @@ export const initializeNotifications = async () => {
 export const showNotification = async (notification) => {
   const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
+  // Extract orderId from notification body if not provided in data
+  const orderMatch = notification.body.match(/Order #([\w-]+)/);
+  const orderId = notification.data?.orderId || (orderMatch ? orderMatch[1] : null);
+
   if (isMobileDevice) {
     if ('serviceWorker' in navigator) {
       const registration = await navigator.serviceWorker.ready;
@@ -35,8 +39,8 @@ export const showNotification = async (notification) => {
         badge: '/assets/logo-transparent-png.png',
         vibrate: [200, 100, 200],
         data: { 
-          orderId: notification.data?.orderId,
-          url: `/admin?highlight=${notification.data?.orderId}`
+          orderId: orderId,
+          url: `/admin?highlight=${orderId}`
         },
         actions: [
           {
@@ -44,15 +48,8 @@ export const showNotification = async (notification) => {
             title: 'View Order'
           }
         ],
-        requireInteraction: true
-      });
-
-      // Add click handler for the service worker
-      navigator.serviceWorker.addEventListener('message', (event) => {
-        if (event.data && event.data.type === 'notificationClick') {
-          const orderId = event.data.orderId;
-          window.location.href = `/admin?highlight=${orderId}`;
-        }
+        requireInteraction: true,
+        tag: orderId // Add this to prevent duplicate notifications
       });
     }
   } else {
@@ -60,10 +57,11 @@ export const showNotification = async (notification) => {
       body: notification.body,
       icon: '/assets/logo-transparent-png.png',
       data: { 
-        orderId: notification.data?.orderId,
-        url: `/admin?highlight=${notification.data?.orderId}`
+        orderId: orderId,
+        url: `/admin?highlight=${orderId}`
       },
-      requireInteraction: true
+      requireInteraction: true,
+      tag: orderId // Add this to prevent duplicate notifications
     });
 
     notif.onclick = function(event) {
