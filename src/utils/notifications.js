@@ -26,7 +26,7 @@ export const initializeNotifications = async () => {
 export const showNotification = async (notification) => {
   const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   
-  const adminUrl = 'https://www.app.smart-server.in/admin';
+  const adminUrl = `https://www.app.smart-server.in/admin?highlight=${notification.data?.orderId}`;
   
   console.log('Showing notification:', notification);
   console.log('Is mobile device:', isMobileDevice);
@@ -78,7 +78,8 @@ export const showNotification = async (notification) => {
 
       notif.onclick = function(event) {
         event.preventDefault();
-        window.open(adminUrl, '_blank').focus();
+        window.focus();
+        window.location.href = adminUrl;
       };
     } else {
       console.warn('Notification permission not granted');
