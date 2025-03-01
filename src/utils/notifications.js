@@ -31,8 +31,8 @@ export const showNotification = async (notification) => {
       const registration = await navigator.serviceWorker.ready;
       await registration.showNotification(notification.title, {
         body: notification.body,
-        icon: '/favicon.ico',
-        badge: '/favicon.ico',
+        icon: '/assets/logo-transparent-png.png',
+        badge: '/assets/logo-transparent-png.png',
         vibrate: [200, 100, 200],
         data: notification.data,
         actions: [
@@ -46,7 +46,7 @@ export const showNotification = async (notification) => {
   } else {
     new Notification(notification.title, {
       body: notification.body,
-      icon: '/favicon.ico'
+      icon: '/assets/logo-transparent-png.png'
     });
   }
 };
