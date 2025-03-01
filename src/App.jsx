@@ -30,6 +30,7 @@ import { NewOrderHistory } from './components/NewOrderHistory';
 import AllOrdersSummary from './components/AllOrdersSummary';
 import NotificationHandler from './components/NotificationHandler';
 import ActivityLog from './components/ActivityLog';
+import OrderNotifications from './components/OrderNotifications';
 
 const App = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -50,7 +51,7 @@ const App = () => {
             <CartIconProvider>
               <AdminOrderProvider>
                 <div className="App">
-                  {/* <NotificationHandler /> */}
+                  <OrderNotifications userRole="admin" />
                   <Routes>
                     <Route path="/" element={<LandingPage />} />
                     <Route path="/qr-entry/:orgId/:tableNumber" element={<QREntry />} />
