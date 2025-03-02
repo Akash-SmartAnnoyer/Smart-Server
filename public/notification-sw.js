@@ -1,10 +1,22 @@
 self.addEventListener('notificationclick', function(event) {
   const data = event.notification.data;
 
-  // Clear unviewed orders only when actually viewing them
+  // Mark clicked orders as viewed
   if (event.action === 'view' || !event.action) {
     event.notification.close();
-    localStorage.removeItem('unviewedOrders');
+    
+    // Get current unviewed orders
+    const unviewedOrders = JSON.parse(localStorage.getItem('unviewedOrders') || '[]');
+    
+    // Mark clicked orders as viewed
+    const updatedOrders = unviewedOrders.map(order => {
+      if (data.unviewedOrders.some(viewedOrder => viewedOrder.id === order.id)) {
+        return { ...order, viewed: true };
+      }
+      return order;
+    });
+    
+    localStorage.setItem('unviewedOrders', JSON.stringify(updatedOrders));
   }
 
   switch(event.action) {

@@ -56,12 +56,19 @@ export const showNotification = async (notification) => {
   // Get unviewed orders from localStorage
   let unviewedOrders = JSON.parse(localStorage.getItem('unviewedOrders') || '[]');
   
+  // Check if order already exists in unviewed orders
+  const orderExists = unviewedOrders.some(order => order.id === notification.data?.orderId);
+  if (orderExists) return; // Skip if order already exists
+
   // Add new order to unviewed list
   const newOrder = {
     id: notification.data?.orderId,
-    tableNumber: notification.data?.tableNumber,
-    timestamp: Date.now()
+    // Extract table number from notification body which contains "Table X"
+    tableNumber: notification.body?.match(/Table (\d+)/)?.[1] || '',
+    timestamp: Date.now(),
+    viewed: false
   };
+  
   unviewedOrders.push(newOrder);
   localStorage.setItem('unviewedOrders', JSON.stringify(unviewedOrders));
 
@@ -94,13 +101,16 @@ export const showNotification = async (notification) => {
       try {
         const registration = await navigator.serviceWorker.ready;
         
+        // Filter only unviewed orders
+        const activeOrders = unviewedOrders.filter(order => !order.viewed);
+        
         let notificationTitle, notificationBody;
         
-        if (unviewedOrders.length > 1) {
+        if (activeOrders.length > 1) {
           // Multiple unviewed orders
-          notificationTitle = `New Orders (${unviewedOrders.length})`;
+          notificationTitle = `New Orders (${activeOrders.length})`;
           // Show all unviewed orders on expansion
-          notificationBody = unviewedOrders.map(order => 
+          notificationBody = activeOrders.map(order => 
             `Order #${order.id} from Table ${order.tableNumber}`
           ).join('\n');
         } else {
@@ -118,13 +128,13 @@ export const showNotification = async (notification) => {
             orderId: notification.data?.orderId,
             url: adminUrl,
             requiresAuth: true,
-            unviewedOrders: unviewedOrders
+            unviewedOrders: activeOrders
           },
           actions: [
             {
               action: 'view',
-              title: unviewedOrders.length > 1 ? 
-                `View ${unviewedOrders.length} Orders` : 
+              title: activeOrders.length > 1 ? 
+                `View ${activeOrders.length} Orders` : 
                 'View Order'
             }
           ],
@@ -140,13 +150,16 @@ export const showNotification = async (notification) => {
   } else {
     // Desktop notification handling
     if (Notification.permission === 'granted') {
+      // Filter only unviewed orders
+      const activeOrders = unviewedOrders.filter(order => !order.viewed);
+      
       let notificationTitle, notificationBody;
       
-      if (unviewedOrders.length > 1) {
+      if (activeOrders.length > 1) {
         // Multiple unviewed orders
-        notificationTitle = `New Orders (${unviewedOrders.length})`;
+        notificationTitle = `New Orders (${activeOrders.length})`;
         // Show all unviewed orders on expansion
-        notificationBody = unviewedOrders.map(order => 
+        notificationBody = activeOrders.map(order => 
           `Order #${order.id} from Table ${order.tableNumber}`
         ).join('\n');
       } else {
@@ -162,7 +175,7 @@ export const showNotification = async (notification) => {
           orderId: notification.data?.orderId,
           url: adminUrl,
           requiresAuth: true,
-          unviewedOrders: unviewedOrders
+          unviewedOrders: activeOrders
         },
         tag: 'new-orders',
         renotify: true,
@@ -171,8 +184,15 @@ export const showNotification = async (notification) => {
 
       notif.onclick = function(event) {
         event.preventDefault();
-        // Clear unviewed orders when clicked
-        localStorage.removeItem('unviewedOrders');
+        // Mark clicked order as viewed
+        const updatedOrders = unviewedOrders.map(order => {
+          if (order.id === notification.data?.orderId) {
+            return { ...order, viewed: true };
+          }
+          return order;
+        });
+        localStorage.setItem('unviewedOrders', JSON.stringify(updatedOrders));
+        
         if (localStorage.getItem('role') !== 'customer') {
           if (window.opener) {
             window.opener.focus();
