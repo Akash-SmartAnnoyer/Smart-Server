@@ -14,12 +14,24 @@ self.addEventListener('notificationclick', function(event) {
         for (var i = 0; i < clientList.length; i++) {
           var client = clientList[i];
           if (client.url.includes('/admin')) {
+            // Close all notifications with same tag
+            self.registration.getNotifications({
+              tag: 'new-orders'
+            }).then(notifications => {
+              notifications.forEach(notification => notification.close());
+            });
             return client.focus();
           }
         }
         
         // If no window is open and user has access
         if (clients.openWindow) {
+          // Close all notifications before opening window
+          self.registration.getNotifications({
+            tag: 'new-orders'
+          }).then(notifications => {
+            notifications.forEach(notification => notification.close());
+          });
           // We'll open the window but the App.jsx router will handle access control
           return clients.openWindow(data.url);
         }

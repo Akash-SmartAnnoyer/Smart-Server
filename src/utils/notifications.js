@@ -29,63 +29,86 @@ export const showNotification = async (notification) => {
   const adminUrl = `https://www.app.smart-server.in/admin?highlight=${notification.data?.orderId}`;
   
   if (localStorage.getItem('role') === 'customer') {
-    return; // Don't show notifications for customers
+    return;
   }
 
-  console.log('Showing notification:', notification);
-  console.log('Is mobile device:', isMobileDevice);
+  // Use a fixed tag for grouping all new order notifications
+  const notificationTag = 'new-orders';
 
   if (isMobileDevice) {
     if ('serviceWorker' in navigator) {
       try {
         const registration = await navigator.serviceWorker.ready;
-        console.log('Service Worker ready:', registration);
+        
+        // Get existing notifications
+        const existingNotifications = await registration.getNotifications({
+          tag: notificationTag
+        });
+        
+        const count = existingNotifications.length + 1;
+        
+        // Close existing notifications
+        existingNotifications.forEach(notification => notification.close());
 
-        await registration.showNotification(notification.title || 'New Notification', {
-          body: notification.body || '',
+        await registration.showNotification('New Orders', {
+          body: count > 1 
+            ? `You have ${count} new orders pending`
+            : notification.body || '',
           icon: '/assets/logo-transparent-png.png',
           badge: '/assets/logo-transparent-png.png',
           vibrate: [200, 100, 200],
           data: { 
             orderId: notification.data?.orderId,
             url: adminUrl,
-            requiresAuth: true
+            requiresAuth: true,
+            count: count
           },
           actions: [
             {
               action: 'view',
-              title: 'View Order'
+              title: 'View Orders'
             }
           ],
           requireInteraction: true,
-          tag: notification.data?.orderId || 'default'
+          tag: notificationTag, // Use same tag to group notifications
+          renotify: true // Notify even if using same tag
         });
-        console.log('Notification shown successfully');
+
       } catch (error) {
         console.error('Error showing notification:', error);
       }
-    } else {
-      console.warn('Service Worker not supported');
     }
   } else {
     // Desktop notification handling
     if (Notification.permission === 'granted') {
-      const notif = new Notification(notification.title || 'New Notification', {
-        body: notification.body || '',
+      // Close existing notifications with same tag
+      const existingNotifications = await window.registration?.getNotifications({
+        tag: notificationTag
+      }) || [];
+      
+      const count = existingNotifications.length + 1;
+      
+      existingNotifications.forEach(notification => notification.close());
+
+      const notif = new Notification('New Orders', {
+        body: count > 1 
+          ? `You have ${count} new orders pending`
+          : notification.body || '',
         icon: '/assets/logo-transparent-png.png',
         data: { 
           orderId: notification.data?.orderId,
           url: adminUrl,
-          requiresAuth: true
+          requiresAuth: true,
+          count: count
         },
         requireInteraction: true,
-        tag: notification.data?.orderId || 'default'
+        tag: notificationTag,
+        renotify: true
       });
 
       notif.onclick = function(event) {
         event.preventDefault();
         if (localStorage.getItem('role') !== 'customer') {
-          // Try to find and focus existing admin tab
           if (window.opener) {
             window.opener.focus();
           } else {
@@ -95,8 +118,6 @@ export const showNotification = async (notification) => {
           alert("You don't have access to view this page.");
         }
       };
-    } else {
-      console.warn('Notification permission not granted');
     }
   }
 };
