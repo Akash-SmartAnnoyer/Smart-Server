@@ -4,6 +4,11 @@ import { initializeNotifications, showNotification } from '../utils/notification
 
 function OrderNotifications({ userRole }) {
   useEffect(() => {
+    // Only proceed if user is not a customer
+    if (localStorage.getItem('role') === 'customer') {
+      return; // Exit early if user is a customer
+    }
+
     // Request notification permission on component mount
     const requestNotificationPermission = async () => {
       if ('Notification' in window) {
@@ -89,6 +94,11 @@ function OrderNotifications({ userRole }) {
       }
     };
   }, [userRole]);
+
+  // Don't render anything for customers
+  if (localStorage.getItem('role') === 'customer') {
+    return null;
+  }
 
   return null;
 }

@@ -52,15 +52,19 @@ function OrderConfirmation() {
       if (doc.exists()) {
         setOrderData(doc.data());
 
-        // Show notification when order data updates
-        if (Notification.permission === 'granted') {
+        // Only show notifications for non-customers
+        if (Notification.permission === 'granted' && localStorage.getItem('role') !== 'customer') {
           const notification = new Notification('Order Update', {
             body: `Your order status is now ${doc.data().status}`,
-            icon: '/assets/logo-transparent-png.png', // Update with your logo path
+            icon: '/assets/logo-transparent-png.png',
           });
 
           notification.onclick = () => {
-            window.location.href = 'www.smart-server.com/admin'; // Navigate to NewAdminPage
+            if (localStorage.getItem('role') !== 'customer') {
+              window.location.href = 'www.smart-server.com/admin';
+            } else {
+              alert("You don't have access to view this page.");
+            }
           };
         }
       }

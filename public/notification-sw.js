@@ -6,20 +6,21 @@ self.addEventListener('notificationclick', function(event) {
   
   // Handle the click action
   if (event.action === 'view' || !event.action) {
-    // Open or focus the window with the order
     event.waitUntil(
       clients.matchAll({
         type: 'window'
       }).then(function(clientList) {
-        // If we have a client window open, focus it
+        // Check if any client has the admin page open
         for (var i = 0; i < clientList.length; i++) {
           var client = clientList[i];
-          if (client.url.includes('/admin') && 'focus' in client) {
+          if (client.url.includes('/admin')) {
             return client.focus();
           }
         }
-        // If no window is open, open a new one
+        
+        // If no window is open and user has access
         if (clients.openWindow) {
+          // We'll open the window but the App.jsx router will handle access control
           return clients.openWindow(data.url);
         }
       })

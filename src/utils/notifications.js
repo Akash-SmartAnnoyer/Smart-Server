@@ -28,6 +28,10 @@ export const showNotification = async (notification) => {
   
   const adminUrl = `https://www.app.smart-server.in/admin?highlight=${notification.data?.orderId}`;
   
+  if (localStorage.getItem('role') === 'customer') {
+    return; // Don't show notifications for customers
+  }
+
   console.log('Showing notification:', notification);
   console.log('Is mobile device:', isMobileDevice);
 
@@ -44,7 +48,8 @@ export const showNotification = async (notification) => {
           vibrate: [200, 100, 200],
           data: { 
             orderId: notification.data?.orderId,
-            url: adminUrl
+            url: adminUrl,
+            requiresAuth: true
           },
           actions: [
             {
@@ -70,7 +75,8 @@ export const showNotification = async (notification) => {
         icon: '/assets/logo-transparent-png.png',
         data: { 
           orderId: notification.data?.orderId,
-          url: adminUrl
+          url: adminUrl,
+          requiresAuth: true
         },
         requireInteraction: true,
         tag: notification.data?.orderId || 'default'
@@ -78,8 +84,13 @@ export const showNotification = async (notification) => {
 
       notif.onclick = function(event) {
         event.preventDefault();
-        window.focus();
-        window.location.href = adminUrl;
+        // Check role before redirecting
+        if (localStorage.getItem('role') !== 'customer') {
+          window.focus();
+          window.location.href = adminUrl;
+        } else {
+          alert("You don't have access to view this page.");
+        }
       };
     } else {
       console.warn('Notification permission not granted');
