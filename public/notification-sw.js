@@ -1,42 +1,56 @@
 self.addEventListener('notificationclick', function(event) {
-  event.notification.close();
-
-  // Get the notification data
   const data = event.notification.data;
-  
-  // Handle the click action
+
+  // Mark clicked orders as viewed
   if (event.action === 'view' || !event.action) {
-    event.waitUntil(
-      clients.matchAll({
-        type: 'window'
-      }).then(function(clientList) {
-        // Check if any client has the admin page open
-        for (var i = 0; i < clientList.length; i++) {
-          var client = clientList[i];
-          if (client.url.includes('/admin')) {
-            // Close all notifications with same tag
-            self.registration.getNotifications({
-              tag: 'new-orders'
-            }).then(notifications => {
-              notifications.forEach(notification => notification.close());
-            });
-            return client.focus();
+    event.notification.close();
+    
+    // Get current unviewed orders
+    const unviewedOrders = JSON.parse(localStorage.getItem('unviewedOrders') || '[]');
+    
+    // Mark clicked orders as viewed
+    const updatedOrders = unviewedOrders.map(order => {
+      if (data.unviewedOrders.some(viewedOrder => viewedOrder.id === order.id)) {
+        return { ...order, viewed: true };
+      }
+      return order;
+    });
+    
+    localStorage.setItem('unviewedOrders', JSON.stringify(updatedOrders));
+  }
+
+  switch(event.action) {
+    case 'view':
+      // Open admin page
+      event.waitUntil(
+        clients.matchAll({type: 'window'}).then(function(clientList) {
+          // Focus existing admin window if open
+          for (var i = 0; i < clientList.length; i++) {
+            var client = clientList[i];
+            if (client.url.includes('/admin')) {
+              return client.focus();
+            }
           }
-        }
-        
-        // If no window is open and user has access
-        if (clients.openWindow) {
-          // Close all notifications before opening window
-          self.registration.getNotifications({
-            tag: 'new-orders'
-          }).then(notifications => {
-            notifications.forEach(notification => notification.close());
-          });
-          // We'll open the window but the App.jsx router will handle access control
+          // Open new window if none exists
           return clients.openWindow(data.url);
-        }
-      })
-    );
+        })
+      );
+      break;
+    
+    case 'accept':
+      localStorage.removeItem('pendingNotificationOrders');
+      // Accept order and open admin page
+      event.waitUntil(
+        fetch('/api/orders/accept', {
+          method: 'POST',
+          body: JSON.stringify(data.orders)
+        }).then(() => clients.openWindow(data.url))
+      );
+      break;
+    
+    default:
+      // Default to opening admin page
+      event.waitUntil(clients.openWindow(data.url));
   }
 });
 
