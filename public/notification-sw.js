@@ -2,6 +2,11 @@ self.addEventListener('notificationclick', function(event) {
   event.notification.close();
   const data = event.notification.data;
 
+  // Clear stored orders when viewing them
+  if (event.action === 'view' || !event.action) {
+    localStorage.removeItem('pendingNotificationOrders');
+  }
+
   switch(event.action) {
     case 'view':
       // Open admin page
@@ -21,6 +26,7 @@ self.addEventListener('notificationclick', function(event) {
       break;
     
     case 'accept':
+      localStorage.removeItem('pendingNotificationOrders');
       // Accept order and open admin page
       event.waitUntil(
         fetch('/api/orders/accept', {

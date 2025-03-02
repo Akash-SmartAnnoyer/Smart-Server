@@ -25,131 +25,101 @@ export const initializeNotifications = async () => {
 
 export const showNotification = async (notification) => {
   const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-  
   const adminUrl = `https://www.app.smart-server.in/admin?highlight=${notification.data?.orderId}`;
   
-  if (localStorage.getItem('role') === 'customer') {
-    return;
-  }
+  if (localStorage.getItem('role') === 'customer') return;
 
   const notificationTag = 'new-orders';
-  let orders = [];
-  
-  if (isMobileDevice) {
-    if ('serviceWorker' in navigator) {
-      try {
-        const registration = await navigator.serviceWorker.ready;
-        
-        // Get existing notifications
-        const existingNotifications = await registration.getNotifications({
-          tag: notificationTag
-        });
-        
-        // Collect orders from existing notifications
-        orders = existingNotifications.map(n => ({
-          orderId: n.data.orderId,
-          tableNumber: n.data.tableNumber,
-          items: n.data.items
-        }));
-        
-        // Add new order
-        orders.push({
-          orderId: notification.data.orderId,
-          tableNumber: notification.data.tableNumber,
-          items: notification.data.items
-        });
 
-        // Close existing notifications
-        existingNotifications.forEach(n => n.close());
+  try {
+    // Try to get stored orders from localStorage
+    let storedOrders = JSON.parse(localStorage.getItem('pendingNotificationOrders') || '[]');
+    
+    // Add new order to stored orders
+    const newOrder = {
+      orderId: notification.data.orderId,
+      tableNumber: notification.data.tableNumber,
+      items: notification.data.items,
+      timestamp: Date.now()
+    };
+    
+    // Add new order and remove duplicates
+    storedOrders = [
+      ...storedOrders.filter(order => order.orderId !== newOrder.orderId),
+      newOrder
+    ];
+    
+    // Store updated orders
+    localStorage.setItem('pendingNotificationOrders', JSON.stringify(storedOrders));
 
-        // WhatsApp-style stacked notification
-        await registration.showNotification('New Orders', {
-          // Main notification shows count
-          body: orders.length === 1 
-            ? `Table ${orders[0].tableNumber}: New order #${orders[0].orderId}`
-            : `${orders.length} new orders received`,
-          
-          // Expanded view shows order details
-          data: { 
-            orders,
-            url: adminUrl,
-            // Format orders for expanded view
-            expandedText: orders.map(order => ({
-              title: `Order #${order.orderId}`,
-              text: `Table ${order.tableNumber}\n${order.items.map(
-                item => `• ${item.quantity}x ${item.name}`
-              ).join('\n')}`
-            }))
-          },
-          
-          icon: '/assets/logo-transparent-png.png',
-          badge: '/assets/logo-transparent-png.png',
-          vibrate: [200, 100, 200],
-          
-          actions: [
-            {
-              action: 'view',
-              title: '👁️ View Orders'
-            },
-            {
-              action: 'accept',
-              title: '✓ Accept'
-            }
-          ],
-          
-          tag: notificationTag,
-          renotify: true,
-          silent: false,
-          requireInteraction: true,
-          
-          // Enable expanded view
-          silent: false,
-          timestamp: Date.now(),
-          
-          // Style for expanded view
-          style: 'inbox',
-          messages: orders.map(order => ({
-            title: `Order #${order.orderId} - Table ${order.tableNumber}`,
-            message: order.items.map(item => 
-              `${item.quantity}x ${item.name}`
-            ).join(', ')
-          }))
-        });
-
-      } catch (error) {
-        console.error('Error showing notification:', error);
-      }
-    }
-  } else {
-    // Desktop notification handling
-    if (Notification.permission === 'granted') {
-      const existingNotifications = await window.registration?.getNotifications({
+    if (isMobileDevice && 'serviceWorker' in navigator) {
+      const registration = await navigator.serviceWorker.ready;
+      
+      // Close existing notifications
+      const existingNotifications = await registration.getNotifications({
         tag: notificationTag
-      }) || [];
-      
-      orders = existingNotifications.map(n => ({
-        orderId: n.data.orderId,
-        tableNumber: n.data.tableNumber,
-        items: n.data.items
-      }));
-      
-      orders.push({
-        orderId: notification.data.orderId,
-        tableNumber: notification.data.tableNumber,
-        items: notification.data.items
       });
-
       existingNotifications.forEach(n => n.close());
 
+      // Show stacked notification
+      await registration.showNotification('New Orders', {
+        // Main notification shows count
+        body: storedOrders.length === 1 
+          ? `Table ${storedOrders[0].tableNumber}: New order #${storedOrders[0].orderId}`
+          : `${storedOrders.length} new orders received`,
+        
+        icon: '/assets/logo-transparent-png.png',
+        badge: '/assets/logo-transparent-png.png',
+        vibrate: [200, 100, 200],
+        
+        data: { 
+          orders: storedOrders,
+          url: adminUrl
+        },
+        
+        // Actions
+        actions: [
+          {
+            action: 'view',
+            title: '👁️ View Orders'
+          },
+          {
+            action: 'accept',
+            title: '✓ Accept'
+          }
+        ],
+        
+        tag: notificationTag,
+        renotify: true,
+        requireInteraction: true,
+        
+        // Expanded view settings
+        silent: false,
+        timestamp: Date.now(),
+        
+        // Format messages for expanded view
+        options: {
+          body: storedOrders.map(order => 
+            `Order #${order.orderId} - Table ${order.tableNumber}\n` +
+            order.items.map(item => `• ${item.quantity}x ${item.name}`).join('\n')
+          ).join('\n\n')
+        }
+      });
+
+    } else if (Notification.permission === 'granted') {
+      // Desktop notification
       const notif = new Notification('New Orders', {
-        body: orders.length === 1 
-          ? `Table ${orders[0].tableNumber}: New order #${orders[0].orderId}`
-          : orders.map(order => 
+        body: storedOrders.length === 1 
+          ? `Table ${storedOrders[0].tableNumber}: New order #${storedOrders[0].orderId}`
+          : storedOrders.map(order => 
               `Order #${order.orderId} - Table ${order.tableNumber}\n` +
               order.items.map(item => `• ${item.quantity}x ${item.name}`).join('\n')
             ).join('\n\n'),
         icon: '/assets/logo-transparent-png.png',
-        data: { orders, url: adminUrl },
+        data: { 
+          orders: storedOrders,
+          url: adminUrl
+        },
         tag: notificationTag,
         renotify: true,
         requireInteraction: true
@@ -168,6 +138,8 @@ export const showNotification = async (notification) => {
         }
       };
     }
+  } catch (error) {
+    console.error('Error showing notification:', error);
   }
 };
 
