@@ -64,37 +64,118 @@ export const showNotification = async (notification) => {
         // Close existing notifications
         existingNotifications.forEach(n => n.close());
 
+        // Instagram-style notification (with image preview)
         await registration.showNotification('New Orders', {
-          body: `You have ${orders.length} new order${orders.length > 1 ? 's' : ''}`,
+          body: `${orders.length} new orders from different tables`,
           icon: '/assets/logo-transparent-png.png',
+          image: orders[orders.length - 1].items[0]?.imageUrl, // Show latest order's first item
           badge: '/assets/logo-transparent-png.png',
           vibrate: [200, 100, 200],
-          data: { 
-            orders: orders,
-            url: adminUrl,
-            requiresAuth: true
-          },
+          data: { orders, url: adminUrl },
           actions: [
             {
               action: 'view',
-              title: 'View All Orders'
+              title: '👁️ View'
+            },
+            {
+              action: 'dismiss',
+              title: '✕ Dismiss'
             }
           ],
-          // Enable expanded view
-          silent: false,
-          requireInteraction: true,
+          tag: notificationTag,
+          renotify: true
+        });
+
+        // WhatsApp-style stacked notification
+        await registration.showNotification('Smart Server Orders', {
+          body: orders.map(order => 
+            `📝 Table ${order.tableNumber}: ${order.items.length} items`
+          ).join('\n'),
+          icon: '/assets/logo-transparent-png.png',
+          badge: '/assets/logo-transparent-png.png',
+          vibrate: [200, 100, 200],
+          data: { orders, url: adminUrl },
+          actions: [
+            {
+              action: 'view',
+              title: 'View All'
+            },
+            {
+              action: 'dismiss',
+              title: 'Later'
+            }
+          ],
+          tag: notificationTag,
+          renotify: true
+        });
+
+        // Slack-style notification with quick actions
+        await registration.showNotification('New Orders Received', {
+          body: `${orders.length} orders need attention`,
+          icon: '/assets/logo-transparent-png.png',
+          badge: '/assets/logo-transparent-png.png',
+          vibrate: [200, 100, 200],
+          data: { orders, url: adminUrl },
+          actions: [
+            {
+              action: 'accept_all',
+              title: '✓ Accept All'
+            },
+            {
+              action: 'view',
+              title: '👁️ View Details'
+            }
+          ],
+          tag: notificationTag,
+          renotify: true
+        });
+
+        // Gmail-style notification with summary
+        await registration.showNotification('Order Summary', {
+          body: `${orders.length} new orders\n` +
+                `Total Items: ${orders.reduce((sum, order) => sum + order.items.length, 0)}\n` +
+                `Tables: ${[...new Set(orders.map(o => o.tableNumber))].join(', ')}`,
+          icon: '/assets/logo-transparent-png.png',
+          badge: '/assets/logo-transparent-png.png',
+          vibrate: [200, 100, 200],
+          data: { orders, url: adminUrl },
+          actions: [
+            {
+              action: 'view',
+              title: 'Open Orders'
+            },
+            {
+              action: 'mark_read',
+              title: 'Mark Read'
+            }
+          ],
+          tag: notificationTag,
+          renotify: true
+        });
+
+        // Facebook-style rich notification
+        await registration.showNotification('Smart Server', {
+          body: orders.length > 1 
+            ? `You have ${orders.length} new orders waiting`
+            : `New order from Table ${orders[0].tableNumber}`,
+          icon: '/assets/logo-transparent-png.png',
+          badge: '/assets/logo-transparent-png.png',
+          image: '/assets/notification-banner.png', // Add a custom banner image
+          vibrate: [200, 100, 200],
+          data: { orders, url: adminUrl },
+          actions: [
+            {
+              action: 'view',
+              title: '👁️ View'
+            },
+            {
+              action: 'settings',
+              title: '⚙️ Settings'
+            }
+          ],
           tag: notificationTag,
           renotify: true,
-          // Add order details in expanded view
-          options: {
-            // Main notification
-            body: `You have ${orders.length} new order${orders.length > 1 ? 's' : ''}`,
-            // Expanded view shows order details
-            expandedBody: orders.map(order => 
-              `Order #${order.orderId} - Table ${order.tableNumber}\n` +
-              `Items: ${order.items?.map(item => `${item.quantity}x ${item.name}`).join(', ')}`
-            ).join('\n\n')
-          }
+          silent: false
         });
 
       } catch (error) {

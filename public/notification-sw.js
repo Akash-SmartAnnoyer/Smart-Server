@@ -1,42 +1,35 @@
 self.addEventListener('notificationclick', function(event) {
   event.notification.close();
-
-  // Get the notification data
   const data = event.notification.data;
-  
-  // Handle the click action
-  if (event.action === 'view' || !event.action) {
-    event.waitUntil(
-      clients.matchAll({
-        type: 'window'
-      }).then(function(clientList) {
-        // Check if any client has the admin page open
-        for (var i = 0; i < clientList.length; i++) {
-          var client = clientList[i];
-          if (client.url.includes('/admin')) {
-            // Close all notifications with same tag
-            self.registration.getNotifications({
-              tag: 'new-orders'
-            }).then(notifications => {
-              notifications.forEach(notification => notification.close());
-            });
-            return client.focus();
-          }
-        }
-        
-        // If no window is open and user has access
-        if (clients.openWindow) {
-          // Close all notifications before opening window
-          self.registration.getNotifications({
-            tag: 'new-orders'
-          }).then(notifications => {
-            notifications.forEach(notification => notification.close());
-          });
-          // We'll open the window but the App.jsx router will handle access control
-          return clients.openWindow(data.url);
-        }
-      })
-    );
+
+  switch(event.action) {
+    case 'view':
+      // Open admin page
+      event.waitUntil(clients.openWindow(data.url));
+      break;
+    
+    case 'accept_all':
+      // Could implement batch accept functionality
+      event.waitUntil(
+        fetch('/api/orders/accept-all', {
+          method: 'POST',
+          body: JSON.stringify(data.orders)
+        }).then(() => clients.openWindow(data.url))
+      );
+      break;
+    
+    case 'mark_read':
+      // Just close without opening page
+      break;
+    
+    case 'settings':
+      // Open settings page
+      event.waitUntil(clients.openWindow(data.url + '/settings'));
+      break;
+    
+    default:
+      // Default action is to open admin page
+      event.waitUntil(clients.openWindow(data.url));
   }
 });
 
