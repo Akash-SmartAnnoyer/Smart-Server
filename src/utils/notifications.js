@@ -33,8 +33,6 @@ export const showNotification = async (notification) => {
   }
 
   const notificationTag = 'new-orders';
-
-  // Store orders in an array to show in expanded view
   let orders = [];
   
   if (isMobileDevice) {
@@ -64,118 +62,58 @@ export const showNotification = async (notification) => {
         // Close existing notifications
         existingNotifications.forEach(n => n.close());
 
-        // Instagram-style notification (with image preview)
-        await registration.showNotification('New Orders', {
-          body: `${orders.length} new orders from different tables`,
-          icon: '/assets/logo-transparent-png.png',
-          image: orders[orders.length - 1].items[0]?.imageUrl, // Show latest order's first item
-          badge: '/assets/logo-transparent-png.png',
-          vibrate: [200, 100, 200],
-          data: { orders, url: adminUrl },
-          actions: [
-            {
-              action: 'view',
-              title: '👁️ View'
-            },
-            {
-              action: 'dismiss',
-              title: '✕ Dismiss'
-            }
-          ],
-          tag: notificationTag,
-          renotify: true
-        });
-
         // WhatsApp-style stacked notification
-        await registration.showNotification('Smart Server Orders', {
-          body: orders.map(order => 
-            `📝 Table ${order.tableNumber}: ${order.items.length} items`
-          ).join('\n'),
+        await registration.showNotification('New Orders', {
+          // Main notification shows count
+          body: orders.length === 1 
+            ? `Table ${orders[0].tableNumber}: New order #${orders[0].orderId}`
+            : `${orders.length} new orders received`,
+          
+          // Expanded view shows order details
+          data: { 
+            orders,
+            url: adminUrl,
+            // Format orders for expanded view
+            expandedText: orders.map(order => ({
+              title: `Order #${order.orderId}`,
+              text: `Table ${order.tableNumber}\n${order.items.map(
+                item => `• ${item.quantity}x ${item.name}`
+              ).join('\n')}`
+            }))
+          },
+          
           icon: '/assets/logo-transparent-png.png',
           badge: '/assets/logo-transparent-png.png',
           vibrate: [200, 100, 200],
-          data: { orders, url: adminUrl },
+          
           actions: [
             {
               action: 'view',
-              title: 'View All'
+              title: '👁️ View Orders'
             },
             {
-              action: 'dismiss',
-              title: 'Later'
+              action: 'accept',
+              title: '✓ Accept'
             }
           ],
-          tag: notificationTag,
-          renotify: true
-        });
-
-        // Slack-style notification with quick actions
-        await registration.showNotification('New Orders Received', {
-          body: `${orders.length} orders need attention`,
-          icon: '/assets/logo-transparent-png.png',
-          badge: '/assets/logo-transparent-png.png',
-          vibrate: [200, 100, 200],
-          data: { orders, url: adminUrl },
-          actions: [
-            {
-              action: 'accept_all',
-              title: '✓ Accept All'
-            },
-            {
-              action: 'view',
-              title: '👁️ View Details'
-            }
-          ],
-          tag: notificationTag,
-          renotify: true
-        });
-
-        // Gmail-style notification with summary
-        await registration.showNotification('Order Summary', {
-          body: `${orders.length} new orders\n` +
-                `Total Items: ${orders.reduce((sum, order) => sum + order.items.length, 0)}\n` +
-                `Tables: ${[...new Set(orders.map(o => o.tableNumber))].join(', ')}`,
-          icon: '/assets/logo-transparent-png.png',
-          badge: '/assets/logo-transparent-png.png',
-          vibrate: [200, 100, 200],
-          data: { orders, url: adminUrl },
-          actions: [
-            {
-              action: 'view',
-              title: 'Open Orders'
-            },
-            {
-              action: 'mark_read',
-              title: 'Mark Read'
-            }
-          ],
-          tag: notificationTag,
-          renotify: true
-        });
-
-        // Facebook-style rich notification
-        await registration.showNotification('Smart Server', {
-          body: orders.length > 1 
-            ? `You have ${orders.length} new orders waiting`
-            : `New order from Table ${orders[0].tableNumber}`,
-          icon: '/assets/logo-transparent-png.png',
-          badge: '/assets/logo-transparent-png.png',
-          image: '/assets/notification-banner.png', // Add a custom banner image
-          vibrate: [200, 100, 200],
-          data: { orders, url: adminUrl },
-          actions: [
-            {
-              action: 'view',
-              title: '👁️ View'
-            },
-            {
-              action: 'settings',
-              title: '⚙️ Settings'
-            }
-          ],
+          
           tag: notificationTag,
           renotify: true,
-          silent: false
+          silent: false,
+          requireInteraction: true,
+          
+          // Enable expanded view
+          silent: false,
+          timestamp: Date.now(),
+          
+          // Style for expanded view
+          style: 'inbox',
+          messages: orders.map(order => ({
+            title: `Order #${order.orderId} - Table ${order.tableNumber}`,
+            message: order.items.map(item => 
+              `${item.quantity}x ${item.name}`
+            ).join(', ')
+          }))
         });
 
       } catch (error) {
@@ -189,14 +127,12 @@ export const showNotification = async (notification) => {
         tag: notificationTag
       }) || [];
       
-      // Collect orders from existing notifications
       orders = existingNotifications.map(n => ({
         orderId: n.data.orderId,
         tableNumber: n.data.tableNumber,
         items: n.data.items
       }));
       
-      // Add new order
       orders.push({
         orderId: notification.data.orderId,
         tableNumber: notification.data.tableNumber,
@@ -206,19 +142,17 @@ export const showNotification = async (notification) => {
       existingNotifications.forEach(n => n.close());
 
       const notif = new Notification('New Orders', {
-        body: orders.map(order => 
-          `Order #${order.orderId} - Table ${order.tableNumber}\n` +
-          `Items: ${order.items?.map(item => `${item.quantity}x ${item.name}`).join(', ')}`
-        ).join('\n\n'),
+        body: orders.length === 1 
+          ? `Table ${orders[0].tableNumber}: New order #${orders[0].orderId}`
+          : orders.map(order => 
+              `Order #${order.orderId} - Table ${order.tableNumber}\n` +
+              order.items.map(item => `• ${item.quantity}x ${item.name}`).join('\n')
+            ).join('\n\n'),
         icon: '/assets/logo-transparent-png.png',
-        data: { 
-          orders: orders,
-          url: adminUrl,
-          requiresAuth: true
-        },
-        requireInteraction: true,
+        data: { orders, url: adminUrl },
         tag: notificationTag,
-        renotify: true
+        renotify: true,
+        requireInteraction: true
       });
 
       notif.onclick = function(event) {

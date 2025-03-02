@@ -5,30 +5,33 @@ self.addEventListener('notificationclick', function(event) {
   switch(event.action) {
     case 'view':
       // Open admin page
-      event.waitUntil(clients.openWindow(data.url));
+      event.waitUntil(
+        clients.matchAll({type: 'window'}).then(function(clientList) {
+          // Focus existing admin window if open
+          for (var i = 0; i < clientList.length; i++) {
+            var client = clientList[i];
+            if (client.url.includes('/admin')) {
+              return client.focus();
+            }
+          }
+          // Open new window if none exists
+          return clients.openWindow(data.url);
+        })
+      );
       break;
     
-    case 'accept_all':
-      // Could implement batch accept functionality
+    case 'accept':
+      // Accept order and open admin page
       event.waitUntil(
-        fetch('/api/orders/accept-all', {
+        fetch('/api/orders/accept', {
           method: 'POST',
           body: JSON.stringify(data.orders)
         }).then(() => clients.openWindow(data.url))
       );
       break;
     
-    case 'mark_read':
-      // Just close without opening page
-      break;
-    
-    case 'settings':
-      // Open settings page
-      event.waitUntil(clients.openWindow(data.url + '/settings'));
-      break;
-    
     default:
-      // Default action is to open admin page
+      // Default to opening admin page
       event.waitUntil(clients.openWindow(data.url));
   }
 });
