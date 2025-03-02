@@ -1,9 +1,9 @@
 self.addEventListener('notificationclick', function(event) {
-  event.notification.close();
   const data = event.notification.data;
 
   // Clear stored orders when viewing them
   if (event.action === 'view' || !event.action) {
+    event.notification.close();
     localStorage.removeItem('pendingNotificationOrders');
   }
 

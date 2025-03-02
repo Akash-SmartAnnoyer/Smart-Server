@@ -53,6 +53,15 @@ export const showNotification = async (notification) => {
   
   if (localStorage.getItem('role') === 'customer') return;
 
+  // Get pending orders from localStorage
+  let pendingOrders = JSON.parse(localStorage.getItem('pendingNotificationOrders') || '[]');
+  
+  // Add new order to pending list if not already present
+  if (notification.data?.orderId && !pendingOrders.includes(notification.data.orderId)) {
+    pendingOrders.push(notification.data.orderId);
+    localStorage.setItem('pendingNotificationOrders', JSON.stringify(pendingOrders));
+  }
+
   // Show in-app popup for mobile devices
   if (isMobileDevice) {
     // Create popup container if it doesn't exist
@@ -77,7 +86,7 @@ export const showNotification = async (notification) => {
       />
     );
 
-    // Also show system notification
+    // Show system notification
     if ('serviceWorker' in navigator) {
       try {
         const registration = await navigator.serviceWorker.ready;
@@ -87,34 +96,36 @@ export const showNotification = async (notification) => {
           tag: 'new-orders'
         });
         
-        const count = existingNotifications.length + 1;
+        // Only update count if notifications weren't viewed (still exist)
+        const count = existingNotifications.length > 0 ? pendingOrders.length : 1;
         
-        // Close existing notifications
-        existingNotifications.forEach(notification => notification.close());
-
-        await registration.showNotification('New Orders', {
-          body: count > 1 
-            ? `You have ${count} new orders pending`
-            : notification.body || '',
-          icon: '/assets/logo-transparent-png.png',
-          badge: '/assets/logo-transparent-png.png',
-          vibrate: [200, 100, 200],
-          data: { 
-            orderId: notification.data?.orderId,
-            url: adminUrl,
-            requiresAuth: true,
-            count: count
-          },
-          actions: [
-            {
-              action: 'view',
-              title: 'View Orders'
-            }
-          ],
-          requireInteraction: true,
-          tag: 'new-orders',
-          renotify: true
-        });
+        // Don't close existing notifications if they weren't viewed
+        if (existingNotifications.length === 0) {
+          await registration.showNotification('New Orders', {
+            body: count > 1 
+              ? `You have ${count} new orders pending`
+              : notification.body || '',
+            icon: '/assets/logo-transparent-png.png',
+            badge: '/assets/logo-transparent-png.png',
+            vibrate: [200, 100, 200],
+            data: { 
+              orderId: notification.data?.orderId,
+              url: adminUrl,
+              requiresAuth: true,
+              count: count,
+              orders: pendingOrders
+            },
+            actions: [
+              {
+                action: 'view',
+                title: 'View Orders'
+              }
+            ],
+            requireInteraction: true,
+            tag: 'new-orders',
+            renotify: true
+          });
+        }
 
       } catch (error) {
         console.error('Error showing notification:', error);
@@ -123,43 +134,48 @@ export const showNotification = async (notification) => {
   } else {
     // Desktop notification handling
     if (Notification.permission === 'granted') {
-      // Close existing notifications with same tag
+      // Get existing notifications
       const existingNotifications = await window.registration?.getNotifications({
         tag: 'new-orders'
       }) || [];
       
-      const count = existingNotifications.length + 1;
+      // Only update count if notifications weren't viewed (still exist)
+      const count = existingNotifications.length > 0 ? pendingOrders.length : 1;
       
-      existingNotifications.forEach(notification => notification.close());
+      // Don't close existing notifications if they weren't viewed
+      if (existingNotifications.length === 0) {
+        const notif = new Notification('New Orders', {
+          body: count > 1 
+            ? `You have ${count} new orders pending`
+            : notification.body || '',
+          icon: '/assets/logo-transparent-png.png',
+          data: { 
+            orderId: notification.data?.orderId,
+            url: adminUrl,
+            requiresAuth: true,
+            count: count,
+            orders: pendingOrders
+          },
+          tag: 'new-orders',
+          renotify: true,
+          requireInteraction: true
+        });
 
-      const notif = new Notification('New Orders', {
-        body: count > 1 
-          ? `You have ${count} new orders pending`
-          : notification.body || '',
-        icon: '/assets/logo-transparent-png.png',
-        data: { 
-          orderId: notification.data?.orderId,
-          url: adminUrl,
-          requiresAuth: true,
-          count: count
-        },
-        tag: 'new-orders',
-        renotify: true,
-        requireInteraction: true
-      });
-
-      notif.onclick = function(event) {
-        event.preventDefault();
-        if (localStorage.getItem('role') !== 'customer') {
-          if (window.opener) {
-            window.opener.focus();
+        notif.onclick = function(event) {
+          event.preventDefault();
+          // Clear pending orders when notification is clicked
+          localStorage.removeItem('pendingNotificationOrders');
+          if (localStorage.getItem('role') !== 'customer') {
+            if (window.opener) {
+              window.opener.focus();
+            } else {
+              window.open(adminUrl, '_blank').focus();
+            }
           } else {
-            window.open(adminUrl, '_blank').focus();
+            alert("You don't have access to view this page.");
           }
-        } else {
-          alert("You don't have access to view this page.");
-        }
-      };
+        };
+      }
     }
   } 
 };
