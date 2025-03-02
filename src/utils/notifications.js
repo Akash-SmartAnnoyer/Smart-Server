@@ -84,10 +84,13 @@ export const showNotification = async (notification) => {
 
       notif.onclick = function(event) {
         event.preventDefault();
-        // Check role before redirecting
         if (localStorage.getItem('role') !== 'customer') {
-          window.focus();
-          window.location.href = adminUrl;
+          // Try to find and focus existing admin tab
+          if (window.opener) {
+            window.opener.focus();
+          } else {
+            window.open(adminUrl, '_blank').focus();
+          }
         } else {
           alert("You don't have access to view this page.");
         }
