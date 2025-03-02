@@ -29,96 +29,74 @@ export const showNotification = async (notification) => {
   
   if (localStorage.getItem('role') === 'customer') return;
 
+  // Use a fixed tag for grouping all new order notifications
   const notificationTag = 'new-orders';
 
-  try {
-    // Try to get stored orders from localStorage
-    let storedOrders = JSON.parse(localStorage.getItem('pendingNotificationOrders') || '[]');
-    
-    // Add new order to stored orders
-    const newOrder = {
-      orderId: notification.data.orderId,
-      tableNumber: notification.data.tableNumber,
-      items: notification.data.items,
-      timestamp: Date.now()
-    };
-    
-    // Add new order and remove duplicates
-    storedOrders = [
-      ...storedOrders.filter(order => order.orderId !== newOrder.orderId),
-      newOrder
-    ];
-    
-    // Store updated orders
-    localStorage.setItem('pendingNotificationOrders', JSON.stringify(storedOrders));
+  if (isMobileDevice) {
+    if ('serviceWorker' in navigator) {
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        
+        // Get existing notifications
+        const existingNotifications = await registration.getNotifications({
+          tag: notificationTag
+        });
+        
+        const count = existingNotifications.length + 1;
+        
+        // Close existing notifications
+        existingNotifications.forEach(notification => notification.close());
 
-    if (isMobileDevice && 'serviceWorker' in navigator) {
-      const registration = await navigator.serviceWorker.ready;
-      
-      // Close existing notifications
-      const existingNotifications = await registration.getNotifications({
-        tag: notificationTag
-      });
-      existingNotifications.forEach(n => n.close());
-
-      // Show stacked notification
-      await registration.showNotification('New Orders', {
-        // Main notification shows count
-        body: storedOrders.length === 1 
-          ? `Table ${storedOrders[0].tableNumber}: New order #${storedOrders[0].orderId}`
-          : `${storedOrders.length} new orders received`,
-        
-        icon: '/assets/logo-transparent-png.png',
-        badge: '/assets/logo-transparent-png.png',
-        vibrate: [200, 100, 200],
-        
-        data: { 
-          orders: storedOrders,
-          url: adminUrl
-        },
-        
-        // Actions
-        actions: [
-          {
-            action: 'view',
-            title: '👁️ View Orders'
+        await registration.showNotification('New Orders', {
+          body: count > 1 
+            ? `You have ${count} new orders pending`
+            : notification.body || '',
+          icon: '/assets/logo-transparent-png.png',
+          badge: '/assets/logo-transparent-png.png',
+          vibrate: [200, 100, 200],
+          data: { 
+            orderId: notification.data?.orderId,
+            url: adminUrl,
+            requiresAuth: true,
+            count: count
           },
-          {
-            action: 'accept',
-            title: '✓ Accept'
-          }
-        ],
-        
-        tag: notificationTag,
-        renotify: true,
-        requireInteraction: true,
-        
-        // Expanded view settings
-        silent: false,
-        timestamp: Date.now(),
-        
-        // Format messages for expanded view
-        options: {
-          body: storedOrders.map(order => 
-            `Order #${order.orderId} - Table ${order.tableNumber}\n` +
-            order.items.map(item => `• ${item.quantity}x ${item.name}`).join('\n')
-          ).join('\n\n')
-        }
-      });
+          actions: [
+            {
+              action: 'view',
+              title: 'View Orders'
+            }
+          ],
+          requireInteraction: true,
+          tag: notificationTag, // Use same tag to group notifications
+          renotify: true // Notify even if using same tag
+        });
 
-    } else if (Notification.permission === 'granted') {
-      // Desktop notification
+      } catch (error) {
+        console.error('Error showing notification:', error);
+      }
+    }
+  } else {
+    // Desktop notification handling
+    if (Notification.permission === 'granted') {
+      // Close existing notifications with same tag
+      const existingNotifications = await window.registration?.getNotifications({
+        tag: notificationTag
+      }) || [];
+      
+      const count = existingNotifications.length + 1;
+      
+      existingNotifications.forEach(notification => notification.close());
+
       const notif = new Notification('New Orders', {
-        body: storedOrders.length === 1 
-          ? `Table ${storedOrders[0].tableNumber}: New order #${storedOrders[0].orderId}`
-          : storedOrders.map(order => 
-              `Order #${order.orderId} - Table ${order.tableNumber}\n` +
-              order.items.map(item => `• ${item.quantity}x ${item.name}`).join('\n')
-            ).join('\n\n'),
+        body: count > 1 
+          ? `You have ${count} new orders pending`
+          : notification.body || '',
         icon: '/assets/logo-transparent-png.png',
         data: { 
-          orders: storedOrders,
-          url: adminUrl
+          orderId: notification.data?.orderId,
+          url: adminUrl,
+          requiresAuth: true,
+          count: count
         },
         tag: notificationTag,
         renotify: true,
@@ -138,9 +116,7 @@ export const showNotification = async (notification) => {
         }
       };
     }
-  } catch (error) {
-    console.error('Error showing notification:', error);
-  }
+  } 
 };
 
 export const showOrderNotification = (orderId, status = 'placed') => {

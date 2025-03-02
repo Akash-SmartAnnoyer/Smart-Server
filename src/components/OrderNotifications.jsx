@@ -54,9 +54,7 @@ function OrderNotifications({ userRole }) {
               badge: '/assets/logo-transparent-png.png',
               data: {
                 url: 'https://www.app.smart-server.in/admin',
-                orderId: data.order.id,
-                tableNumber: data.order.tableNumber,
-                items: data.order.items
+                orderId: data.order.id
               }
             });
 
