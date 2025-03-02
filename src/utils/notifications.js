@@ -1,5 +1,7 @@
 import { messaging, requestFCMToken } from '../pages/fireBaseConfig';
 import { onMessage } from 'firebase/messaging';
+import { createRoot } from 'react-dom/client';
+import PopupNotification from '../components/PopupNotification';
 
 export const initializeNotifications = async () => {
   try {
@@ -29,17 +31,38 @@ export const showNotification = async (notification) => {
   
   if (localStorage.getItem('role') === 'customer') return;
 
-  // Use a fixed tag for grouping all new order notifications
-  const notificationTag = 'new-orders';
-
+  // Show in-app popup for mobile devices
   if (isMobileDevice) {
+    // Create popup container if it doesn't exist
+    let popupContainer = document.getElementById('popup-notification-container');
+    if (!popupContainer) {
+      popupContainer = document.createElement('div');
+      popupContainer.id = 'popup-notification-container';
+      document.body.appendChild(popupContainer);
+    }
+
+    // Render popup notification
+    const root = createRoot(popupContainer);
+    root.render(
+      <PopupNotification 
+        notification={notification} 
+        onClose={() => {
+          root.unmount();
+          if (popupContainer.parentNode) {
+            popupContainer.parentNode.removeChild(popupContainer);
+          }
+        }} 
+      />
+    );
+
+    // Also show system notification
     if ('serviceWorker' in navigator) {
       try {
         const registration = await navigator.serviceWorker.ready;
         
         // Get existing notifications
         const existingNotifications = await registration.getNotifications({
-          tag: notificationTag
+          tag: 'new-orders'
         });
         
         const count = existingNotifications.length + 1;
@@ -67,8 +90,8 @@ export const showNotification = async (notification) => {
             }
           ],
           requireInteraction: true,
-          tag: notificationTag, // Use same tag to group notifications
-          renotify: true // Notify even if using same tag
+          tag: 'new-orders',
+          renotify: true
         });
 
       } catch (error) {
@@ -80,7 +103,7 @@ export const showNotification = async (notification) => {
     if (Notification.permission === 'granted') {
       // Close existing notifications with same tag
       const existingNotifications = await window.registration?.getNotifications({
-        tag: notificationTag
+        tag: 'new-orders'
       }) || [];
       
       const count = existingNotifications.length + 1;
@@ -98,7 +121,7 @@ export const showNotification = async (notification) => {
           requiresAuth: true,
           count: count
         },
-        tag: notificationTag,
+        tag: 'new-orders',
         renotify: true,
         requireInteraction: true
       });
