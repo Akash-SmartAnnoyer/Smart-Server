@@ -5,19 +5,41 @@ import PopupNotification from '../components/PopupNotification';
 
 export const initializeNotifications = async () => {
   try {
-    const fcmToken = await requestFCMToken();
-    if (fcmToken) {
-      // Store the token in your database if needed
-      console.log('FCM Token:', fcmToken);
-      
-      // Handle foreground messages
-      onMessage(messaging, (payload) => {
-        console.log('Received foreground message:', payload);
-        showNotification(payload.notification);
-      });
-
-      return true;
+    // Request notification permission
+    if (!('Notification' in window)) {
+      console.error('This browser does not support notifications');
+      return false;
     }
+
+    let permission = Notification.permission;
+    if (permission !== 'granted') {
+      permission = await Notification.requestPermission();
+    }
+
+    if (permission !== 'granted') {
+      console.log('Notification permission denied');
+      return false;
+    }
+
+    // Register service worker
+    if ('serviceWorker' in navigator) {
+      const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+      const fcmToken = await requestFCMToken();
+      
+      if (fcmToken) {
+        console.log('FCM Token:', fcmToken);
+        // Send this token to your server to store it for the user
+        
+        // Handle foreground messages
+        onMessage(messaging, (payload) => {
+          console.log('Received foreground message:', payload);
+          showNotification(payload.notification);
+        });
+
+        return true;
+      }
+    }
+    
     return false;
   } catch (error) {
     console.error('Error initializing notifications:', error);
