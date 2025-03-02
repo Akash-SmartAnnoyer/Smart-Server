@@ -51,7 +51,7 @@ const App = () => {
             <CartIconProvider>
               <AdminOrderProvider>
                 <div className="App">
-                  <OrderNotifications userRole="admin" />
+                  {localStorage.getItem('role') === 'captain' && <OrderNotifications userRole="captain" />}
                   <Routes>
                     <Route path="/" element={<LandingPage />} />
                     <Route path="/qr-entry/:orgId/:tableNumber" element={<QREntry />} />
