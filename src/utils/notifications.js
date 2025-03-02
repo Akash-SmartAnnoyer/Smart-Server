@@ -53,19 +53,17 @@ export const showNotification = async (notification) => {
   
   if (localStorage.getItem('role') === 'customer') return;
 
-  // Get pending orders from localStorage
-  let pendingOrders = JSON.parse(localStorage.getItem('pendingNotificationOrders') || '[]');
+  // Get unviewed orders from localStorage
+  let unviewedOrders = JSON.parse(localStorage.getItem('unviewedOrders') || '[]');
   
-  // Add new order details to pending list
-  if (notification.data?.orderId) {
-    pendingOrders.push({
-      id: notification.data.orderId,
-      title: notification.title || 'New Order',
-      body: notification.body || '',
-      timestamp: Date.now()
-    });
-    localStorage.setItem('pendingNotificationOrders', JSON.stringify(pendingOrders));
-  }
+  // Add new order to unviewed list
+  const newOrder = {
+    id: notification.data?.orderId,
+    tableNumber: notification.data?.tableNumber,
+    timestamp: Date.now()
+  };
+  unviewedOrders.push(newOrder);
+  localStorage.setItem('unviewedOrders', JSON.stringify(unviewedOrders));
 
   // Show in-app popup for mobile devices
   if (isMobileDevice) {
@@ -96,20 +94,19 @@ export const showNotification = async (notification) => {
       try {
         const registration = await navigator.serviceWorker.ready;
         
-        // Create notification content
-        const notificationTitle = 'New Orders';
-        let notificationBody;
+        let notificationTitle, notificationBody;
         
-        if (pendingOrders.length > 1) {
-          // Create expanded view with latest 3 orders
-          const latestOrders = pendingOrders.slice(-3).reverse();
-          notificationBody = latestOrders.map(order => 
-            `Order #${order.id}: ${order.body}`
+        if (unviewedOrders.length > 1) {
+          // Multiple unviewed orders
+          notificationTitle = `New Orders (${unviewedOrders.length})`;
+          // Show all unviewed orders on expansion
+          notificationBody = unviewedOrders.map(order => 
+            `Order #${order.id} from Table ${order.tableNumber}`
           ).join('\n');
-          notificationBody += pendingOrders.length > 3 ? 
-            `\n+${pendingOrders.length - 3} more orders` : '';
         } else {
-          notificationBody = notification.body || '';
+          // Single order
+          notificationTitle = 'New Order Received';
+          notificationBody = `Order #${newOrder.id} from Table ${newOrder.tableNumber}`;
         }
 
         await registration.showNotification(notificationTitle, {
@@ -121,13 +118,14 @@ export const showNotification = async (notification) => {
             orderId: notification.data?.orderId,
             url: adminUrl,
             requiresAuth: true,
-            count: pendingOrders.length,
-            orders: pendingOrders
+            unviewedOrders: unviewedOrders
           },
           actions: [
             {
               action: 'view',
-              title: `View ${pendingOrders.length} Orders`
+              title: unviewedOrders.length > 1 ? 
+                `View ${unviewedOrders.length} Orders` : 
+                'View Order'
             }
           ],
           requireInteraction: true,
@@ -142,20 +140,19 @@ export const showNotification = async (notification) => {
   } else {
     // Desktop notification handling
     if (Notification.permission === 'granted') {
-      // Create notification content
-      const notificationTitle = 'New Orders';
-      let notificationBody;
+      let notificationTitle, notificationBody;
       
-      if (pendingOrders.length > 1) {
-        // Create expanded view with latest 3 orders
-        const latestOrders = pendingOrders.slice(-3).reverse();
-        notificationBody = latestOrders.map(order => 
-          `Order #${order.id}: ${order.body}`
+      if (unviewedOrders.length > 1) {
+        // Multiple unviewed orders
+        notificationTitle = `New Orders (${unviewedOrders.length})`;
+        // Show all unviewed orders on expansion
+        notificationBody = unviewedOrders.map(order => 
+          `Order #${order.id} from Table ${order.tableNumber}`
         ).join('\n');
-        notificationBody += pendingOrders.length > 3 ? 
-          `\n+${pendingOrders.length - 3} more orders` : '';
       } else {
-        notificationBody = notification.body || '';
+        // Single order
+        notificationTitle = 'New Order Received';
+        notificationBody = `Order #${newOrder.id} from Table ${newOrder.tableNumber}`;
       }
 
       const notif = new Notification(notificationTitle, {
@@ -165,8 +162,7 @@ export const showNotification = async (notification) => {
           orderId: notification.data?.orderId,
           url: adminUrl,
           requiresAuth: true,
-          count: pendingOrders.length,
-          orders: pendingOrders
+          unviewedOrders: unviewedOrders
         },
         tag: 'new-orders',
         renotify: true,
@@ -175,7 +171,8 @@ export const showNotification = async (notification) => {
 
       notif.onclick = function(event) {
         event.preventDefault();
-        localStorage.removeItem('pendingNotificationOrders');
+        // Clear unviewed orders when clicked
+        localStorage.removeItem('unviewedOrders');
         if (localStorage.getItem('role') !== 'customer') {
           if (window.opener) {
             window.opener.focus();
