@@ -32,9 +32,11 @@ export const showNotification = async (notification) => {
     return;
   }
 
-  // Use a fixed tag for grouping all new order notifications
   const notificationTag = 'new-orders';
 
+  // Store orders in an array to show in expanded view
+  let orders = [];
+  
   if (isMobileDevice) {
     if ('serviceWorker' in navigator) {
       try {
@@ -45,33 +47,54 @@ export const showNotification = async (notification) => {
           tag: notificationTag
         });
         
-        const count = existingNotifications.length + 1;
+        // Collect orders from existing notifications
+        orders = existingNotifications.map(n => ({
+          orderId: n.data.orderId,
+          tableNumber: n.data.tableNumber,
+          items: n.data.items
+        }));
         
+        // Add new order
+        orders.push({
+          orderId: notification.data.orderId,
+          tableNumber: notification.data.tableNumber,
+          items: notification.data.items
+        });
+
         // Close existing notifications
-        existingNotifications.forEach(notification => notification.close());
+        existingNotifications.forEach(n => n.close());
 
         await registration.showNotification('New Orders', {
-          body: count > 1 
-            ? `You have ${count} new orders pending`
-            : notification.body || '',
+          body: `You have ${orders.length} new order${orders.length > 1 ? 's' : ''}`,
           icon: '/assets/logo-transparent-png.png',
           badge: '/assets/logo-transparent-png.png',
           vibrate: [200, 100, 200],
           data: { 
-            orderId: notification.data?.orderId,
+            orders: orders,
             url: adminUrl,
-            requiresAuth: true,
-            count: count
+            requiresAuth: true
           },
           actions: [
             {
               action: 'view',
-              title: 'View Orders'
+              title: 'View All Orders'
             }
           ],
+          // Enable expanded view
+          silent: false,
           requireInteraction: true,
-          tag: notificationTag, // Use same tag to group notifications
-          renotify: true // Notify even if using same tag
+          tag: notificationTag,
+          renotify: true,
+          // Add order details in expanded view
+          options: {
+            // Main notification
+            body: `You have ${orders.length} new order${orders.length > 1 ? 's' : ''}`,
+            // Expanded view shows order details
+            expandedBody: orders.map(order => 
+              `Order #${order.orderId} - Table ${order.tableNumber}\n` +
+              `Items: ${order.items?.map(item => `${item.quantity}x ${item.name}`).join(', ')}`
+            ).join('\n\n')
+          }
         });
 
       } catch (error) {
@@ -81,25 +104,36 @@ export const showNotification = async (notification) => {
   } else {
     // Desktop notification handling
     if (Notification.permission === 'granted') {
-      // Close existing notifications with same tag
       const existingNotifications = await window.registration?.getNotifications({
         tag: notificationTag
       }) || [];
       
-      const count = existingNotifications.length + 1;
+      // Collect orders from existing notifications
+      orders = existingNotifications.map(n => ({
+        orderId: n.data.orderId,
+        tableNumber: n.data.tableNumber,
+        items: n.data.items
+      }));
       
-      existingNotifications.forEach(notification => notification.close());
+      // Add new order
+      orders.push({
+        orderId: notification.data.orderId,
+        tableNumber: notification.data.tableNumber,
+        items: notification.data.items
+      });
+
+      existingNotifications.forEach(n => n.close());
 
       const notif = new Notification('New Orders', {
-        body: count > 1 
-          ? `You have ${count} new orders pending`
-          : notification.body || '',
+        body: orders.map(order => 
+          `Order #${order.orderId} - Table ${order.tableNumber}\n` +
+          `Items: ${order.items?.map(item => `${item.quantity}x ${item.name}`).join(', ')}`
+        ).join('\n\n'),
         icon: '/assets/logo-transparent-png.png',
         data: { 
-          orderId: notification.data?.orderId,
+          orders: orders,
           url: adminUrl,
-          requiresAuth: true,
-          count: count
+          requiresAuth: true
         },
         requireInteraction: true,
         tag: notificationTag,
