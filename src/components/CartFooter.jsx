@@ -41,6 +41,12 @@ const CartFooter = () => {
     setIsExpanded(!isExpanded);
   };
 
+  const isImageAvailable = (url) => {
+    const img = new Image();
+    img.src = url;
+    return img.complete && img.naturalHeight !== 0;
+  };
+
   // Only show on home screen and when cart has items
   if (location.pathname !== '/home' || totalItems === 0) return null;
 
@@ -99,11 +105,13 @@ const CartFooter = () => {
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{ position: 'relative' }}>
-              <img
-                src="/assets/gif-2.gif"
-                alt="Cart Icon"
-                style={{ width: '48px', height: '48px' }}
-              />
+              {isImageAvailable('/assets/gif-2.gif') && (
+                <img
+                  src="/assets/gif-2.gif"
+                  alt="Cart Icon"
+                  style={{ width: '48px', height: '48px' }}
+                />
+              )}
               <ShoppingCart
                 style={{
                   width: '28px',
@@ -247,7 +255,7 @@ const CartFooter = () => {
         )}
 
         {/* Celebration GIF Animation */}
-        {showCelebration && (
+        {showCelebration && isImageAvailable('/assets/gif-1.gif') && (
           <motion.img
             src="/assets/gif-1.gif"
             alt="Celebration"
