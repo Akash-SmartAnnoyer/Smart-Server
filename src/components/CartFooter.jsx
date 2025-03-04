@@ -105,9 +105,9 @@ const CartFooter = () => {
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{ position: 'relative' }}>
-              {isImageAvailable('/assets/gif-2.gif') && (
+              {isImageAvailable('https://smart-server.in/assets/gif-2.gif') && (
                 <img
-                  src="/assets/gif-2.gif"
+                  src="https://smart-server.in/assets/gif-2.gif"
                   alt="Cart Icon"
                   style={{ width: '48px', height: '48px' }}
                 />
@@ -255,9 +255,9 @@ const CartFooter = () => {
         )}
 
         {/* Celebration GIF Animation */}
-        {showCelebration && isImageAvailable('/assets/gif-1.gif') && (
+        {showCelebration && isImageAvailable('https://smart-server.in/assets/gif-1.gif') && (
           <motion.img
-            src="/assets/gif-1.gif"
+            src="https://smart-server.in/assets/gif-1.gif"
             alt="Celebration"
             initial={{ opacity: 0, scale: 1.0 }}
             animate={{ opacity: 1, scale: 2 }}
