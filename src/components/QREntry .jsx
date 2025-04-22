@@ -200,7 +200,7 @@ useEffect(() => {
                             }}
                         />
                         <Title level={3} className="gradient-text" style={{ marginBottom: '30px' }}>
-                            Loading DhaMan Vastra
+                            Loading DhaMan Vastra...!!
                         </Title>
                         <Progress 
                             percent={progress} 
