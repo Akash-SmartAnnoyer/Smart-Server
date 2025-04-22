@@ -30,7 +30,11 @@ users = {
     'deliciousbites-captain@foodies.com': {'password': 'D3l!c10usB!t3s@2025', 'orgId': 9, 'role': 'captain'},
     'deliciousbites-admin@foodies.com': {'password': 'D3l!c10usB!t3s@0000', 'orgId': 9, 'role': 'admin'},
     'spicybiryani-captain@spicydishes.com': {'password': 'Sp!cYB!rY@N!@2025', 'orgId': 10, 'role': 'captain'},
-    'spicybiryani-admin@spicydishes.com': {'password': 'Sp!cYB!rY@N!@0000', 'orgId': 10, 'role': 'admin'}
+    'spicybiryani-admin@spicydishes.com': {'password': 'Sp!cYB!rY@N!@0000', 'orgId': 10, 'role': 'admin'},
+
+     # DhaMan Vastra organization users
+    'captain@dhaman.com': {'password': 'DhaManVastra@00', 'orgId': 10, 'role': 'captain'},
+    'admin@dhaman.com': {'password': 'DhaManVastra@11', 'orgId': 10, 'role': 'admin'},
 }
 
 
