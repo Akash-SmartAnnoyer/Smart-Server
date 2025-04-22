@@ -73,7 +73,7 @@ const RestaurantDrawer = ({ isOpen, onClose }) => {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <img 
             src={process.env.PUBLIC_URL + '/assets/logo-transparent-png_1.png'} 
-            alt="Smart Server" 
+            alt="DhaMan Vastra" 
             className="logo-image" 
             style={{ height: '50px', width: '60px' }}
           />

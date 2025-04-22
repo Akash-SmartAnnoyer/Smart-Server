@@ -46,7 +46,7 @@ import FoodLoader from './FoodLoader';
 
 const versionInfo = {
   version: "1.0.0",
-  buildNumber: "2024.03.1",
+  buildNumber: "2025.04.22",
   environment: "production"
 };
 
@@ -555,6 +555,26 @@ const RestaurantManagement = () => {
       <ChevronRight size={20} color="#666" />
     </div>
   );
+
+  const headingStyle = {
+    color: '#FF0000',
+    marginBottom: '1rem',
+    fontSize: '1.2rem'
+  };
+  
+  const listStyle = {
+    marginBottom: '1.5rem',
+    paddingLeft: '1.5rem'
+  };
+  
+  const footerStyle = {
+    borderTop: '1px solid #FFE5E5',
+    paddingTop: '1.5rem',
+    marginTop: '1.5rem',
+    fontSize: '0.9rem',
+    color: '#666'
+  };
+  
 
   const handleLogoSave = async () => {
     setLoading(true);
@@ -1159,197 +1179,156 @@ const RestaurantManagement = () => {
           </form>
         );
 
-      case 'privacy':
-        return (
-          <div style={sectionStyle}>
-            <h2 style={{ color: '#FF0000', marginBottom: '1.5rem' }}>Privacy Policy</h2>
-            <div style={{ color: '#333', lineHeight: '1.6' }}>
-              <p style={{ marginBottom: '1.5rem' }}>
-                At Smart Server, we take your privacy seriously. This policy outlines how we collect, use, and protect your personal information.
-              </p>
-
-              <h3 style={{ color: '#FF0000', marginBottom: '1rem', fontSize: '1.2rem' }}>Information We Collect</h3>
-              <ul style={{ marginBottom: '1.5rem', paddingLeft: '1.5rem' }}>
-                <li style={{ marginBottom: '0.5rem' }}>Basic contact information (name, email, phone number and location)</li>
-                <li style={{ marginBottom: '0.5rem' }}>Restaurant details and preferences</li>
-                <li style={{ marginBottom: '0.5rem' }}>Order history and transaction data</li>
-                <li style={{ marginBottom: '0.5rem' }}>Device information and usage statistics</li>
-              </ul>
-
-              <h3 style={{ color: '#FF0000', marginBottom: '1rem', fontSize: '1.2rem' }}>How We Use Your Information</h3>
-              <ul style={{ marginBottom: '1.5rem', paddingLeft: '1.5rem' }}>
-                <li style={{ marginBottom: '0.5rem' }}>Provide and improve our services</li>
-                <li style={{ marginBottom: '0.5rem' }}>Process transactions and orders</li>
-                <li style={{ marginBottom: '0.5rem' }}>Send important updates and notifications</li>
-                <li style={{ marginBottom: '0.5rem' }}>Enhance platform security and prevent fraud</li>
-              </ul>
-
-              <h3 style={{ color: '#FF0000', marginBottom: '1rem', fontSize: '1.2rem' }}>Data Security</h3>
-              <p style={{ marginBottom: '1.5rem' }}>
-                We implement industry-standard security measures to protect your data. This includes encryption, secure servers, and regular security audits.
-              </p>
-
-              <h3 style={{ color: '#FF0000', marginBottom: '1rem', fontSize: '1.2rem' }}>Contact Us</h3>
-              <p>For privacy-related inquiries, please contact us at:</p>
-              <p style={{ marginBottom: '0.5rem' }}><strong>Email:</strong> support@smartserver.in</p>
-              <p style={{ marginBottom: '1.5rem' }}><strong>Phone:</strong> +91 955 331 3334</p>
-
-              <div style={{ 
-                borderTop: '1px solid #FFE5E5', 
-                paddingTop: '1.5rem', 
-                marginTop: '1.5rem',
-                fontSize: '0.9rem',
-                color: '#666' 
-              }}>
-                <p>Last updated: {new Date().toLocaleDateString()}</p>
+        case 'privacy':
+          return (
+            <div style={sectionStyle}>
+              <h2 style={{ color: '#FF0000', marginBottom: '1.5rem' }}>Privacy Policy</h2>
+              <div style={{ color: '#333', lineHeight: '1.6' }}>
+                <p style={{ marginBottom: '1.5rem' }}>
+                  At DhaManVastra, your privacy matters. This policy explains how we collect, use, and safeguard your personal information when you shop with us.
+                </p>
+        
+                <h3 style={headingStyle}>Information We Collect</h3>
+                <ul style={listStyle}>
+                  <li>Basic contact details (name, email, phone number, address)</li>
+                  <li>Order history, wishlist, and cart items</li>
+                  <li>Payment and transaction data</li>
+                  <li>Device/browser information and shopping behavior</li>
+                </ul>
+        
+                <h3 style={headingStyle}>How We Use Your Information</h3>
+                <ul style={listStyle}>
+                  <li>Process orders and deliver products</li>
+                  <li>Improve user experience and website performance</li>
+                  <li>Send order updates and promotional content</li>
+                  <li>Secure your data and prevent unauthorized access</li>
+                </ul>
+        
+                <h3 style={headingStyle}>Data Security</h3>
+                <p style={{ marginBottom: '1.5rem' }}>
+                  We use modern security practices including SSL encryption and secure payment gateways to protect your information.
+                </p>
+        
+                <h3 style={headingStyle}>Contact Us</h3>
+                <p>Have questions about privacy? Reach us at:</p>
+                <p><strong>Email:</strong> support@dhamanvastra.com</p>
+                <p><strong>Phone:</strong> +91 98765 43210</p>
+        
+                <div style={footerStyle}>
+                  <p>Last updated: {new Date().toLocaleDateString()}</p>
+                </div>
               </div>
             </div>
-          </div>
-        );
-
-      case 'refund':
-        return (
-          <div style={sectionStyle}>
-            <h2 style={{ color: '#FF0000', marginBottom: '1.5rem' }}>Refund Policy</h2>
-            <div style={{ color: '#333', lineHeight: '1.6' }}>
-              <p style={{ marginBottom: '1.5rem' }}>
-                Smart Server is committed to ensuring customer satisfaction. This policy outlines our refund procedures for our services.
-              </p>
-
-              <h3 style={{ color: '#FF0000', marginBottom: '1rem', fontSize: '1.2rem' }}>Subscription Refunds</h3>
-              <p style={{ marginBottom: '1.5rem' }}>
-                We offer a 7-day money-back guarantee on new subscriptions. Refund requests must be submitted within 7 days of the initial purchase.
-              </p>
-
-              <h3 style={{ color: '#FF0000', marginBottom: '1rem', fontSize: '1.2rem' }}>Eligible Refunds</h3>
-              <ul style={{ marginBottom: '1.5rem', paddingLeft: '1.5rem' }}>
-                <li style={{ marginBottom: '0.5rem' }}>Service unavailability due to technical issues</li>
-                <li style={{ marginBottom: '0.5rem' }}>Incorrect subscription charges</li>
-                <li style={{ marginBottom: '0.5rem' }}>Duplicate transactions</li>
-              </ul>
-
-              <h3 style={{ color: '#FF0000', marginBottom: '1rem', fontSize: '1.2rem' }}>Refund Process</h3>
-              <ol style={{ marginBottom: '1.5rem', paddingLeft: '1.5rem' }}>
-                <li style={{ marginBottom: '0.5rem' }}>Submit a refund request via email</li>
-                <li style={{ marginBottom: '0.5rem' }}>Include order details and reason for refund</li>
-                <li style={{ marginBottom: '0.5rem' }}>Receive confirmation within 48 hours</li>
-                <li style={{ marginBottom: '0.5rem' }}>Refund processed within 5-7 business days</li>
-              </ol>
-
-              <h3 style={{ color: '#FF0000', marginBottom: '1rem', fontSize: '1.2rem' }}>Contact Information</h3>
-              <p style={{ marginBottom: '0.5rem' }}><strong>Email:</strong> support@smartserver.in</p>
-              <p style={{ marginBottom: '1.5rem' }}><strong>Phone:</strong> +91 955 331 3334</p>
-
-              <div style={{ 
-                borderTop: '1px solid #FFE5E5', 
-                paddingTop: '1.5rem', 
-                marginTop: '1.5rem',
-                fontSize: '0.9rem',
-                color: '#666' 
-              }}>
-                <p>Last updated: {new Date().toLocaleDateString()}</p>
+          );
+        
+        case 'refund':
+          return (
+            <div style={sectionStyle}>
+              <h2 style={{ color: '#FF0000', marginBottom: '1.5rem' }}>Refund Policy</h2>
+              <div style={{ color: '#333', lineHeight: '1.6' }}>
+                <p style={{ marginBottom: '1.5rem' }}>
+                  Your satisfaction is our top priority. This policy describes the conditions under which refunds and returns can be initiated.
+                </p>
+        
+                <h3 style={headingStyle}>Return Eligibility</h3>
+                <ul style={listStyle}>
+                  <li>Items must be returned within 7 days of delivery</li>
+                  <li>Products should be unused, unwashed, and in original packaging</li>
+                  <li>Invoice must be included for all returns</li>
+                </ul>
+        
+                <h3 style={headingStyle}>Non-Returnable Items</h3>
+                <ul style={listStyle}>
+                  <li>Innerwear, swimwear, and customized clothing</li>
+                  <li>Items marked as final sale</li>
+                </ul>
+        
+                <h3 style={headingStyle}>Refund Process</h3>
+                <ol style={listStyle}>
+                  <li>Submit a return request via our website or support email</li>
+                  <li>Ship the item using the instructions provided</li>
+                  <li>Receive a confirmation and refund within 5-7 business days</li>
+                </ol>
+        
+                <h3 style={headingStyle}>Contact</h3>
+                <p><strong>Email:</strong> support@dhamanvastra.com</p>
+                <p><strong>Phone:</strong> +91 98765 43210</p>
+        
+                <div style={footerStyle}>
+                  <p>Last updated: {new Date().toLocaleDateString()}</p>
+                </div>
               </div>
             </div>
-          </div>
-        );
-
-      case 'terms':
-        return (
-          <div style={sectionStyle}>
-            <h2 style={{ color: '#FF0000', marginBottom: '1.5rem' }}>Terms & Conditions</h2>
-            <div style={{ color: '#333', lineHeight: '1.6' }}>
-              <p style={{ marginBottom: '1.5rem' }}>
-                By using Smart Server's platform and services, you agree to comply with and be bound by the following terms and conditions.
-              </p>
-
-              <h3 style={{ color: '#FF0000', marginBottom: '1rem', fontSize: '1.2rem' }}>Service Usage</h3>
-              <ul style={{ marginBottom: '1.5rem', paddingLeft: '1.5rem' }}>
-                <li style={{ marginBottom: '0.5rem' }}>Users must be 18 years or older</li>
-                <li style={{ marginBottom: '0.5rem' }}>Accurate information must be provided during registration</li>
-                <li style={{ marginBottom: '0.5rem' }}>Account credentials must not be shared</li>
-                <li style={{ marginBottom: '0.5rem' }}>Platform must be used in compliance with local laws</li>
-              </ul>
-
-              <h3 style={{ color: '#FF0000', marginBottom: '1rem', fontSize: '1.2rem' }}>Subscription Terms</h3>
-              <ul style={{ marginBottom: '1.5rem', paddingLeft: '1.5rem' }}>
-                <li style={{ marginBottom: '0.5rem' }}>Subscription fees are billed in advance</li>
-                <li style={{ marginBottom: '0.5rem' }}>Automatic renewal unless cancelled</li>
-                <li style={{ marginBottom: '0.5rem' }}>30-day notice required for cancellation</li>
-              </ul>
-
-              <h3 style={{ color: '#FF0000', marginBottom: '1rem', fontSize: '1.2rem' }}>Intellectual Property</h3>
-              <p style={{ marginBottom: '1.5rem' }}>
-                All content, features, and functionality are owned by Smart Server and protected by international copyright laws.
-              </p>
-
-              <h3 style={{ color: '#FF0000', marginBottom: '1rem', fontSize: '1.2rem' }}>Limitation of Liability</h3>
-              <p style={{ marginBottom: '1.5rem' }}>
-                Smart Server shall not be liable for any indirect, incidental, special, consequential, or punitive damages resulting from your use of the service.
-              </p>
-
-              <h3 style={{ color: '#FF0000', marginBottom: '1rem', fontSize: '1.2rem' }}>Contact Information</h3>
-              <p style={{ marginBottom: '0.5rem' }}><strong>Email:</strong> support@smartserver.in</p>
-              <p style={{ marginBottom: '1.5rem' }}><strong>Phone:</strong> +91 955 331 3334</p>
-
-              <div style={{ 
-                borderTop: '1px solid #FFE5E5', 
-                paddingTop: '1.5rem', 
-                marginTop: '1.5rem',
-                fontSize: '0.9rem',
-                color: '#666' 
-              }}>
-                <p>Last updated: {new Date().toLocaleDateString()}</p>
+          );
+        
+        case 'terms':
+          return (
+            <div style={sectionStyle}>
+              <h2 style={{ color: '#FF0000', marginBottom: '1.5rem' }}>Terms & Conditions</h2>
+              <div style={{ color: '#333', lineHeight: '1.6' }}>
+                <p style={{ marginBottom: '1.5rem' }}>
+                  By accessing and using DhaManVastra, you agree to the following terms and conditions.
+                </p>
+        
+                <h3 style={headingStyle}>Account & Usage</h3>
+                <ul style={listStyle}>
+                  <li>Users must provide accurate and complete information</li>
+                  <li>Do not share your account credentials with others</li>
+                  <li>Use our platform responsibly and legally</li>
+                </ul>
+        
+                <h3 style={headingStyle}>Order & Payment</h3>
+                <ul style={listStyle}>
+                  <li>Orders are confirmed only after successful payment</li>
+                  <li>Prices and availability are subject to change without notice</li>
+                  <li>We reserve the right to cancel suspicious orders</li>
+                </ul>
+        
+                <h3 style={headingStyle}>Intellectual Property</h3>
+                <p style={{ marginBottom: '1.5rem' }}>
+                  All content on DhaManVastra, including logos, images, and designs, are our property and protected under copyright laws.
+                </p>
+        
+                <h3 style={headingStyle}>Contact Us</h3>
+                <p><strong>Email:</strong> support@dhamanvastra.com</p>
+                <p><strong>Phone:</strong> +91 98765 43210</p>
+        
+                <div style={footerStyle}>
+                  <p>Last updated: {new Date().toLocaleDateString()}</p>
+                </div>
               </div>
             </div>
-          </div>
-        );
-
-      case 'about':
-        return (
-          <div style={sectionStyle}>
-            <h2 style={{ color: '#FF0000', marginBottom: '1.5rem' }}>About Us</h2>
-            <div style={{ color: '#333', lineHeight: '1.6' }}>
-              <p style={{ marginBottom: '1.5rem' }}>
-                Smart Server is a cutting-edge digital restaurant management platform that transforms traditional dining experiences through innovative technology solutions. As industry leaders in restaurant digitization, we specialize in providing seamless QR-based ordering systems that enhance both customer satisfaction and operational efficiency.
-              </p>
-
-              <h3 style={{ color: '#FF0000', marginBottom: '1rem', fontSize: '1.2rem' }}>Our Mission</h3>
-              <p style={{ marginBottom: '1.5rem' }}>
-                We are dedicated to revolutionizing the restaurant industry by providing state-of-the-art digital solutions that streamline operations, reduce wait times, and create exceptional dining experiences. Our platform empowers restaurants to embrace digital transformation while maintaining their unique identity and service quality.
-              </p>
-
-              <h3 style={{ color: '#FF0000', marginBottom: '1rem', fontSize: '1.2rem' }}>Key Features</h3>
-              <ul style={{ marginBottom: '1.5rem', paddingLeft: '1.5rem' }}>
-                <li style={{ marginBottom: '0.5rem' }}>Dynamic QR-based digital menu system</li>
-                <li style={{ marginBottom: '0.5rem' }}>Real-time order management</li>
-                <li style={{ marginBottom: '0.5rem' }}>Seamless payment integration</li>
-                <li style={{ marginBottom: '0.5rem' }}>Comprehensive analytics and reporting</li>
-                <li style={{ marginBottom: '0.5rem' }}>Custom branding solutions</li>
-              </ul>
-
-              <h3 style={{ color: '#FF0000', marginBottom: '1rem', fontSize: '1.2rem' }}>Contact Information</h3>
-              <p style={{ marginBottom: '0.5rem' }}>
-                <strong>Customer Support:</strong> +91 955 331 3334
-              </p>
-              <p style={{ marginBottom: '1.5rem' }}>
-                <strong>Email:</strong> support@smartserver.in
-              </p>
-
-              <div style={{ 
-                borderTop: '1px solid #FFE5E5', 
-                paddingTop: '1.5rem', 
-                marginTop: '1.5rem',
-                fontSize: '0.9rem',
-                color: '#666' 
-              }}>
+          );
+        
+        case 'about':
+          return (
+            <div style={sectionStyle}>
+              <h2 style={{ color: '#FF0000', marginBottom: '1.5rem' }}>About DhaManVastra</h2>
+              <div style={{ color: '#333', lineHeight: '1.6' }}>
+                <p style={{ marginBottom: '1.5rem' }}>
+                  DhaManVastra is a modern clothing e-commerce platform offering a curated selection of traditional and contemporary fashion. We are dedicated to celebrating Indian heritage while embracing global style trends.
+                </p>
+        
+                <h3 style={headingStyle}>Our Vision</h3>
+                <p style={{ marginBottom: '1.5rem' }}>
+                  To become a one-stop destination for high-quality, affordable fashion rooted in tradition yet designed for the modern wardrobe.
+                </p>
+        
+                <h3 style={headingStyle}>Our Values</h3>
+                <ul style={listStyle}>
+                  <li>Authenticity in design and fabric</li>
+                  <li>Customer-first service</li>
+                  <li>Sustainable and ethical sourcing</li>
+                </ul>
+        
+                <h3 style={headingStyle}>Join Our Journey</h3>
                 <p>
-                  © {new Date().getFullYear()} Smart Server. All rights reserved.
+                  Be a part of DhaManVastra's growing family. Whether you're shopping for a festival, a wedding, or daily elegance — we've got you covered.
                 </p>
               </div>
             </div>
-          </div>
-        );
-
+          );
+        
       default:
         return null;
     }
@@ -1609,7 +1588,7 @@ const RestaurantManagement = () => {
                 fontSize: '1.5rem',
                 fontWeight: 'bold',
               }}>
-                Smart Server
+                DhaMan Vastra
               </h3>
 
               <div style={{
@@ -1643,7 +1622,7 @@ const RestaurantManagement = () => {
                 fontSize: '0.8rem',
                 color: '#999',
               }}>
-                © {new Date().getFullYear()} Smart Server
+                © {new Date().getFullYear()} DhaMan Vastra
                 <br />
                 All rights reserved.
               </div>

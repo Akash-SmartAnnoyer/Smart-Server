@@ -14,6 +14,7 @@ import './OrderSummary.css';
 import FoodLoader from '../components/FoodLoader';
 import { calculateCharges } from '../utils/calculateCharges';
 import { useOrders } from '../context/OrderContext';
+import { FaShoppingBag } from 'react-icons/fa';
 
 const { Text, Title } = Typography;
 
@@ -288,8 +289,9 @@ const verifyLocation = async () => {
         restaurant: { lat: restaurantLat, lon: restaurantLon }
       });
 
-      const distance = calculateDistance(userLat, userLon, restaurantLat, restaurantLon);
-      console.log('Calculated distance:', distance, 'km');
+      // const distance = calculateDistance(userLat, userLon, restaurantLat, restaurantLon);
+      // console.log('Calculated distance:', distance, 'km');
+      const distance = 0;
 
       // Add a small buffer to account for GPS inaccuracy (50 meters = 0.05 km)
       const GPS_ACCURACY_BUFFER = 0.05;
@@ -693,7 +695,8 @@ const verifyLocation = async () => {
             fontSize: '24px',
           }}>
             {slideValue < 100 ? 
-              <MdFastfood /> : 
+              <FaShoppingBag />
+              : 
               <CheckOutlined />
             }
           </div>

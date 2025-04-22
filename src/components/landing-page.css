@@ -169,13 +169,13 @@ body {
   }
 }
 
-.food-emojis {
+.dress-emojis {
   display: flex;
   justify-content: center;
   margin-top: 1.5rem;
 }
 
-.food-emoji {
+.dress-emoji {
   font-size: 2rem;
   margin: 0 0.5rem;
   animation: bounce 1s infinite;
@@ -183,24 +183,24 @@ body {
   transition: all 0.3s ease;
 }
 
-.food-emoji:hover {
+.dress-emoji:hover {
   opacity: 1;
   transform: scale(1.2);
 }
 
-.food-emoji:nth-child(2) {
+.dress-emoji:nth-child(2) {
   animation-delay: 0.1s;
 }
 
-.food-emoji:nth-child(3) {
+.dress-emoji:nth-child(3) {
   animation-delay: 0.2s;
 }
 
-.food-emoji:nth-child(4) {
+.dress-emoji:nth-child(4) {
   animation-delay: 0.3s;
 }
 
-.food-emoji:nth-child(5) {
+.dress-emoji:nth-child(5) {
   animation-delay: 0.4s;
 }
 

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, Row, Col, Typography, Input, message, Modal, Button, Avatar } from 'antd';
 import { CloseOutlined, PlusOutlined, SaveOutlined } from '@ant-design/icons';
 import { useMenu } from '../contexts/MenuProvider';
-import FoodLoader from './FoodLoader';
+import ClothingLoader from './ClothingLoader';
 
 const { Title, Text } = Typography;
 const { Search } = Input;
@@ -16,7 +16,6 @@ const styles = {
     top: '64px',
     zIndex: 100,
     backgroundColor: '#fff',
-    // padding: '0px 0',
     marginBottom: '16px',
     borderBottom: '1px solid #f0f0f0',
     boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
@@ -36,7 +35,7 @@ const styles = {
     paddingLeft: '8px',
     paddingRight: '8px',
   },
-  menuCard: {
+  collectionCard: {
     marginBottom: '12px',
     position: 'relative',
     paddingBottom: '50px',
@@ -127,14 +126,13 @@ const styles = {
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
-    // backgroundColor: 'rgba(255, 255, 255, 0.8)',
     zIndex: 1000,
   },
 };
 
-const MenuSuggestionManager = () => {
+const CollectionSuggestionManager = () => {
   const { 
-    menuItems, 
+    menuItems: collectionItems, 
     recommendations: suggestions, 
     loading,
     dataInitialized,
@@ -161,10 +159,10 @@ const MenuSuggestionManager = () => {
   };
 
   const getImageUrl = (imageData) => {
-    if (!imageData) return '/placeholder.jpg'; // Fallback image
-    if (typeof imageData === 'string') return imageData; // Direct URL
-    if (imageData.url) return imageData.url; // For URL field
-    if (imageData.file?.url) return imageData.file.url; // For nested file structure
+    if (!imageData) return '/placeholder.jpg';
+    if (typeof imageData === 'string') return imageData;
+    if (imageData.url) return imageData.url;
+    if (imageData.file?.url) return imageData.file.url;
     return '/placeholder.jpg';
   };
 
@@ -218,7 +216,7 @@ const MenuSuggestionManager = () => {
 
   const getFilteredItems = () => {
     if (!selectedItem) return [];
-    return menuItems.filter(item => 
+    return collectionItems.filter(item => 
       item.id !== selectedItem.id &&
       (item.name.toLowerCase().includes(searchText.toLowerCase()) ||
        item.description?.toLowerCase().includes(searchText.toLowerCase()))
@@ -229,35 +227,15 @@ const MenuSuggestionManager = () => {
     setSearchText(value.toLowerCase());
   };
 
-  const filteredMenuItems = menuItems.filter(item =>
+  const filteredCollectionItems = collectionItems.filter(item =>
     item.name.toLowerCase().includes(searchText) || 
     (item.description && item.description.toLowerCase().includes(searchText))
   );
 
   if (loading.overall || !dataInitialized) {
     return (
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.8)',
-        zIndex: 1000,
-      }}>
-        <FoodLoader />
-        <div style={{
-          marginTop: '1rem',
-          color: '#FF0000',
-          fontWeight: 'bold',
-          fontSize: '1.2rem',
-        }}>
-          Loading dresses recommendations...
-        </div>
+      <div style={styles.loadingContainer}>
+        <ClothingLoader />
       </div>
     );
   }
@@ -265,37 +243,22 @@ const MenuSuggestionManager = () => {
   return (
     <div style={styles.container}>
       <div style={styles.stickyHeader}>
-        <Title level={2} style={styles.header}>Dresses Recommendations</Title>
-        <Search
-          placeholder="Search dresses..."
-          onSearch={handleSearch}
-          onChange={(e) => handleSearch(e.target.value)}
-          style={styles.searchInput}
-        />
+        <Title level={2} style={styles.header}>Collection Suggestions</Title>
+        <div style={styles.searchInput}>
+          <Search
+            placeholder="Search collections..."
+            allowClear
+            onChange={(e) => handleSearch(e.target.value)}
+            style={{ width: '100%' }}
+          />
+        </div>
       </div>
 
       <div style={styles.contentContainer}>
         <Row gutter={[16, 16]}>
-          {filteredMenuItems.map(item => (
-            <Col xs={24} md={12} key={item.id}>
-              <Card style={styles.menuCard}>
-                {suggestions[item.id]?.length > 0 && (
-                  <>
-                    <div style={styles.suggestionLabel}>Current Recommendations:</div>
-                    <div style={styles.tagsContainer}>
-                      {suggestions[item.id].map(suggestion => (
-                        <div key={suggestion.id} style={styles.suggestionTag}>
-                          <Avatar 
-                            src={getImageUrl(suggestion.image)} 
-                            alt={suggestion.name}
-                            style={styles.tagImage}
-                          />
-                          <span style={styles.suggestionName}>{suggestion.name}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                )}
+          {filteredCollectionItems.map(item => (
+            <Col xs={24} sm={12} md={8} lg={6} key={item.id}>
+              <Card style={styles.collectionCard}>
                 <div style={styles.itemContent}>
                   <div style={styles.imageContainer}>
                     <img
@@ -304,19 +267,31 @@ const MenuSuggestionManager = () => {
                       style={styles.image}
                     />
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <Title level={4}>{item.name}</Title>
-                    <Text type="secondary">{item.description}</Text>
+                  <div>
+                    <Text strong>{item.name}</Text>
                     <div style={styles.price}>₹{item.price}</div>
+                    <div style={styles.tagsContainer}>
+                      {suggestions[item.id]?.map(suggestion => (
+                        <div key={suggestion.id} style={styles.suggestionTag}>
+                          <Avatar
+                            size="small"
+                            src={getImageUrl(suggestion.image)}
+                          />
+                          <span style={styles.suggestionName}>
+                            {suggestion.name}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
-                <Button 
+                <Button
                   type="primary"
                   icon={<PlusOutlined />}
                   style={styles.addSuggestionsButton}
                   onClick={() => handleOpenModal(item)}
                 >
-                  {suggestions[item.id]?.length > 0 ? 'Update Recommendations' : 'Set Recommendations'}
+                  Manage Suggestions
                 </Button>
               </Card>
             </Col>
@@ -325,11 +300,11 @@ const MenuSuggestionManager = () => {
       </div>
 
       <Modal
-        title={`Select Recommendations for ${selectedItem?.name}`}
-        open={modalVisible}
+        title={`Suggestions for ${selectedItem?.name}`}
+        visible={modalVisible}
         onCancel={() => setModalVisible(false)}
         footer={[
-          <Button key="cancel" icon={<CloseOutlined />} onClick={() => setModalVisible(false)}>
+          <Button key="cancel" onClick={() => setModalVisible(false)}>
             Cancel
           </Button>,
           <Button
@@ -337,50 +312,47 @@ const MenuSuggestionManager = () => {
             type="primary"
             icon={<SaveOutlined />}
             loading={saving}
-            style={{ backgroundColor: '#ff4d4f', borderColor: '#ff4d4f' }}
             onClick={saveSuggestions}
           >
-            Save Recommendations
-          </Button>
+            Save Suggestions
+          </Button>,
         ]}
+        width={800}
       >
-         <Search
-          placeholder="Search dresses..."
-          style={styles.modalSearch}
-          onChange={(e) => setSearchText(e.target.value)}
-        />
-
-        <div style={{ maxHeight: '400px', overflowY: 'auto', paddingRight: '16px' }}>
-          <Row gutter={[8, 8]}>
-            {getFilteredItems().map(suggestedItem => (
-              <Col xs={24} md={12} key={suggestedItem.id}>
-                <Card
-                  hoverable
-                  onClick={() => handleSuggestionToggle(suggestedItem)}
-                  style={{
-                    ...styles.suggestionCard,
-                    ...(selectedSuggestions.some(item => item.id === suggestedItem.id) && styles.selectedSuggestion),
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
-                    <img
-                      src={getImageUrl(suggestedItem.image)}
-                      alt={suggestedItem.name}
-                      style={styles.suggestionImage}
-                    />
-                    <div>
-                      <Text>{suggestedItem.name}</Text>
-                      <div style={{ fontSize: '12px' }}>{suggestedItem.description}</div>
-                    </div>
-                  </div>
-                </Card>
-              </Col>
-            ))}
-          </Row>
+        <div style={styles.modalSearch}>
+          <Search
+            placeholder="Search items to suggest..."
+            allowClear
+            onChange={(e) => handleSearch(e.target.value)}
+          />
         </div>
-              </Modal>
+        <div>
+          {getFilteredItems().map(item => (
+            <Card
+              key={item.id}
+              style={{
+                ...styles.suggestionCard,
+                ...(selectedSuggestions.find(s => s.id === item.id) && styles.selectedSuggestion),
+              }}
+              onClick={() => handleSuggestionToggle(item)}
+            >
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <img
+                  src={getImageUrl(item.image)}
+                  alt={item.name}
+                  style={styles.suggestionImage}
+                />
+                <div>
+                  <Text strong>{item.name}</Text>
+                  <div style={styles.price}>₹{item.price}</div>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      </Modal>
     </div>
   );
 };
 
-export default MenuSuggestionManager;
+export default CollectionSuggestionManager; 

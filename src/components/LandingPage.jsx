@@ -48,7 +48,7 @@ const LandingPage = () => {
                 localStorage.setItem('orgId', data.orgId);
                 localStorage.setItem('isCaptain', data.role === 'captain');
                 localStorage.setItem('needRefresh', 'yes');
-                
+
                 if (data.role === 'captain') {
                     navigate('/admin');
                 } else {
@@ -60,7 +60,7 @@ const LandingPage = () => {
             }
         } catch (error) {
             setError('An error occurred. Please try again.');
-            console.error('Login error:', error);   
+            console.error('Login error:', error);
         } finally {
             setIsLoading(false);
         }
@@ -81,7 +81,7 @@ const LandingPage = () => {
                     />
 
                     <div className="login-container">
-                        <h1 className="login-title">Welcome to Our Food Service</h1>
+                        <h1 className="login-title">Welcome to Our Collections</h1>
 
                         <form onSubmit={handleLogin}>
                             <div className="input-group">
@@ -121,13 +121,14 @@ const LandingPage = () => {
                         {isLoading && <FoodLoader />}
                     </div>
 
-                    <div className="food-emojis">
-                        <span className="food-emoji">🍔</span>
-                        <span className="food-emoji">🍕</span>
-                        <span className="food-emoji">🌮</span>
-                        <span className="food-emoji">🍣</span>
-                        <span className="food-emoji">🍜</span>
+                    <div className="dress-emojis">
+                        <span className="dress-emoji">👗</span>
+                        <span className="dress-emoji">👚</span>
+                        <span className="dress-emoji">👠</span>
+                        <span className="dress-emoji">👜</span>
+                        <span className="dress-emoji">💄</span>
                     </div>
+
                 </div>
             } />
             <Route path="/qr-entry/:orgId" element={<QREntry />} />

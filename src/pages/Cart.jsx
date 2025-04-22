@@ -103,7 +103,7 @@ function Cart() {
         marginBottom: '25px',
         fontWeight: 'bold',
         paddingTop: '10px'
-      }}>Your Food Cart 🍽️</h2>
+      }}>Your Cart 🛍️</h2>
 
       {cart.length === 0 ? (
         <div style={{

@@ -33,10 +33,10 @@ function Header({ onSearch }) {
   const [isProfileModalVisible, setIsProfileModalVisible] = useState(false);
 
   const searchPlaceholders = [
-    "Search for your favorite dishes...",
-    "Craving something specific?",
-    "Explore our menu",
-    "What would you like to eat?",
+    "Search for your favorite dresses...",
+    "Looking for something stylish?",
+    "Explore our dress collection",
+    "What would you love to wear today?",
   ];
 
   useEffect(() => {
@@ -119,10 +119,10 @@ function Header({ onSearch }) {
               <Link to="/home" className="header__logo">
                 <img 
                   src="/assets/logo-transparent-png.png" 
-                  alt="Smart Server" 
+                  alt="DhaMan Vastra" 
                   className="header__logo-image" 
                 />
-                <span className="header__logo-text">Smart Server</span>
+                <span className="header__logo-text">DhaMan Vastra</span>
               </Link>
             </div>
 

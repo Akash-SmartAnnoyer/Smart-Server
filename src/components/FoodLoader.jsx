@@ -42,7 +42,7 @@ const FoodLoader = () => {
         fontSize: '18px',
         animation: 'bounce 1s infinite',
       }}>
-        Cooking up some deliciousness...
+        Loading DhaMan Vastra...
       </div>
       <div style={{
         display: 'flex',

@@ -498,8 +498,8 @@ const renderFormItems = () => {
           </Form.Item>
           <Form.Item
             name="foodType"
-            label="Food Type"
-            rules={[{ required: true, message: 'Please select the food type!' }]}
+            label="Dress Type"
+            rules={[{ required: true, message: 'Please select the Dress type!' }]}
           >
             <Select>
               <Select.Option value="veg">Veg</Select.Option>
