@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: smart-server-frontend
+    env: static
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./build
+    envVars:
+      - key: REACT_APP_API_URL
+        value: https://smart-server-backend.onrender.com/api
+
