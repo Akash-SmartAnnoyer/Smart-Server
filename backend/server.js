@@ -25,16 +25,31 @@ connectDB().catch(err => {
 
 // Middleware
 // CORS configuration - allow requests from frontend
+const allowedOrigins = process.env.NODE_ENV === 'production' 
+  ? [
+      'https://smart-server-frontend.onrender.com',
+      'https://smart-server.onrender.com',
+      'https://smart-server.in',  // Custom domain
+      'http://localhost:3000'
+    ]
+  : ['http://localhost:3000'];
+
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || process.env.NODE_ENV === 'production' 
-    ? [
-        'https://smart-server-frontend.onrender.com',
-        'https://smart-server.onrender.com',
-        'http://localhost:3000'
-      ]
-    : 'http://localhost:3000',
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
+      callback(null, true);
+    } else {
+      console.warn('⚠️  CORS blocked origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
-  optionsSuccessStatus: 200
+  optionsSuccessStatus: 200,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 };
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '50mb' })); // For handling base64 images
