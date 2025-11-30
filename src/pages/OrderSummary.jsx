@@ -122,7 +122,10 @@ function OrderSummary() {
         // Only fetch if we don't have the data
         if (!restaurantData) {
           setChargesLoading(true);
-          const chargesData = await api.getCharges(orgId);
+          // Check if user is authenticated (has token) or is a guest customer
+          const token = localStorage.getItem('token');
+          const isPublic = !token || token === 'null' || token === ''; // Use public endpoint if no token (customer access)
+          const chargesData = await api.getCharges(orgId, isPublic);
           if (chargesData && Array.isArray(chargesData)) {
             setCharges(chargesData);
           }

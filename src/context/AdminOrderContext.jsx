@@ -62,41 +62,42 @@ export const AdminOrderProvider = ({ children }) => {
         return;
       }
 
-      // Fetch orders from MongoDB API
-      const ordersArray = await api.getHistory(orgId, {
-        limit: batchSize + 1 // Fetch one extra to check if there are more
-      });
+      // Fetch ACTIVE orders (not history) - admin needs to see live orders
+      console.log('AdminOrderContext: Fetching active orders for orgId:', orgId);
+      const ordersArray = await api.getOrders(orgId);
+      console.log('AdminOrderContext: Received', ordersArray?.length || 0, 'orders');
+
+      if (!ordersArray || ordersArray.length === 0) {
+        console.log('AdminOrderContext: No orders found');
+        setOrders([]);
+        setHasMore(false);
+        setLoading(false);
+        return;
+      }
 
       // Process orders to match expected format
-      const processedOrders = ordersArray.map(order => ({
-        ...order,
-        id: order.orderId || order._id,
-        timestamp: order.createdAt || order.timestamp
-      }));
+      // Filter out cancelled and completed orders for live orders view
+      const processedOrders = ordersArray
+        .map(order => ({
+          ...order,
+          id: order.orderId || order._id,
+          timestamp: order.createdAt || order.timestamp
+        }))
+        .filter(order => !['cancelled', 'completed'].includes(order.status))
+        .sort((a, b) => {
+          const dateA = new Date(a.timestamp || a.createdAt);
+          const dateB = new Date(b.timestamp || b.createdAt);
+          return dateB - dateA;
+        });
 
-      // Check if there are more orders
-      const hasMoreOrders = processedOrders.length > batchSize;
-      if (hasMoreOrders) {
-        processedOrders.pop(); // Remove the extra item we used to check for more
-      }
-      setHasMore(hasMoreOrders);
+      console.log('AdminOrderContext: Processed', processedOrders.length, 'active orders');
+      
+      // For active orders, we don't need pagination - show all active orders
+      setHasMore(false);
 
-      setOrders(prevOrders => {
-        if (!endAt) {
-          // For initial load, just set the orders
-          safeSetLocalStorage('cachedOrders', processedOrders);
-          return processedOrders;
-        }
-        
-        // For subsequent loads, append new orders
-        const existingOrderIds = new Set(prevOrders.map(order => order.id));
-        const newOrders = processedOrders.filter(order => !existingOrderIds.has(order.id));
-        const updatedOrders = [...prevOrders, ...newOrders];
-        
-        // Only cache the most recent orders to avoid storage issues
-        safeSetLocalStorage('cachedOrders', updatedOrders.slice(0, BATCH_SIZE));
-        return updatedOrders;
-      });
+      // For active orders, always replace (don't append) since we want the latest state
+      safeSetLocalStorage('cachedOrders', processedOrders.slice(0, BATCH_SIZE));
+      setOrders(processedOrders);
     } catch (error) {
       console.error('Failed to fetch orders:', error);
     } finally {

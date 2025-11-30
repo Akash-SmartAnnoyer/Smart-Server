@@ -93,17 +93,28 @@ const AdminOrderComponent = () => {
     try {
       setLoading(true);
       console.log('AdminPage: Fetching orders for orgId:', orgId);
-      // Fetch live orders (pending, preparing, ready, delayed)
-      const ordersData = await api.getOrders(orgId);
+      console.log('AdminPage: Token available:', !!localStorage.getItem('token'));
+      
+      // Fetch ALL orders (no filters) - admin should see all orders
+      const ordersData = await api.getOrders(orgId, {});
       
       console.log('AdminPage: Received orders data:', ordersData);
+      console.log('AdminPage: Number of orders received:', ordersData?.length || 0);
       
       if (!ordersData || ordersData.length === 0) {
-        console.log('AdminPage: No orders found');
+        console.log('AdminPage: No orders found for orgId:', orgId);
         setOrders([]);
         setLoading(false);
         return;
       }
+  
+      // Log all orders before filtering
+      console.log('AdminPage: All orders before filtering:', ordersData.map(o => ({
+        orderId: o.orderId,
+        status: o.status,
+        orgId: o.orgId,
+        customerName: o.customerName
+      })));
   
       const ordersArray = ordersData
         .map(order => ({
@@ -118,10 +129,16 @@ const AdminOrderComponent = () => {
           return dateB - dateA;
         });
   
-      console.log('AdminPage: Processed orders array:', ordersArray);
+      console.log('AdminPage: Processed orders array (after filtering cancelled/completed):', ordersArray);
+      console.log('AdminPage: Number of active orders:', ordersArray.length);
       setOrders(ordersArray);
     } catch (error) {
       console.error('AdminPage: Failed to fetch orders', error);
+      console.error('AdminPage: Error details:', {
+        message: error.message,
+        stack: error.stack,
+        orgId: orgId
+      });
       message.error('Failed to fetch orders: ' + (error.message || 'Unknown error'));
       setOrders([]);
     } finally {

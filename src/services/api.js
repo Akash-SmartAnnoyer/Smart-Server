@@ -200,7 +200,9 @@ class ApiService {
     if (filters.tableNumber) queryParams.append('tableNumber', filters.tableNumber);
     
     const queryString = queryParams.toString();
-    return this.request(`/orders/${orgId}${queryString ? `?${queryString}` : ''}`);
+    const endpoint = `/orders/${orgId}${queryString ? `?${queryString}` : ''}`;
+    console.log('API: getOrders called with orgId:', orgId, 'filters:', filters, 'endpoint:', endpoint);
+    return this.request(endpoint);
   }
 
   async getOrder(orgId, orderId) {
