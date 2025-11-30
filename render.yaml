@@ -1,4 +1,22 @@
 services:
+  # Backend Service
+  - type: web
+    name: smart-server-backend
+    env: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false  # Set this manually in Render dashboard with your MongoDB Atlas connection string
+      - key: JWT_SECRET
+        generateValue: true  # Render will generate a secure random value
+      - key: PORT
+        value: 10000  # Render will override this, but good to have a default
+
+  # Frontend Service
   - type: web
     name: smart-server-frontend
     env: static
