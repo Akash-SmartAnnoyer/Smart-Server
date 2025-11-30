@@ -50,6 +50,11 @@ const RestaurantManagement = () => {
   const { orgId } = useAuth();
   const [loading, setLoading] = useState(false);
   const [restaurant, setRestaurant] = useState(null);
+  const [organizationSettings, setOrganizationSettings] = useState({
+    showPricesInOrderReview: true,
+    showChargesIndividually: true,
+    showTaxesSeparately: true
+  });
   const [showMap, setShowMap] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -99,6 +104,16 @@ const RestaurantManagement = () => {
         };
         
         setRestaurant(formattedData);
+        
+        // Set organization settings if available
+        if (restaurantData.organizationSettings) {
+          setOrganizationSettings({
+            showPricesInOrderReview: restaurantData.organizationSettings.showPricesInOrderReview !== false,
+            showChargesIndividually: restaurantData.organizationSettings.showChargesIndividually !== false,
+            showTaxesSeparately: restaurantData.organizationSettings.showTaxesSeparately !== false
+          });
+        }
+        
         cachedData = formattedData;
         cacheTimestamp = Date.now();
       } else {
@@ -373,6 +388,8 @@ const RestaurantManagement = () => {
         return 'Basic Information';
       case 'location':
         return 'Location Settings';
+      case 'display':
+        return 'Display Settings';
       case 'privacy':
         return 'Privacy Policy';
       case 'refund':
@@ -1327,6 +1344,264 @@ const RestaurantManagement = () => {
           </div>
         );
 
+      case 'display':
+        return (
+          <form onSubmit={async (e) => {
+            e.preventDefault();
+            setLoading(true);
+            try {
+              if (!orgId) {
+                console.error("No orgId found in auth context");
+                return;
+              }
+              
+              // Get organization ID - we need to fetch it first
+              const authToken = localStorage.getItem('token');
+              if (!authToken) {
+                throw new Error('Not authenticated');
+              }
+              
+              // Use the new settings endpoint that allows org admins
+              const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+              
+              const response = await fetch(`${API_BASE_URL}/organizations/settings/${orgId}`, {
+                method: 'PUT',
+                headers: {
+                  'Authorization': `Bearer ${authToken}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  settings: {
+                    ...organizationSettings,
+                    allowDirectOrdering: restaurant?.organizationSettings?.allowDirectOrdering !== false
+                  }
+                })
+              });
+
+              if (response.ok) {
+                const updated = await response.json();
+                setOrganizationSettings(updated.settings || organizationSettings);
+                // Update restaurant cache with new settings
+                if (restaurant) {
+                  setRestaurant({
+                    ...restaurant,
+                    organizationSettings: updated.settings
+                  });
+                }
+                // Clear cache to force refresh
+                cachedData = null;
+                cacheTimestamp = null;
+                alert('Display settings updated successfully!');
+              } else {
+                const errorData = await response.json();
+                alert(errorData.error || 'Failed to update settings');
+              }
+            } catch (error) {
+              console.error("Error updating display settings:", error);
+              alert('Error updating display settings');
+            } finally {
+              setLoading(false);
+            }
+          }}>
+            <div style={{
+              background: 'white',
+              borderRadius: '1.5rem',
+              padding: '1.5rem',
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
+            }}>
+              <h2 style={{ 
+                color: '#FF0000',
+                fontSize: '1.5rem',
+                fontWeight: '600',
+                marginBottom: '1.5rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}>
+                <Settings size={24} />
+                Display Settings
+              </h2>
+
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '1.5rem'
+              }}>
+                {/* Show Prices in Order Review */}
+                <div style={{
+                  background: '#F8F9FA',
+                  padding: '1rem',
+                  borderRadius: '1rem',
+                }}>
+                  <label style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    cursor: 'pointer'
+                  }}>
+                    <div>
+                      <div style={{
+                        display: 'block',
+                        color: '#333',
+                        fontSize: '1rem',
+                        fontWeight: '500',
+                        marginBottom: '0.25rem'
+                      }}>
+                        Show Prices in Order Review
+                      </div>
+                      <div style={{
+                        fontSize: '0.875rem',
+                        color: '#666'
+                      }}>
+                        Display item prices in the confirm order page (review order)
+                      </div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={organizationSettings.showPricesInOrderReview}
+                      onChange={(e) => setOrganizationSettings({
+                        ...organizationSettings,
+                        showPricesInOrderReview: e.target.checked
+                      })}
+                      style={{
+                        width: '24px',
+                        height: '24px',
+                        cursor: 'pointer'
+                      }}
+                    />
+                  </label>
+                </div>
+
+                {/* Show Charges Individually */}
+                {organizationSettings.showPricesInOrderReview && (
+                  <div style={{
+                    background: '#F8F9FA',
+                    padding: '1rem',
+                    borderRadius: '1rem',
+                  }}>
+                    <label style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      cursor: 'pointer'
+                    }}>
+                      <div>
+                        <div style={{
+                          display: 'block',
+                          color: '#333',
+                          fontSize: '1rem',
+                          fontWeight: '500',
+                          marginBottom: '0.25rem'
+                        }}>
+                          Show Charges Individually
+                        </div>
+                        <div style={{
+                          fontSize: '0.875rem',
+                          color: '#666'
+                        }}>
+                          {organizationSettings.showChargesIndividually 
+                            ? 'Show each charge (tax, service charge, etc.) separately'
+                            : 'Show charges included in brackets for totals (e.g., "Total (incl. charges)")'}
+                        </div>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={organizationSettings.showChargesIndividually}
+                        onChange={(e) => setOrganizationSettings({
+                          ...organizationSettings,
+                          showChargesIndividually: e.target.checked
+                        })}
+                        style={{
+                          width: '24px',
+                          height: '24px',
+                          cursor: 'pointer'
+                        }}
+                      />
+                    </label>
+                  </div>
+                )}
+
+                {/* Show Taxes Separately */}
+                <div style={{
+                  background: '#F8F9FA',
+                  padding: '1rem',
+                  borderRadius: '1rem',
+                }}>
+                  <label style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    cursor: 'pointer'
+                  }}>
+                    <div>
+                      <div style={{
+                        display: 'block',
+                        color: '#333',
+                        fontSize: '1rem',
+                        fontWeight: '500',
+                        marginBottom: '0.25rem'
+                      }}>
+                        Show Taxes Separately
+                      </div>
+                      <div style={{
+                        fontSize: '0.875rem',
+                        color: '#666'
+                      }}>
+                        {organizationSettings.showTaxesSeparately
+                          ? 'Display taxes and charges separately in summary and bill'
+                          : 'Display as "incl. charges" in summary and downloaded bill'}
+                      </div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={organizationSettings.showTaxesSeparately}
+                      onChange={(e) => setOrganizationSettings({
+                        ...organizationSettings,
+                        showTaxesSeparately: e.target.checked
+                      })}
+                      style={{
+                        width: '24px',
+                        height: '24px',
+                        cursor: 'pointer'
+                      }}
+                    />
+                  </label>
+                </div>
+              </div>
+
+              {/* Save Button */}
+              <button
+                type="submit"
+                style={{
+                  background: 'linear-gradient(135deg, #FF0000, #FF4444)',
+                  color: 'white',
+                  border: 'none',
+                  padding: '1rem',
+                  borderRadius: '0.75rem',
+                  width: '100%',
+                  marginTop: '1.5rem',
+                  fontSize: '1rem',
+                  fontWeight: '500',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  cursor: 'pointer',
+                }}
+              >
+                {loading ? (
+                  <Loader2 size={24} className="animate-spin" />
+                ) : (
+                  <>
+                    <Save size={18} />
+                    Save Display Settings
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        );
+
       default:
         return null;
     }
@@ -1520,6 +1795,11 @@ const RestaurantManagement = () => {
                 title="Location Settings" 
                 icon={MapPin} 
                 onClick={() => handleSectionClick('location')} 
+              />
+              <ProfileCard 
+                title="Display Settings" 
+                icon={Settings} 
+                onClick={() => handleSectionClick('display')} 
               />
               <ProfileCard 
                 title="Privacy Policy" 

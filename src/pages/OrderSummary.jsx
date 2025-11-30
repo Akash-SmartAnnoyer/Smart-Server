@@ -61,6 +61,11 @@ function OrderSummary() {
   const [locationError, setLocationError] = useState(null);
   const [restaurantData, setRestaurantData] = useState(null);
   const [allowDirectOrdering, setAllowDirectOrdering] = useState(true); // Default to true
+  const [displaySettings, setDisplaySettings] = useState({
+    showPricesInOrderReview: true,
+    showChargesIndividually: true,
+    showTaxesSeparately: true
+  });
   const { orgId } = useAuth();
 
   useEffect(() => {
@@ -76,9 +81,14 @@ function OrderSummary() {
           if (restaurant.seatingCapacity) {
             setSeatingCapacity(parseInt(restaurant.seatingCapacity, 10));
           }
-          // Check organization settings for direct ordering
+          // Check organization settings for direct ordering and display settings
           if (restaurant.organizationSettings) {
             setAllowDirectOrdering(restaurant.organizationSettings.allowDirectOrdering !== false);
+            setDisplaySettings({
+              showPricesInOrderReview: restaurant.organizationSettings.showPricesInOrderReview !== false,
+              showChargesIndividually: restaurant.organizationSettings.showChargesIndividually !== false,
+              showTaxesSeparately: restaurant.organizationSettings.showTaxesSeparately !== false
+            });
           }
         }
       } catch (error) {
@@ -671,11 +681,13 @@ const verifyLocation = async () => {
               }}>{item.quantity}</span>
               {item.name}
             </span>
-            <span className="item-price" style={{
-              color: '#ff4d4f',
-              fontWeight: 'bold',
-              fontSize: '16px'
-            }}>₹{(item.price * item.quantity).toFixed(2)}</span>
+            {displaySettings.showPricesInOrderReview && (
+              <span className="item-price" style={{
+                color: '#ff4d4f',
+                fontWeight: 'bold',
+                fontSize: '16px'
+              }}>₹{(item.price * item.quantity).toFixed(2)}</span>
+            )}
           </div>
         ))}
       </div>
@@ -702,36 +714,55 @@ const verifyLocation = async () => {
           </div>
         ) : (
           <>
-            <div className="subtotal" style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              marginBottom: '15px',
-              borderBottom: '2px dashed #ffcccb',
-              paddingBottom: '15px'
-            }}>
-              <span style={{ fontSize: '18px', color: '#666' }}>Subtotal</span>
-              <span style={{ fontSize: '18px', color: '#ff4d4f', fontWeight: 'bold' }}>
-                ₹{cart.reduce((sum, item) => sum + item.price * item.quantity, 0).toFixed(2)}
-              </span>
-            </div>
-            
-            {/* Charges Breakdown */}
-            {Object.entries(breakdown).map(([name, detail]) => (
-              <div key={name} className="charge-item" style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                margin: '10px 0',
-                color: '#666'
-              }}>
-                <span style={{ fontSize: '16px' }}>
-                  {name} 
-                  {detail.type === 'percentage' && 
-                    <small style={{ color: '#999' }}> ({detail.value}%)</small>
-                  }
-                </span>
-                <span style={{ color: '#ff4d4f' }}>₹{detail.amount.toFixed(2)}</span>
-              </div>
-            ))}
+            {displaySettings.showPricesInOrderReview && displaySettings.showTaxesSeparately && (
+              <>
+                <div className="subtotal" style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  marginBottom: '15px',
+                  borderBottom: '2px dashed #ffcccb',
+                  paddingBottom: '15px'
+                }}>
+                  <span style={{ fontSize: '18px', color: '#666' }}>Subtotal</span>
+                  <span style={{ fontSize: '18px', color: '#ff4d4f', fontWeight: 'bold' }}>
+                    ₹{cart.reduce((sum, item) => sum + item.price * item.quantity, 0).toFixed(2)}
+                  </span>
+                </div>
+                
+                {/* Charges Breakdown - Show individually or in brackets */}
+                {displaySettings.showChargesIndividually ? (
+                  Object.entries(breakdown).map(([name, detail]) => (
+                    <div key={name} className="charge-item" style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      margin: '10px 0',
+                      color: '#666'
+                    }}>
+                      <span style={{ fontSize: '16px' }}>
+                        {name} 
+                        {detail.type === 'percentage' && 
+                          <small style={{ color: '#999' }}> ({detail.value}%)</small>
+                        }
+                      </span>
+                      <span style={{ color: '#ff4d4f' }}>₹{detail.amount.toFixed(2)}</span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="charges-included" style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    margin: '10px 0',
+                    color: '#666',
+                    fontSize: '16px'
+                  }}>
+                    <span>Charges</span>
+                    <span style={{ color: '#ff4d4f' }}>
+                      (incl. ₹{Object.values(breakdown).reduce((sum, detail) => sum + detail.amount, 0).toFixed(2)})
+                    </span>
+                  </div>
+                )}
+              </>
+            )}
 
             {/* Total Amount */}
             <div className="total" style={{
@@ -744,7 +775,12 @@ const verifyLocation = async () => {
               fontSize: '22px'
             }}>
               <span>Grand Total</span>
-              <span style={{ color: '#ff4d4f' }}>₹{calculatedTotal.toFixed(2)}</span>
+              <span style={{ color: '#ff4d4f' }}>
+                ₹{calculatedTotal.toFixed(2)}
+                {!displaySettings.showTaxesSeparately && Object.keys(breakdown).length > 0 && (
+                  <span style={{ fontSize: '16px', fontWeight: 'normal', marginLeft: '8px' }}>(incl. charges)</span>
+                )}
+              </span>
             </div>
           </>
         )}

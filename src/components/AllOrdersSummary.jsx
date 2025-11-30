@@ -22,6 +22,11 @@ function AllOrdersSummary() {
   const [errorMessage, setErrorMessage] = useState('');
   const [restaurantInfo, setRestaurantInfo] = useState(null);
   const [charges, setCharges] = useState([]);
+  const [displaySettings, setDisplaySettings] = useState({
+    showPricesInOrderReview: true,
+    showChargesIndividually: true,
+    showTaxesSeparately: true
+  });
   const { orgId, role } = useAuth();
   const tableNumber = localStorage.getItem('tableNumber');
   const customerId = localStorage.getItem('customerId');
@@ -113,6 +118,14 @@ function AllOrdersSummary() {
         const restaurant = await api.getRestaurant(orgId, isPublic);
         if (restaurant) {
           setRestaurantInfo(restaurant);
+          // Set display settings if available
+          if (restaurant.organizationSettings) {
+            setDisplaySettings({
+              showPricesInOrderReview: restaurant.organizationSettings.showPricesInOrderReview !== false,
+              showChargesIndividually: restaurant.organizationSettings.showChargesIndividually !== false,
+              showTaxesSeparately: restaurant.organizationSettings.showTaxesSeparately !== false
+            });
+          }
         } else {
           throw new Error('Organization not found');
         }
@@ -274,13 +287,25 @@ function AllOrdersSummary() {
 
       // Items table for this order
       yPos += 10;
-      const headers = [['Item', 'Qty', 'Price', 'Amount']];
-      const tableData = order.items.map(item => [
-        item.name,
-        item.quantity.toString(),
-        `₹${Number(item.price).toFixed(2)}`,
-        `₹${(Number(item.price) * item.quantity).toFixed(2)}`
-      ]);
+      // Conditionally show prices based on settings
+      const headers = displaySettings.showPricesInOrderReview 
+        ? [['Item', 'Qty', 'Price', 'Amount']]
+        : [['Item', 'Qty']];
+      const tableData = order.items.map(item => {
+        if (displaySettings.showPricesInOrderReview) {
+          return [
+            item.name,
+            item.quantity.toString(),
+            `₹${Number(item.price).toFixed(2)}`,
+            `₹${(Number(item.price) * item.quantity).toFixed(2)}`
+          ];
+        } else {
+          return [
+            item.name,
+            item.quantity.toString()
+          ];
+        }
+      });
 
       doc.autoTable({
         startY: yPos,
@@ -311,25 +336,46 @@ function AllOrdersSummary() {
       yPos = doc.lastAutoTable.finalY + 10;
 
       // Order subtotal and charges
-      const orderSubtotal = order.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-      const { total: orderTotal, breakdown } = calculateCharges(orderSubtotal, charges.filter(charge => charge.isEnabled));
+      if (displaySettings.showPricesInOrderReview) {
+        const orderSubtotal = order.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+        const { total: orderTotal, breakdown } = calculateCharges(orderSubtotal, charges.filter(charge => charge.isEnabled));
 
-      doc.setFont('helvetica', 'bold');
-      doc.text(`Order Subtotal:`, pageWidth - margin - 60, yPos);
-      doc.text(`₹${orderSubtotal.toFixed(2)}`, pageWidth - margin, yPos, { align: 'right' });
+        // Only show subtotal and charges if showTaxesSeparately is true
+        if (displaySettings.showTaxesSeparately) {
+          doc.setFont('helvetica', 'bold');
+          doc.text(`Order Subtotal:`, pageWidth - margin - 60, yPos);
+          doc.text(`₹${orderSubtotal.toFixed(2)}`, pageWidth - margin, yPos, { align: 'right' });
 
-      Object.entries(breakdown).forEach(([name, detail]) => {
-        yPos += 6;
-        doc.setFont('helvetica', 'normal');
-        const chargeText = `${name} ${detail.type === 'percentage' ? `(${detail.value}%)` : ''}:`;
-        doc.text(chargeText, pageWidth - margin - 60, yPos);
-        doc.text(`₹${detail.amount.toFixed(2)}`, pageWidth - margin, yPos, { align: 'right' });
-      });
+          // Show charges individually or in brackets
+          if (displaySettings.showChargesIndividually) {
+            Object.entries(breakdown).forEach(([name, detail]) => {
+              yPos += 6;
+              doc.setFont('helvetica', 'normal');
+              const chargeText = `${name} ${detail.type === 'percentage' ? `(${detail.value}%)` : ''}:`;
+              doc.text(chargeText, pageWidth - margin - 60, yPos);
+              doc.text(`₹${detail.amount.toFixed(2)}`, pageWidth - margin, yPos, { align: 'right' });
+            });
+          } else {
+            // Show charges included in brackets
+            const totalCharges = Object.values(breakdown).reduce((sum, detail) => sum + detail.amount, 0);
+            if (totalCharges > 0) {
+              yPos += 6;
+              doc.setFont('helvetica', 'normal');
+              doc.text(`Charges (incl.):`, pageWidth - margin - 60, yPos);
+              doc.text(`₹${totalCharges.toFixed(2)}`, pageWidth - margin, yPos, { align: 'right' });
+            }
+          }
+        }
 
-      yPos += 8;
-      doc.setFont('helvetica', 'bold');
-      doc.text(`Order Total:`, pageWidth - margin - 60, yPos);
-      doc.text(`₹${orderTotal.toFixed(2)}`, pageWidth - margin, yPos, { align: 'right' });
+        yPos += 8;
+        doc.setFont('helvetica', 'bold');
+        doc.text(`Order Total:`, pageWidth - margin - 60, yPos);
+        // Show total with "(incl. charges)" in brackets if taxes are not shown separately
+        const totalText = displaySettings.showTaxesSeparately 
+          ? `₹${orderTotal.toFixed(2)}`
+          : `₹${orderTotal.toFixed(2)} (incl. charges)`;
+        doc.text(totalText, pageWidth - margin, yPos, { align: 'right' });
+      }
 
       // Add divider between orders
       if (index < activeOrders.length - 1) {
@@ -350,7 +396,11 @@ function AllOrdersSummary() {
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.text('Grand Total:', pageWidth - margin - 60, yPos);
-    doc.text(`₹${grandTotal.toFixed(2)}`, pageWidth - margin, yPos, { align: 'right' });
+    // Show total with "(incl. charges)" in brackets if taxes are not shown separately
+    const grandTotalText = displaySettings.showTaxesSeparately 
+      ? `₹${grandTotal.toFixed(2)}`
+      : `₹${grandTotal.toFixed(2)} (incl. charges)`;
+    doc.text(grandTotalText, pageWidth - margin, yPos, { align: 'right' });
 
     // Footer
     yPos = doc.internal.pageSize.height - 30;
@@ -446,11 +496,13 @@ function AllOrdersSummary() {
                         <br />
                         <Text type="secondary">Quantity: {item.quantity}</Text>
                       </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <Text strong>₹{(Number(item.price) * Number(item.quantity)).toFixed(2)}</Text>
-                        <br />
-                        <Text type="secondary">@₹{Number(item.price).toFixed(2)}</Text>
-                      </div>
+                      {displaySettings.showPricesInOrderReview && (
+                        <div style={{ textAlign: 'right' }}>
+                          <Text strong>₹{(Number(item.price) * Number(item.quantity)).toFixed(2)}</Text>
+                          <br />
+                          <Text type="secondary">@₹{Number(item.price).toFixed(2)}</Text>
+                        </div>
+                      )}
                     </div>
                   </List.Item>
                 )}
@@ -462,10 +514,14 @@ function AllOrdersSummary() {
         <div style={{ padding: '24px', background: '#f5f5f5', borderTop: '1px solid #e8e8e8' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <Title level={4} style={{ margin: 0 }}>
-              Grand Total <span style={{ fontSize: '12px', verticalAlign: 'sub' }}>(all orders)</span>
+              Grand Total 
+              <span style={{ fontSize: '12px', verticalAlign: 'sub' }}>(all orders)</span>
             </Title>
             <Title level={4} style={{ margin: 0 }}>
               ₹{grandTotal.toFixed(2)}
+              {!displaySettings.showTaxesSeparately && (
+                <span style={{ fontSize: '14px', fontWeight: 'normal', marginLeft: '8px' }}>(incl. charges)</span>
+              )}
             </Title>
           </div>
         </div>
