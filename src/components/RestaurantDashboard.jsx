@@ -881,32 +881,8 @@ export const RestaurantDashboard = () => {
   const [timeFrame, setTimeFrame] = useState('today');
   const { orgId } = useAuth();
 
-  if (!orgId) {
-    return (
-      <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <FoodLoader />
-      </div>
-    );
-  }
-
-  // Fetch Data
-  useEffect(() => {
-    let mounted = true;
-    
-    const loadData = async () => {
-      if (mounted && orgId) {
-        await fetchDashboardData();
-      }
-    };
-    
-    loadData();
-    
-    return () => {
-      mounted = false;
-    };
-  }, [orgId]);
-
-  const fetchDashboardData = async () => {
+  // Define fetchDashboardData before useEffect (using useCallback)
+  const fetchDashboardData = React.useCallback(async () => {
     try {
       setLoading(true);
       if (!orgId) {
@@ -1001,7 +977,33 @@ export const RestaurantDashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [orgId]);
+
+  // Fetch Data - All hooks must be called before any conditional returns
+  useEffect(() => {
+    let mounted = true;
+    
+    const loadData = async () => {
+      if (mounted && orgId) {
+        await fetchDashboardData();
+      }
+    };
+    
+    loadData();
+    
+    return () => {
+      mounted = false;
+    };
+  }, [orgId, fetchDashboardData]);
+
+  // Early return after all hooks
+  if (!orgId) {
+    return (
+      <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <FoodLoader />
+      </div>
+    );
+  }
 
   // Analytics Calculations
   const calculateMetrics = () => {

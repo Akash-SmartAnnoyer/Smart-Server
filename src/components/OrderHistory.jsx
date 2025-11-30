@@ -53,26 +53,7 @@ function OrderHistory() {
     marginTop : '25px'
   };
 
-  if (!orgId) {
-    return (
-      <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <FoodLoader />
-      </div>
-    );
-  }
-
-  const handleDelete = async (orderId) => {
-    try {
-      await api.deleteHistory(orgId, orderId);
-
-      message.success('Order deleted successfully');
-      setOrders((prevOrders) => prevOrders.filter((order) => order.id !== orderId));
-    } catch (error) {
-      console.error('Failed to delete order:', error);
-      message.error('Failed to delete order. Please try again.');
-    }
-  };
-
+  // All hooks must be called before any conditional returns
   // Filter orders when search query changes
   useEffect(() => {
     if (orders.length) {
@@ -96,6 +77,27 @@ function OrderHistory() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Early return after all hooks
+  if (!orgId) {
+    return (
+      <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <FoodLoader />
+      </div>
+    );
+  }
+
+  const handleDelete = async (orderId) => {
+    try {
+      await api.deleteHistory(orgId, orderId);
+
+      message.success('Order deleted successfully');
+      setOrders((prevOrders) => prevOrders.filter((order) => order.id !== orderId));
+    } catch (error) {
+      console.error('Failed to delete order:', error);
+      message.error('Failed to delete order. Please try again.');
+    }
+  };
 
   const getStatusInfo = (status) => {
     const statusConfig = {

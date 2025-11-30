@@ -42,15 +42,7 @@ function NewOrderHistory() {
     background: '#fff8f8'
   };
 
-  // Handle mobile view
-  if (!orgId) {
-    return (
-      <div style={{ minHeight: '60vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-        <FoodLoader />
-      </div>
-    );
-  }
-
+  // All hooks must be called before any conditional returns
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth <= 768);
@@ -83,6 +75,58 @@ function NewOrderHistory() {
     }, {});
     setCustomerIdMap(map);
   }, [orders]);
+
+  const loadMoreOrders = useCallback(() => {
+    if (!loadingRef.current && hasMore) {
+      const lastOrder = orders[orders.length - 1];
+      if (lastOrder) {
+        loadingRef.current = true;
+        fetchOrders(lastOrder.timestamp).finally(() => {
+          loadingRef.current = false;
+        });
+      }
+    }
+  }, [hasMore, orders, fetchOrders]);
+
+  // Improved infinite scroll handler
+  useEffect(() => {
+    const handleScroll = debounce(() => {
+      // Check if we're near the bottom (within 200px)
+      if (
+        window.innerHeight + window.pageYOffset >= 
+        document.documentElement.scrollHeight - 200
+      ) {
+        loadMoreOrders();
+      }
+    }, 200); // Debounce scroll events
+
+    window.addEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      handleScroll.cancel(); // Cancel any pending debounce
+    };
+  }, [loadMoreOrders]);
+
+  // Helper function to debounce scroll events
+  function debounce(func, wait) {
+    let timeout;
+    const debouncedFunction = function(...args) {
+      const context = this;
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func.apply(context, args), wait);
+    };
+    debouncedFunction.cancel = () => clearTimeout(timeout);
+    return debouncedFunction;
+  }
+
+  // Handle mobile view - early return after all hooks
+  if (!orgId) {
+    return (
+      <div style={{ minHeight: '60vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <FoodLoader />
+      </div>
+    );
+  }
 
   const handleDelete = async (orderId) => {
     try {
@@ -192,6 +236,11 @@ function NewOrderHistory() {
         </small>
       </div>
     );
+  };
+
+  // Get current orders for display
+  const getCurrentOrders = () => {
+    return filteredOrders.slice(0, page * ordersPerPage);
   };
 
   const renderMobileView = () => (
@@ -321,53 +370,6 @@ function NewOrderHistory() {
     </div>
   );
 
-  const loadMoreOrders = useCallback(() => {
-    if (!loadingRef.current && hasMore) {
-      const lastOrder = orders[orders.length - 1];
-      if (lastOrder) {
-        loadingRef.current = true;
-        fetchOrders(lastOrder.timestamp).finally(() => {
-          loadingRef.current = false;
-        });
-      }
-    }
-  }, [hasMore, orders, fetchOrders]);
-
-  // Improved infinite scroll handler
-  useEffect(() => {
-    const handleScroll = debounce(() => {
-      // Check if we're near the bottom (within 200px)
-      if (
-        window.innerHeight + window.pageYOffset >= 
-        document.documentElement.scrollHeight - 200
-      ) {
-        loadMoreOrders();
-      }
-    }, 200); // Debounce scroll events
-
-    window.addEventListener('scroll', handleScroll);
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-      handleScroll.cancel(); // Cancel any pending debounce
-    };
-  }, [loadMoreOrders]);
-
-  // Helper function to debounce scroll events
-  function debounce(func, wait) {
-    let timeout;
-    const debouncedFunction = function(...args) {
-      const context = this;
-      clearTimeout(timeout);
-      timeout = setTimeout(() => func.apply(context, args), wait);
-    };
-    debouncedFunction.cancel = () => clearTimeout(timeout);
-    return debouncedFunction;
-  }
-
-  // Get current orders for display
-  const getCurrentOrders = () => {
-    return filteredOrders.slice(0, page * ordersPerPage);
-  };
 
   if (loading) {
     return (
