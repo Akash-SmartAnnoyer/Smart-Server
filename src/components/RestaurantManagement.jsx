@@ -1362,40 +1362,23 @@ const RestaurantManagement = () => {
               }
               
               // Use the new settings endpoint that allows org admins
-              const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
-              
-              const response = await fetch(`${API_BASE_URL}/organizations/settings/${orgId}`, {
-                method: 'PUT',
-                headers: {
-                  'Authorization': `Bearer ${authToken}`,
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                  settings: {
-                    ...organizationSettings,
-                    allowDirectOrdering: restaurant?.organizationSettings?.allowDirectOrdering !== false
-                  }
-                })
+              const updated = await api.updateOrganizationSettingsOnly(orgId, {
+                ...organizationSettings,
+                allowDirectOrdering: restaurant?.organizationSettings?.allowDirectOrdering !== false
               });
-
-              if (response.ok) {
-                const updated = await response.json();
-                setOrganizationSettings(updated.settings || organizationSettings);
-                // Update restaurant cache with new settings
-                if (restaurant) {
-                  setRestaurant({
-                    ...restaurant,
-                    organizationSettings: updated.settings
-                  });
-                }
-                // Clear cache to force refresh
-                cachedData = null;
-                cacheTimestamp = null;
-                alert('Display settings updated successfully!');
-              } else {
-                const errorData = await response.json();
-                alert(errorData.error || 'Failed to update settings');
+              
+              setOrganizationSettings(updated || organizationSettings);
+              // Update restaurant cache with new settings
+              if (restaurant) {
+                setRestaurant({
+                  ...restaurant,
+                  organizationSettings: updated
+                });
               }
+              // Clear cache to force refresh
+              cachedData = null;
+              cacheTimestamp = null;
+              alert('Display settings updated successfully!');
             } catch (error) {
               console.error("Error updating display settings:", error);
               alert('Error updating display settings');

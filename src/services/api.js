@@ -303,6 +303,59 @@ class ApiService {
     });
   }
 
+  // Organizations APIs (Super Admin only)
+  async getOrganizations() {
+    return this.request('/organizations', {
+      method: 'GET',
+    });
+  }
+
+  async getOrganization(orgId) {
+    return this.request(`/organizations/${orgId}`, {
+      method: 'GET',
+    });
+  }
+
+  async createOrganization(orgData) {
+    return this.request('/organizations', {
+      method: 'POST',
+      body: orgData,
+    });
+  }
+
+  async updateOrganization(orgId, orgData) {
+    return this.request(`/organizations/${orgId}`, {
+      method: 'PUT',
+      body: orgData,
+    });
+  }
+
+  async deleteOrganization(orgId) {
+    return this.request(`/organizations/${orgId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getOrganizationUsers(orgId) {
+    return this.request(`/organizations/${orgId}/users`, {
+      method: 'GET',
+    });
+  }
+
+  async resetUserPassword(orgId, userId, newPassword) {
+    return this.request(`/organizations/${orgId}/users/${userId}/reset-password`, {
+      method: 'POST',
+      body: { newPassword },
+    });
+  }
+
+  async updateOrganizationSettings(orgId, settings) {
+    return this.request(`/organizations/${orgId}`, {
+      method: 'PUT',
+      body: { settings },
+    });
+  }
+
   // Helper method to include auth token in requests
   getAuthHeaders() {
     const token = localStorage.getItem('token');

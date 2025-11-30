@@ -17,6 +17,12 @@ export const OrderProvider = ({ children }) => {
   // Fetch restaurant details and charges once when provider mounts
   useEffect(() => {
     const fetchInitialData = async () => {
+      // Don't fetch if no orgId (e.g., super admin dashboard, login pages)
+      if (!orgId) {
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         
@@ -29,11 +35,17 @@ export const OrderProvider = ({ children }) => {
         // Fetch restaurant details and charges in parallel
         const [restaurant, chargesData] = await Promise.all([
           api.getRestaurant(orgId, isPublic).catch((err) => {
-            console.error('OrderContext: Error fetching restaurant:', err);
+            // Only log error if it's not "Organization not found" (expected for super admin pages)
+            if (!err.message?.includes('Organization not found')) {
+              console.error('OrderContext: Error fetching restaurant:', err);
+            }
             return null;
           }),
           api.getCharges(orgId, isPublic).catch((err) => {
-            console.error('OrderContext: Error fetching charges:', err);
+            // Only log error if it's not "Organization not found" (expected for super admin pages)
+            if (!err.message?.includes('Organization not found')) {
+              console.error('OrderContext: Error fetching charges:', err);
+            }
             return [];
           })
         ]);
@@ -52,9 +64,7 @@ export const OrderProvider = ({ children }) => {
       }
     };
 
-    if (orgId) {
-      fetchInitialData();
-    }
+    fetchInitialData();
   }, [orgId]);
 
   // Add new order to context immediately

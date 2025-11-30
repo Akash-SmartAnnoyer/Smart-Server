@@ -87,23 +87,12 @@ const SuperAdminDashboard = () => {
 
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:5000/api/organizations', {
-        headers: {
-          'Authorization': `Bearer ${authToken}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setOrganizations(data);
-      } else {
-        const errorData = await response.json();
-        setError(errorData.error || 'Failed to fetch organizations');
-      }
+      const data = await api.getOrganizations();
+      setOrganizations(data);
+      setError(null);
     } catch (error) {
       console.error('Error fetching organizations:', error);
-      setError('Error connecting to server');
+      setError(error.message || 'Error connecting to server');
     } finally {
       setLoading(false);
     }
@@ -118,31 +107,17 @@ const SuperAdminDashboard = () => {
       const authToken = ensureToken();
       if (!authToken) return;
 
-      const response = await fetch('http://localhost:5000/api/organizations', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${authToken}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(formData)
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setOrganizations([data.organization, ...organizations]);
-        setShowCreateModal(false);
-        resetForm();
-        alert('Organization created successfully!\n\nCredentials:\n' +
-              `OrgId: ${data.organization.orgId}\n` +
-              `Username: ${data.admin.username}\n` +
-              `Password: ${data.credentials.password}`);
-      } else {
-        const errorData = await response.json();
-        setError(errorData.error || 'Failed to create organization');
-      }
+      const data = await api.createOrganization(formData);
+      setOrganizations([data.organization, ...organizations]);
+      setShowCreateModal(false);
+      resetForm();
+      alert('Organization created successfully!\n\nCredentials:\n' +
+            `OrgId: ${data.organization.orgId}\n` +
+            `Username: ${data.admin.username}\n` +
+            `Password: ${data.credentials.password}`);
     } catch (error) {
       console.error('Error creating organization:', error);
-      setError('Error connecting to server');
+      setError(error.message || 'Error connecting to server');
     } finally {
       setLoading(false);
     }
@@ -157,36 +132,23 @@ const SuperAdminDashboard = () => {
       const authToken = ensureToken();
       if (!authToken) return;
 
-      const response = await fetch(`http://localhost:5000/api/organizations/${selectedOrg.id}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${authToken}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone,
-          address: formData.address
-        })
+      const updated = await api.updateOrganization(selectedOrg.id, {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        address: formData.address
       });
-
-      if (response.ok) {
-        const updated = await response.json();
-        setOrganizations(organizations.map(org => 
-          org._id === selectedOrg.id ? updated : org
-        ));
-        setShowEditModal(false);
-        setSelectedOrg(null);
-        resetForm();
-        alert('Organization updated successfully!');
-      } else {
-        const errorData = await response.json();
-        setError(errorData.error || 'Failed to update organization');
-      }
+      
+      setOrganizations(organizations.map(org => 
+        org._id === selectedOrg.id ? updated : org
+      ));
+      setShowEditModal(false);
+      setSelectedOrg(null);
+      resetForm();
+      alert('Organization updated successfully!');
     } catch (error) {
       console.error('Error updating organization:', error);
-      setError('Error connecting to server');
+      setError(error.message || 'Error connecting to server');
     } finally {
       setLoading(false);
     }
@@ -204,26 +166,15 @@ const SuperAdminDashboard = () => {
       setLoading(true);
       const org = organizations.find(o => o.orgId === orgId);
       
-      const response = await fetch(`http://localhost:5000/api/organizations/${org._id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${authToken}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        setOrganizations(organizations.map(o => 
-          o.orgId === orgId ? { ...o, isActive: false } : o
-        ));
-        alert('Organization deactivated successfully!');
-      } else {
-        const errorData = await response.json();
-        alert(errorData.error || 'Failed to deactivate organization');
-      }
+      await api.deleteOrganization(org._id);
+      
+      setOrganizations(organizations.map(o => 
+        o.orgId === orgId ? { ...o, isActive: false } : o
+      ));
+      alert('Organization deactivated successfully!');
     } catch (error) {
       console.error('Error deleting organization:', error);
-      alert('Error connecting to server');
+      alert(error.message || 'Error connecting to server');
     } finally {
       setLoading(false);
     }
@@ -235,24 +186,12 @@ const SuperAdminDashboard = () => {
 
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:5000/api/organizations/${org._id}`, {
-        headers: {
-          'Authorization': `Bearer ${authToken}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setSelectedOrg(data);
-        setShowViewModal(true);
-      } else {
-        const errorData = await response.json();
-        setError(errorData.error || 'Failed to fetch organization details');
-      }
+      const data = await api.getOrganization(org._id);
+      setSelectedOrg(data);
+      setShowViewModal(true);
     } catch (error) {
       console.error('Error fetching organization:', error);
-      setError('Error connecting to server');
+      setError(error.message || 'Error connecting to server');
     } finally {
       setLoading(false);
     }
@@ -309,29 +248,18 @@ const SuperAdminDashboard = () => {
 
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:5000/api/organizations/${org._id}/users`, {
-        headers: {
-          'Authorization': `Bearer ${authToken}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        const users = await response.json();
-        const adminUser = users.find(u => u.role === 'org_admin');
-        if (adminUser) {
-          setSelectedUser(adminUser);
-          setSelectedOrg(org);
-          setShowPasswordModal(true);
-        } else {
-          setError('Admin user not found');
-        }
+      const users = await api.getOrganizationUsers(org._id);
+      const adminUser = users.find(u => u.role === 'org_admin');
+      if (adminUser) {
+        setSelectedUser(adminUser);
+        setSelectedOrg(org);
+        setShowPasswordModal(true);
       } else {
-        setError('Failed to fetch user details');
+        setError('Admin user not found');
       }
     } catch (error) {
       console.error('Error fetching user:', error);
-      setError('Error connecting to server');
+      setError(error.message || 'Error connecting to server');
     } finally {
       setLoading(false);
     }
@@ -350,26 +278,14 @@ const SuperAdminDashboard = () => {
       setLoading(true);
       setError('');
       const orgId = selectedOrg._id || selectedOrg.organization?._id;
-      const response = await fetch(`http://localhost:5000/api/organizations/${orgId}/users/${selectedUser._id}/reset-password`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${authToken}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ newPassword })
-      });
-
-      if (response.ok) {
-        alert('Password reset successfully!');
-        setShowResetPasswordModal(false);
-        setShowPasswordModal(false);
-        setNewPassword('');
-        setSelectedUser(null);
-        setSelectedOrg(null);
-      } else {
-        const errorData = await response.json();
-        setError(errorData.error || 'Failed to reset password');
-      }
+      await api.resetUserPassword(orgId, selectedUser._id, newPassword);
+      
+      alert('Password reset successfully!');
+      setShowResetPasswordModal(false);
+      setShowPasswordModal(false);
+      setNewPassword('');
+      setSelectedUser(null);
+      setSelectedOrg(null);
     } catch (error) {
       console.error('Error resetting password:', error);
       setError('Error connecting to server');
@@ -691,33 +607,18 @@ const SuperAdminDashboard = () => {
                           
                           try {
                             const orgId = org._id || org.id;
-                            const response = await fetch(`http://localhost:5000/api/organizations/${orgId}`, {
-                              method: 'PUT',
-                              headers: {
-                                'Authorization': `Bearer ${authToken}`,
-                                'Content-Type': 'application/json'
-                              },
-                              body: JSON.stringify({
-                                settings: {
-                                  ...org.settings,
-                                  allowDirectOrdering: e.target.checked
-                                }
-                              })
+                            const updated = await api.updateOrganizationSettings(orgId, {
+                              ...org.settings,
+                              allowDirectOrdering: e.target.checked
                             });
-
-                            if (response.ok) {
-                              const updated = await response.json();
-                              setOrganizations(organizations.map(o => 
-                                o._id === orgId || o.id === orgId ? { ...o, ...updated } : o
-                              ));
-                              message.success('Setting updated successfully!');
-                            } else {
-                              const errorData = await response.json();
-                              message.error(errorData.error || 'Failed to update setting');
-                            }
+                            
+                            setOrganizations(organizations.map(o => 
+                              o._id === orgId || o.id === orgId ? { ...o, ...updated } : o
+                            ));
+                            message.success('Setting updated successfully!');
                           } catch (error) {
                             console.error('Error updating setting:', error);
-                            message.error('Error updating setting');
+                            message.error(error.message || 'Error updating setting');
                           }
                         }}
                         style={{ width: '20px', height: '20px', cursor: 'pointer' }}
@@ -1164,40 +1065,25 @@ const SuperAdminDashboard = () => {
                             const authToken = ensureToken();
                             if (!authToken) return;
                             
-                            try {
-                              const orgId = selectedOrg.organization._id || selectedOrg.organization.id;
-                              const response = await fetch(`http://localhost:5000/api/organizations/${orgId}`, {
-                                method: 'PUT',
-                                headers: {
-                                  'Authorization': `Bearer ${authToken}`,
-                                  'Content-Type': 'application/json'
-                                },
-                                body: JSON.stringify({
-                                  settings: {
-                                    ...selectedOrg.organization.settings,
-                                    allowDirectOrdering: e.target.checked
-                                  }
-                                })
-                              });
-
-                              if (response.ok) {
-                                const updated = await response.json();
-                                setSelectedOrg({
-                                  ...selectedOrg,
-                                  organization: updated
-                                });
-                                setOrganizations(organizations.map(org => 
-                                  org._id === orgId || org.id === orgId ? { ...org, ...updated } : org
-                                ));
-                                alert('Setting updated successfully!');
-                              } else {
-                                const errorData = await response.json();
-                                alert(errorData.error || 'Failed to update setting');
-                              }
-                            } catch (error) {
-                              console.error('Error updating setting:', error);
-                              alert('Error updating setting');
-                            }
+                          try {
+                            const orgId = selectedOrg.organization._id || selectedOrg.organization.id;
+                            const updated = await api.updateOrganizationSettings(orgId, {
+                              ...selectedOrg.organization.settings,
+                              allowDirectOrdering: e.target.checked
+                            });
+                            
+                            setSelectedOrg({
+                              ...selectedOrg,
+                              organization: updated
+                            });
+                            setOrganizations(organizations.map(org => 
+                              org._id === orgId || org.id === orgId ? { ...org, ...updated } : org
+                            ));
+                            alert('Setting updated successfully!');
+                          } catch (error) {
+                            console.error('Error updating setting:', error);
+                            alert(error.message || 'Error updating setting');
+                          }
                           }}
                           style={{ width: '20px', height: '20px', cursor: 'pointer' }}
                         />
