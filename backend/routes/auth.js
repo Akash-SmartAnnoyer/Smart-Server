@@ -19,23 +19,32 @@ router.post('/super-admin/login', async (req, res) => {
   try {
     const { username, password } = req.body;
 
+    console.log('🔐 Super Admin Login Attempt:', { username, passwordProvided: !!password });
+
     if (!username || !password) {
       return res.status(400).json({ error: 'Username and password required' });
     }
 
     const user = await User.findOne({ username, role: 'super_admin' }).select('+password');
     
+    console.log('👤 User found:', user ? { id: user._id, username: user.username, role: user.role, isActive: user.isActive } : 'NOT FOUND');
+    
     if (!user) {
+      console.log('❌ User not found for username:', username);
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
     if (!user.isActive) {
+      console.log('❌ User account is inactive');
       return res.status(401).json({ error: 'Account is inactive' });
     }
 
+    console.log('🔑 Comparing password...');
     const isMatch = await user.comparePassword(password);
+    console.log('🔑 Password match:', isMatch);
     
     if (!isMatch) {
+      console.log('❌ Password does not match');
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
