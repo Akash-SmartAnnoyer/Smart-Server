@@ -1,10 +1,12 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ShoppingBag, FileText, Home, History, Settings, ChefHat, LayoutDashboard, User, Lightbulb, DollarOutlined, IndianRupee } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 const FooterNavigation = () => {
   const location = useLocation();
-  const role = localStorage.getItem('role') || 'customer';
+  const { role: authRole } = useAuth();
+  const role = authRole ?? 'customer';
 
   const isActive = (path) => location.pathname === path;
 

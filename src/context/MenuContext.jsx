@@ -1,6 +1,6 @@
 import React, { createContext, useState, useContext } from 'react';
-import { db } from '../pages/fireBaseConfig';
-import { collection, getDocs, query, where, doc, setDoc } from 'firebase/firestore';
+import api from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 const MenuContext = createContext();
 
@@ -9,29 +9,29 @@ export const MenuProvider = ({ children }) => {
   const [menuItems, setMenuItems] = useState([]);
   const [suggestions, setSuggestions] = useState({});
   const [loading, setLoading] = useState(true);
+  const { orgId } = useAuth();
 
   const fetchMenuData = async () => {
     setLoading(true);
     try {
-      const orgId = parseInt(localStorage.getItem('orgId'));
+      if (!orgId) {
+        throw new Error('Organization ID not available');
+      }
       
-      // Fetch menu items
-      const menuQuery = query(
-        collection(db, 'menu_items'),
-        where('orgId', '==', orgId)
-      );
-      const menuSnapshot = await getDocs(menuQuery);
-      const menuData = menuSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
+      // Fetch menu items and suggestions in parallel
+      const [menuData, suggestionsData] = await Promise.all([
+        api.getMenuItems(orgId).catch(() => []),
+        api.getMenuSuggestions(orgId).catch(() => ({ suggestions: {} }))
+      ]);
+      
+      const processedMenuData = menuData.map(item => ({
+        ...item,
+        id: item._id || item.id
       }));
-      setMenuItems(menuData);
+      setMenuItems(processedMenuData);
 
-      // Fetch suggestions
-      const suggestionsDoc = doc(db, 'menu_suggestions', 'current');
-      const suggestionsSnapshot = await getDocs(suggestionsDoc);
-      if (suggestionsSnapshot.exists()) {
-        setSuggestions(suggestionsSnapshot.data());
+      if (suggestionsData && suggestionsData.suggestions) {
+        setSuggestions(suggestionsData.suggestions);
       }
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -43,8 +43,10 @@ export const MenuProvider = ({ children }) => {
 
   const updateSuggestions = async (updatedSuggestions) => {
     try {
-      const suggestionsRef = doc(db, 'menu_suggestions', 'current');
-      await setDoc(suggestionsRef, updatedSuggestions);
+      if (!orgId) {
+        throw new Error('Organization ID not available');
+      }
+      await api.updateMenuSuggestions(orgId, updatedSuggestions);
       setSuggestions(updatedSuggestions);
       return true;
     } catch (error) {

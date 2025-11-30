@@ -1,14 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { db } from '../pages/fireBaseConfig';
-import { 
-  collection, 
-  query, 
-  where, 
-  getDocs,
-  doc,
-  setDoc,
-  getDoc
-} from 'firebase/firestore';
+import api from '../services/api';
+import { useAuth } from './AuthContext';
 
 console.log('MenuProvider is being loaded');
 
@@ -32,24 +24,7 @@ export function MenuProvider({ children }) {
   });
   
   const [error, setError] = useState(null);
-  const orgId = localStorage.getItem('orgId');
-
-  const fetchCollectionData = async (collectionName) => {
-    try {
-      const collectionRef = collection(db, collectionName);
-      const q = query(collectionRef, where('orgId', '==', parseInt(orgId)));
-      const querySnapshot = await getDocs(q);
-      
-      return querySnapshot.docs.map(doc => ({
-        ...doc.data(),
-        id: doc.id,
-        firebaseId: doc.id
-      }));
-    } catch (error) {
-      console.error(`Error fetching ${collectionName}:`, error);
-      throw error;
-    }
-  };
+  const { orgId } = useAuth();
 
   useEffect(() => {
     if (!orgId || dataInitialized) return;
@@ -63,27 +38,44 @@ export function MenuProvider({ children }) {
       try {
         // Fetch categories
         setLoading(prev => ({ ...prev, categories: true }));
-        const processedCategories = await fetchCollectionData('categories');
+        const categories = await api.getCategories(orgId);
+        const processedCategories = categories.map(cat => ({
+          ...cat,
+          id: cat._id || cat.id,
+          firebaseId: cat._id || cat.id // Keep for backward compatibility
+        }));
         setMenuData(prev => ({ ...prev, categories: processedCategories }));
         setLoading(prev => ({ ...prev, categories: false }));
 
-        // Fetch other data in parallel
-        const [processedSubcategories, menuItemsArray] = await Promise.all([
-          fetchCollectionData('subcategories'),
-          fetchCollectionData('menu_items')
+        // Fetch menu items and suggestions in parallel
+        const [menuItemsArray, suggestionsData] = await Promise.all([
+          api.getMenuItems(orgId),
+          api.getMenuSuggestions(orgId).catch(() => ({ suggestions: {} })) // Fallback if no suggestions
         ]);
 
-        // Fetch suggestions
-        const orgId = parseInt(localStorage.getItem('orgId'));
-        const suggestionsRef = doc(db, 'menu_suggestions', orgId.toString());
-        const suggestionsDoc = await getDoc(suggestionsRef);
-        const sugData = suggestionsDoc.exists() ? suggestionsDoc.data().suggestions || {} : {};
+        const processedMenuItems = menuItemsArray.map(item => ({
+          ...item,
+          id: item._id || item.id,
+          firebaseId: item._id || item.id, // Keep for backward compatibility
+          categoryId: item.categoryId ? String(item.categoryId) : item.categoryId,
+          subcategoryId: item.subcategoryId ? String(item.subcategoryId) : item.subcategoryId // Ensure subcategoryId is a string
+        }));
+
+        // Extract subcategories from categories (if they exist as nested data)
+        const subcategories = processedCategories.flatMap(cat => 
+          (cat.subcategories || []).map(sub => ({
+            ...sub,
+            id: String(sub.id || sub._id || ''), // Ensure it's a string and use id (not _id) for subcategories
+            firebaseId: String(sub.id || sub._id || ''),
+            categoryId: String(cat.id || cat._id || '')
+          }))
+        );
 
         setMenuData(prev => ({
           ...prev,
-          subcategories: processedSubcategories,
-          menuItems: menuItemsArray,
-          recommendations: sugData
+          subcategories: subcategories,
+          menuItems: processedMenuItems,
+          recommendations: suggestionsData.suggestions || {}
         }));
 
         setLoading({
@@ -111,9 +103,7 @@ export function MenuProvider({ children }) {
 
   const updateSuggestions = async (updatedSuggestions) => {
     try {
-      const orgId = parseInt(localStorage.getItem('orgId'));
-      const suggestionsRef = doc(db, 'menu_suggestions', orgId.toString());
-      await setDoc(suggestionsRef, { suggestions: updatedSuggestions }, { merge: true });
+      await api.updateMenuSuggestions(orgId, updatedSuggestions);
       
       setMenuData(prev => ({
         ...prev,

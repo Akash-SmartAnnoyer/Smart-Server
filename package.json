@@ -44,11 +44,12 @@
     "cors": "^2.8.5"
   },
   "scripts": {
-    "start": "node src/websocket-server.js.js",
+    "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "lint": "node lint.js"
+    "lint": "node lint.js",
+    "websocket": "node src/websocket-server.js.js"
   },
   "eslintConfig": {
     "extends": [

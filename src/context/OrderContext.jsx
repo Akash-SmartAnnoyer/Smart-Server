@@ -1,13 +1,6 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
-import { db } from '../pages/fireBaseConfig';
-import { 
-  collection, 
-  query, 
-  where, 
-  getDocs,
-  doc,
-  getDoc
-} from 'firebase/firestore';
+import api from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 console.log('OrderContext is being loaded');
 
@@ -19,7 +12,7 @@ export const OrderProvider = ({ children }) => {
   const [restaurantDetails, setRestaurantDetails] = useState(null);
   const [charges, setCharges] = useState([]);
   const [loading, setLoading] = useState(true);
-  const orgId = localStorage.getItem('orgId');
+  const { orgId } = useAuth();
 
   // Fetch restaurant details and charges once when provider mounts
   useEffect(() => {
@@ -27,26 +20,30 @@ export const OrderProvider = ({ children }) => {
       try {
         setLoading(true);
         
-        // Fetch restaurant details
-        const restaurantsRef = collection(db, 'restaurants');
-        const q = query(restaurantsRef, where('orgId', '==', orgId));
-        const querySnapshot = await getDocs(q);
+        // Check if user is authenticated (has token) or is a guest customer
+        const token = localStorage.getItem('token');
+        const isPublic = !token || token === 'null' || token === ''; // Use public endpoint if no token (customer access)
+        
+        console.log('OrderContext: Fetching data with isPublic:', isPublic, 'orgId:', orgId, 'hasToken:', !!token);
+        
+        // Fetch restaurant details and charges in parallel
+        const [restaurant, chargesData] = await Promise.all([
+          api.getRestaurant(orgId, isPublic).catch((err) => {
+            console.error('OrderContext: Error fetching restaurant:', err);
+            return null;
+          }),
+          api.getCharges(orgId, isPublic).catch((err) => {
+            console.error('OrderContext: Error fetching charges:', err);
+            return [];
+          })
+        ]);
 
-        if (!querySnapshot.empty) {
-          // Get the first document since we're filtering by orgId
-          const restaurantDoc = querySnapshot.docs[0];
-          const restaurant = restaurantDoc.data();
+        if (restaurant) {
           setRestaurantDetails(restaurant);
+        }
 
-          // Fetch charges from the restaurant's charges subcollection
-          const chargesRef = collection(db, 'restaurants', restaurantDoc.id, 'charges');
-          const chargesSnapshot = await getDocs(chargesRef);
-          
-          const chargesArray = chargesSnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          }));
-          setCharges(chargesArray);
+        if (chargesData && Array.isArray(chargesData)) {
+          setCharges(chargesData);
         }
       } catch (error) {
         console.error('Error fetching initial data:', error);

@@ -4,8 +4,8 @@ import { Card, Typography, Divider } from 'antd';
 import { ClockCircleOutlined, DollarOutlined } from '@ant-design/icons';
 import FoodLoader from './FoodLoader';
 import { calculateCharges } from '../utils/calculateCharges';
-import { doc, getDoc, onSnapshot } from 'firebase/firestore';
-import { db } from '../pages/fireBaseConfig';
+import api from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 const { Title, Text } = Typography;
 
@@ -16,24 +16,29 @@ function OrderConfirmation() {
   const [orderData, setOrderData] = useState(null);
   const [charges, setCharges] = useState([]);
   const { orderId } = useParams();
-  const orgId = localStorage.getItem('orgId');
+  const { orgId } = useAuth();
 
   useEffect(() => {
     const fetchOrderAndCharges = async () => {
       try {
-        // Fetch order details from Firestore
-        const orderDocRef = doc(db, 'orders', orderId);
-        const orderDoc = await getDoc(orderDocRef);
-        if (!orderDoc.exists()) {
-          throw new Error('Order not found');
+        // Fetch order details from MongoDB API
+        let orderData = null;
+        try {
+          orderData = await api.getOrder(orgId, orderId);
+        } catch (orderError) {
+          // If not found in active orders, try history
+          try {
+            orderData = await api.getHistoryOrder(orgId, orderId);
+          } catch (historyError) {
+            throw new Error('Order not found');
+          }
         }
-        setOrderData(orderDoc.data());
+        
+        setOrderData(orderData);
 
-        // Fetch charges from Firestore
-        const chargesDocRef = doc(db, 'restaurants', orgId);
-        const chargesDoc = await getDoc(chargesDocRef);
-        if (chargesDoc.exists()) {
-          const chargesData = chargesDoc.data().charges || [];
+        // Fetch charges from MongoDB API
+        const chargesData = await api.getCharges(orgId);
+        if (chargesData && Array.isArray(chargesData)) {
           setCharges(chargesData);
         }
       } catch (error) {
@@ -43,20 +48,49 @@ function OrderConfirmation() {
       }
     };
 
+    if (!orgId) {
+      return;
+    }
+
     // Initial fetch
     fetchOrderAndCharges();
     
-    // Set up real-time listener for order updates
-    const orderDocRef = doc(db, 'orders', orderId);
-    const unsubscribe = onSnapshot(orderDocRef, (doc) => {
-      if (doc.exists()) {
-        setOrderData(doc.data());
+    // Poll for order status updates every 3 seconds
+    const pollInterval = setInterval(async () => {
+      try {
+        let orderData = null;
+        try {
+          orderData = await api.getOrder(orgId, orderId);
+        } catch (orderError) {
+          try {
+            orderData = await api.getHistoryOrder(orgId, orderId);
+          } catch (historyError) {
+            return; // Order not found, stop polling
+          }
+        }
+        
+        if (orderData) {
+          setOrderStatus(orderData.status || 'Pending');
+          setStatusMessage(orderData.statusMessage || '');
+          setOrderData(orderData);
+        }
+      } catch (error) {
+        console.error('Error polling order status:', error);
       }
-    });
+    }, 3000);
 
-    // Cleanup subscription
-    return () => unsubscribe();
+    return () => {
+      clearInterval(pollInterval);
+    };
   }, [orderId, orgId]);
+
+  if (!orgId) {
+    return (
+      <div style={{ minHeight: '60vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <FoodLoader />
+      </div>
+    );
+  }
 
   if (loading) {
     return (

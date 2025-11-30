@@ -12,15 +12,8 @@ import 'jspdf-autotable';
 import FoodLoader from './FoodLoader';
 import { calculateCharges } from '../utils/calculateCharges';
 import { useAdminOrders } from '../context/AdminOrderContext';
-import { db } from '../pages/fireBaseConfig';
-import { 
-  collection, 
-  query, 
-  where, 
-  getDocs,
-  doc,
-  getDoc
-} from 'firebase/firestore';
+import api from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 const { Title, Text } = Typography;
 const { Panel } = Collapse;
@@ -31,7 +24,7 @@ function AllOrdersSummary() {
   const [errorMessage, setErrorMessage] = useState('');
   const [restaurantInfo, setRestaurantInfo] = useState(null);
   const [charges, setCharges] = useState([]);
-  const orgId = localStorage.getItem('orgId');
+  const { orgId } = useAuth();
   const tableNumber = localStorage.getItem('tableNumber');
   const customerId = localStorage.getItem('customerId');
   const [isCalculating, setIsCalculating] = useState(true);
@@ -65,16 +58,19 @@ function AllOrdersSummary() {
     return sum + orderTotal;
   }, 0);
 
+  if (!orgId) {
+    return (
+      <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <FoodLoader />
+      </div>
+    );
+  }
+
   useEffect(() => {
     const fetchRestaurantInfo = async () => {
       try {
-        const restaurantsRef = collection(db, 'restaurants');
-        const q = query(restaurantsRef, where('orgId', '==', orgId));
-        const querySnapshot = await getDocs(q);
-
-        if (!querySnapshot.empty) {
-          const restaurantDoc = querySnapshot.docs[0];
-          const restaurant = restaurantDoc.data();
+        const restaurant = await api.getRestaurant(orgId);
+        if (restaurant) {
           setRestaurantInfo(restaurant);
         } else {
           throw new Error('Organization not found');
@@ -93,19 +89,8 @@ function AllOrdersSummary() {
   useEffect(() => {
     const fetchCharges = async () => {
       try {
-        const restaurantsRef = collection(db, 'restaurants');
-        const q = query(restaurantsRef, where('orgId', '==', orgId));
-        const querySnapshot = await getDocs(q);
-
-        if (!querySnapshot.empty) {
-          const restaurantDoc = querySnapshot.docs[0];
-          const chargesRef = collection(db, 'restaurants', restaurantDoc.id, 'charges');
-          const chargesSnapshot = await getDocs(chargesRef);
-          
-          const chargesArray = chargesSnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          }));
+        const chargesArray = await api.getCharges(orgId);
+        if (chargesArray) {
           setCharges(chargesArray);
         }
       } catch (error) {

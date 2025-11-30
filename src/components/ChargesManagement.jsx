@@ -2,17 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Card, Form, Input, Button, Select, message, Switch, Typography, Popconfirm } from 'antd';
 import { DeleteOutlined, EditOutlined, PlusOutlined, PercentageOutlined, TagOutlined } from '@ant-design/icons';
 import { RiMoneyDollarCircleLine } from 'react-icons/ri';
-import { db } from '../pages/fireBaseConfig';
-import { 
-  collection, 
-  query, 
-  where, 
-  getDocs,
-  doc,
-  addDoc,
-  updateDoc,
-  deleteDoc
-} from 'firebase/firestore';
+import api from '../services/api';
+import FoodLoader from './FoodLoader';
+import { useAuth } from '../contexts/AuthContext';
 
 const { Option } = Select;
 const { Text } = Typography;
@@ -21,31 +13,33 @@ const ChargesManagement = () => {
   const [form] = Form.useForm();
   const [charges, setCharges] = useState([]);
   const [editingId, setEditingId] = useState(null);
-  const [restaurantDocId, setRestaurantDocId] = useState(null);
-  const orgId = localStorage.getItem('orgId');
+  const { orgId } = useAuth();
 
   useEffect(() => {
-    fetchRestaurantAndCharges();
-  }, []);
+    if (orgId) {
+      fetchRestaurantAndCharges();
+    }
+  }, [orgId]);
+
+  if (!orgId) {
+    return (
+      <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <FoodLoader />
+      </div>
+    );
+  }
 
   const fetchRestaurantAndCharges = async () => {
     try {
-      // First, get the restaurant document ID
-      const restaurantsRef = collection(db, 'restaurants');
-      const q = query(restaurantsRef, where('orgId', '==', orgId));
-      const querySnapshot = await getDocs(q);
-
-      if (!querySnapshot.empty) {
-        const restaurantDoc = querySnapshot.docs[0];
-        setRestaurantDocId(restaurantDoc.id);
-
-        // Then fetch charges
-        const chargesRef = collection(db, 'restaurants', restaurantDoc.id, 'charges');
-        const chargesSnapshot = await getDocs(chargesRef);
-        
-        const chargesArray = chargesSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
+      if (!orgId) {
+        return;
+      }
+      const chargesData = await api.getCharges(orgId);
+      
+      if (chargesData && Array.isArray(chargesData)) {
+        const chargesArray = chargesData.map(charge => ({
+          id: charge._id || charge.id,
+          ...charge
         }));
         setCharges(chargesArray);
       }
@@ -57,6 +51,9 @@ const ChargesManagement = () => {
 
   const onFinish = async (values) => {
     try {
+      if (!orgId) {
+        throw new Error('Organization ID not available');
+      }
       const chargeData = {
         name: values.name,
         type: values.type,
@@ -67,13 +64,11 @@ const ChargesManagement = () => {
 
       if (editingId) {
         // Update existing charge
-        const chargeRef = doc(db, 'restaurants', restaurantDocId, 'charges', editingId);
-        await updateDoc(chargeRef, chargeData);
+        await api.updateCharge(orgId, editingId, chargeData);
         message.success('Charge updated successfully');
       } else {
         // Add new charge
-        const chargesRef = collection(db, 'restaurants', restaurantDocId, 'charges');
-        await addDoc(chargesRef, chargeData);
+        await api.addCharge(orgId, chargeData);
         message.success('Charge added successfully');
       }
 
@@ -88,8 +83,10 @@ const ChargesManagement = () => {
 
   const handleDelete = async (id) => {
     try {
-      const chargeRef = doc(db, 'restaurants', restaurantDocId, 'charges', id);
-      await deleteDoc(chargeRef);
+      if (!orgId) {
+        throw new Error('Organization ID not available');
+      }
+      await api.deleteCharge(orgId, id);
       message.success('Charge deleted successfully');
       fetchRestaurantAndCharges();
     } catch (error) {
@@ -110,8 +107,10 @@ const ChargesManagement = () => {
 
   const handleToggleCharge = async (record, enabled) => {
     try {
-      const chargeRef = doc(db, 'restaurants', restaurantDocId, 'charges', record.id);
-      await updateDoc(chargeRef, { isEnabled: enabled });
+      if (!orgId) {
+        throw new Error('Organization ID not available');
+      }
+      await api.toggleCharge(orgId, record.id);
       message.success(`${record.name} ${enabled ? 'enabled' : 'disabled'}`);
       fetchRestaurantAndCharges();
     } catch (error) {

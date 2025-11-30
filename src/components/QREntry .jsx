@@ -6,19 +6,20 @@ import {
   BookOpen, Star, Clock, Bell, GlassWater, MapPin, AlertTriangle
 } from 'lucide-react';
 import { Card, Typography, Spin, Alert, Progress } from 'antd';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../pages/fireBaseConfig';
+import api from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 const { Title, Text } = Typography;
 
 const QREntry = () => {
-    const { orgId, tableNumber } = useParams();
+    const { orgId: routeOrgId, tableNumber } = useParams();
+    const { orgId: storedOrgId, setGuestOrgId } = useAuth();
+    const orgId = routeOrgId;
     const [restaurant, setRestaurant] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [progress, setProgress] = useState(0);
     const [locationVerified, setLocationVerified] = useState(false);
     const [locationError, setLocationError] = useState(null);
-    const API_URL = 'https://production-db-993e8-default-rtdb.firebaseio.com/restaurants';
 
     const MAX_DISTANCE_KM = 0.5; // Maximum allowed distance in kilometers
 
@@ -109,33 +110,43 @@ useEffect(() => {
                 setProgress(prev => (prev < 90 ? prev + 10 : prev));
             }, 200);
 
-            // Update to use Firestore query
-            const restaurantsRef = collection(db, 'restaurants');
-            const q = query(restaurantsRef, where('orgId', '==', orgId));
-            const querySnapshot = await getDocs(q);
+            // First verify organization access
+            const orgAccess = await api.customerAccess(orgId);
+            
+            if (!orgAccess || !orgAccess.orgId) {
+                throw new Error('Organization not found or inactive');
+            }
+
+            // Fetch restaurant data (public endpoint, no auth required)
+            const restaurantData = await api.getRestaurant(orgId, true);
             
             clearInterval(progressInterval);
             setProgress(100);
 
-            if (!querySnapshot.empty) {
-                const restaurantData = querySnapshot.docs[0].data();
-                setRestaurant(restaurantData);
+            if (restaurantData) {
+                // Convert MongoDB _id to id for compatibility
+                const formattedData = {
+                    ...restaurantData,
+                    id: restaurantData._id || restaurantData.orgId
+                };
                 
+                setRestaurant(formattedData);
+                
+                // Skip location verification for now (can be enabled later)
                 const isLocationVerified = true;
                 
                 if (isLocationVerified) {
                     // Check if there's an existing customerId for this restaurant
                     const existingCustomerId = localStorage.getItem('customerId');
-                    const existingOrgId = localStorage.getItem('orgId');
+                    const existingOrgId = storedOrgId;
                     
                     // Only generate new customerId if none exists or if user is at a different restaurant
                     if (!existingCustomerId || existingOrgId !== orgId) {
                         const customerId = `cust-${Math.random().toString(36).substr(2, 9)}`;
                         localStorage.setItem('customerId', customerId);
                     }
-                    
-                    localStorage.setItem('role', 'customer');
-                    localStorage.setItem('orgId', orgId);
+
+                    setGuestOrgId(orgId);
                     localStorage.setItem('tableNumber', tableNumber);
 
                     setTimeout(() => {
@@ -147,20 +158,20 @@ useEffect(() => {
                 throw new Error('Restaurant not found');
             }
         } catch (err) {
-            setError(err.message);
+            console.error('Error fetching restaurant data:', err);
+            setError(err.response?.data?.error || err.message || 'Failed to load restaurant. Please check the link and try again.');
         } finally {
             setLoading(false);
         }
     };
 
-
-        if (orgId && tableNumber) {
-            fetchRestaurantData();
-        } else {
-            setError('No orgId or tableNumber provided');
-            setLoading(false);
-        }
-    }, [orgId, tableNumber]);
+    if (orgId && tableNumber) {
+        fetchRestaurantData();
+    } else {
+        setError('No orgId or tableNumber provided');
+        setLoading(false);
+    }
+}, [orgId, tableNumber, storedOrgId, setGuestOrgId]);
 
     const containerStyle = {
         minHeight: '100vh',

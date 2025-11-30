@@ -1,70 +1,34 @@
 import React, { useState, useEffect } from 'react';
+import api from '../services/api';
 import { Drawer, Menu } from 'antd';
 import { Link } from 'react-router-dom';
 import { MdRestaurant } from "react-icons/md";
 import { HomeOutlined, ShoppingCartOutlined, FileTextOutlined, UnorderedListOutlined, HistoryOutlined, UserOutlined, SettingOutlined, AppstoreOutlined, BarsOutlined } from '@ant-design/icons';
 import { LuLayoutDashboard } from "react-icons/lu";
 import { IoFastFoodOutline } from "react-icons/io5";
+import { useAuth } from '../contexts/AuthContext';
 
 const RestaurantDrawer = ({ isOpen, onClose }) => {
   const [restaurantName, setRestaurantName] = useState('');
-  const [role, setRole] = useState('');
+  const { role: authRole, orgId } = useAuth();
+  const role = authRole ?? 'customer';
 
   useEffect(() => {
-    fetchRestaurantData();
-    const storedRole = localStorage.getItem('role');
-    setRole(storedRole || '');
-
-    // Add event listener for storage changes
-    window.addEventListener('storage', handleStorageChange);
-
-    // Cleanup
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-    };
-  }, []);
-
-  const handleStorageChange = (event) => {
-    if (event.key === 'role') {
-      setRole(event.newValue || '');
-    }
-  };
-
-  const fetchRestaurantData = async () => {
-    try {
-      const orgId = localStorage.getItem('orgId');
-      
-      if (!orgId) {
-        console.error("No orgId found in localStorage");
-        return;
-      }
-  
-      // Adding `.json` at the end of the Firebase Realtime Database URL
-      const response = await fetch('https://production-db-993e8-default-rtdb.firebaseio.com/restaurants.json');
-      
-      if (response.ok) {
-        const data = await response.json();
+    const fetchRestaurantData = async () => {
+      try {
+        if (!orgId) return;
+        const restaurant = await api.getRestaurant(orgId);
         
-        // Check if data exists and filter by `orgId`
-        if (data) {
-          // Firebase stores data in a key-value format, so `data` is an object not an array
-          const restaurant = Object.values(data).find(restaurant => restaurant.orgId === orgId);
-          
-          if (restaurant) {
-            setRestaurantName(restaurant.name);
-          } else {
-            console.error("No restaurant found with the given orgId");
-          }
-        } else {
-          console.error("No data available in the database");
+        if (restaurant) {
+          setRestaurantName(restaurant.name);
         }
-      } else {
-        console.error("Error fetching restaurant data:", response.status);
+      } catch (error) {
+        console.error("Error fetching restaurant data:", error);
       }
-    } catch (error) {
-      console.error("Error fetching restaurant data:", error);
-    }
-  };
+    };
+
+    fetchRestaurantData();
+  }, [orgId]);
   
 
   return (

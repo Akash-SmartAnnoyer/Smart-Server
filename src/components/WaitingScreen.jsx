@@ -6,8 +6,8 @@ import { useCart } from '../contexts/CartContext';
 import { IoVolumeMuteOutline } from "react-icons/io5";
 import notificationSound from './notification.mp3';
 import FoodLoader from './FoodLoader';
-import { doc, getDoc, updateDoc, collection, addDoc } from 'firebase/firestore';
-import { db } from '../pages/fireBaseConfig';
+import api from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 const { Title, Text } = Typography;
 const { Panel } = Collapse;
@@ -65,10 +65,10 @@ const WaitingScreen = () => {
     return savedSoundSetting ? JSON.parse(savedSoundSetting) : false;
   });
   const [confirmCancelVisible, setConfirmCancelVisible] = useState(false);
-  const ws = useRef(null);
   const audioRef = useRef(new Audio(notificationSound));
   const [currentGifIndex, setCurrentGifIndex] = useState(0);
   const [isGeneratingOrderId, setIsGeneratingOrderId] = useState(true);
+  const { orgId } = useAuth();
 
   // Update localStorage whenever soundEnabled changes
   useEffect(() => {
@@ -76,15 +76,32 @@ const WaitingScreen = () => {
   }, [soundEnabled]);
 
   useEffect(() => {
-    // Update the fetch order function to use Firestore
+    if (!orgId) {
+      return;
+    }
+
     const fetchOrder = async () => {
       try {
-        const orderRef = doc(db, 'history', orderId);
-        const orderSnap = await getDoc(orderRef);
+        let fetchedOrder = null;
+        try {
+          fetchedOrder = await api.getOrder(orgId, orderId);
+        } catch (orderError) {
+          try {
+            fetchedOrder = await api.getHistoryOrder(orgId, orderId);
+          } catch (historyError) {
+            throw new Error('Order not found');
+          }
+        }
         
-        if (!orderSnap.exists()) throw new Error('Order not found');
-        const fetchedOrder = { id: orderSnap.id, ...orderSnap.data() };
-        setOrder({ ...fetchedOrder, displayOrderId: fetchedOrder.id || orderId });
+        if (!fetchedOrder) throw new Error('Order not found');
+        
+        const formattedOrder = {
+          ...fetchedOrder,
+          id: fetchedOrder.orderId || fetchedOrder._id || orderId,
+          displayOrderId: fetchedOrder.orderId || orderId
+        };
+        
+        setOrder(formattedOrder);
         setIsGeneratingOrderId(false);
       } catch (error) {
         console.error('Failed to fetch order', error);
@@ -94,38 +111,52 @@ const WaitingScreen = () => {
 
     fetchOrder();
     
-    // WebSocket setup
-    // ws.current = new WebSocket('wss://legend-sulfuric-ruby.glitch.me');
-
-    ws.current = new WebSocket('wss://smart-menu-web-socket-server.onrender.com');
-
-    ws.current.onopen = () => {
-      const orgId = localStorage.getItem('orgId');
-      ws.current.send(JSON.stringify({ type: 'subscribe', orgId }));
-    };
-
-    ws.current.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.type === 'statusUpdate' && data.orderId === orderId) {
-        setOrder(prevOrder => ({ ...prevOrder, status: data.status.toLowerCase().trim(), statusMessage: data.statusMessage }));
-        
-        if (soundEnabled) {
-          audioRef.current.play().catch(error => console.error('Error playing audio:', error));
+    // Poll for order status updates every 3 seconds
+    const pollInterval = setInterval(async () => {
+      try {
+        let fetchedOrder = null;
+        try {
+          fetchedOrder = await api.getOrder(orgId, orderId);
+        } catch (orderError) {
+          try {
+            fetchedOrder = await api.getHistoryOrder(orgId, orderId);
+          } catch (historyError) {
+            return; // Order not found, stop polling
+          }
         }
-
-        notification.open({
-          message: 'Order Status Updated',
-          description: `Your order status has been updated to: ${data.status}`,
-          icon: <BellOutlined style={{ color: '#1890ff' }} />,
-          duration: 4.5,
-        });
+        
+        if (fetchedOrder) {
+          const formattedOrder = {
+            ...fetchedOrder,
+            id: fetchedOrder.orderId || fetchedOrder._id || orderId,
+            displayOrderId: fetchedOrder.orderId || orderId
+          };
+          
+          setOrder(prevOrder => {
+            // Only update if status changed
+            if (prevOrder?.status !== formattedOrder.status) {
+              if (soundEnabled) {
+                audioRef.current.play().catch(error => console.error('Error playing audio:', error));
+              }
+              notification.open({
+                message: 'Order Status Updated',
+                description: `Your order status has been updated to: ${formattedOrder.status}`,
+                icon: <BellOutlined style={{ color: '#1890ff' }} />,
+                duration: 4.5,
+              });
+            }
+            return formattedOrder;
+          });
+        }
+      } catch (error) {
+        console.error('Error polling order status:', error);
       }
-    };  
+    }, 3000);
 
     return () => {
-      if (ws.current) ws.current.close();
+      clearInterval(pollInterval);
     };
-  }, [orderId, soundEnabled]);
+  }, [orderId, soundEnabled, orgId]);
 
   // Replace the existing useEffect for GIF rotation with:
   useEffect(() => {
@@ -177,12 +208,12 @@ const WaitingScreen = () => {
   const handleConfirmCancelOrder = async () => {
     setConfirmCancelVisible(false);
     try {
-      // Update in Firestore
-      const orderRef = doc(db, 'history', orderId);
-      await updateDoc(orderRef, {
-        status: 'cancelled',
-        statusMessage: 'Your order has been cancelled'
-      });
+      if (!orgId) {
+        throw new Error('Organization ID not found');
+      }
+      
+      // Update order status via MongoDB API
+      await api.updateOrderStatus(orgId, orderId, 'cancelled');
 
       // Update local state
       setOrder(prev => ({
@@ -190,17 +221,6 @@ const WaitingScreen = () => {
         status: 'cancelled',
         statusMessage: 'Your order has been cancelled'
       }));
-
-      // WebSocket notification remains the same
-      if (ws.current?.readyState === WebSocket.OPEN) {
-        ws.current.send(JSON.stringify({
-          type: 'statusUpdate',
-          orderId: orderId,
-          status: 'cancelled',
-          statusMessage: 'Your order has been cancelled',
-          orgId: localStorage.getItem('orgId')
-        }));
-      }
 
       clearCart();
       setCancelModalVisible(true);
@@ -213,12 +233,12 @@ const WaitingScreen = () => {
 
   const handleCompleteOrder = async () => {
     try {
-      // Update in Firestore
-      const orderRef = doc(db, 'history', orderId);
-      await updateDoc(orderRef, {
-        status: 'completed',
-        statusMessage: 'Your order has been completed'
-      });
+      if (!orgId) {
+        throw new Error('Organization ID not found');
+      }
+      
+      // Update order status via MongoDB API
+      await api.updateOrderStatus(orgId, orderId, 'completed');
 
       // Rest of the function remains the same
       setOrder(prev => ({
@@ -227,16 +247,6 @@ const WaitingScreen = () => {
         statusMessage: 'Your order has been completed'
       }));
 
-      // WebSocket notification remains the same
-      if (ws.current?.readyState === WebSocket.OPEN) {
-        ws.current.send(JSON.stringify({
-          type: 'statusUpdate',
-          orderId: orderId,
-          status: 'completed',
-          statusMessage: 'Your order has been completed',
-          orgId: localStorage.getItem('orgId')
-        }));
-      }
 
       clearCart();
       setIsModalVisible(true);
@@ -295,14 +305,17 @@ const WaitingScreen = () => {
     };
 
     try {
-      // Update order with feedback in Firestore
-      const orderRef = doc(db, 'history', orderId);
-      await updateDoc(orderRef, {
-        feedback: feedbackDetails
+      if (!orgId) {
+        throw new Error('Organization ID not found');
+      }
+      
+      // Update order with feedback via MongoDB API
+      // Note: Feedback can be stored as part of order notes or in a separate collection
+      // For now, we'll update the order with feedback
+      await api.updateOrder(orgId, orderId, {
+        feedback: feedbackDetails,
+        notes: order.notes ? `${order.notes}\nFeedback: ${feedback}` : `Feedback: ${feedback}`
       });
-
-      // Save to separate feedback collection
-      await addDoc(collection(db, 'feedback'), feedbackDetails);
 
       message.success('Thank you for your feedback!');
       setIsModalVisible(false);

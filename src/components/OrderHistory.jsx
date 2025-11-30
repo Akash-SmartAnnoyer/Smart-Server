@@ -11,13 +11,15 @@ import {
 } from '@ant-design/icons';
 import { useOrders } from '../context/OrderContext';
 import FoodLoader from './FoodLoader';
+import api from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 function OrderHistory() {
   const { orders, loading, setOrders } = useOrders();
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
-  const orgId = localStorage.getItem('orgId');
+  const { orgId } = useAuth();
 
   const theme = {
     primary: '#ff4d4f',
@@ -51,15 +53,17 @@ function OrderHistory() {
     marginTop : '25px'
   };
 
+  if (!orgId) {
+    return (
+      <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <FoodLoader />
+      </div>
+    );
+  }
+
   const handleDelete = async (orderId) => {
     try {
-      const deleteResponse = await fetch(`https://production-db-993e8-default-rtdb.firebaseio.com/history/${orderId}.json`, {
-        method: 'DELETE',
-      });
-
-      if (!deleteResponse.ok) {
-        throw new Error(`Failed to delete order. Status: ${deleteResponse.status}`);
-      }
+      await api.deleteHistory(orgId, orderId);
 
       message.success('Order deleted successfully');
       setOrders((prevOrders) => prevOrders.filter((order) => order.id !== orderId));

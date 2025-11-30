@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, Tag, Select, Typography, message, Spin, notification, Switch, Badge, Empty, Input } from 'antd';
 import {
   CheckOutlined,
@@ -14,29 +14,33 @@ import {
 } from '@ant-design/icons';
 import notificationSound from './notification.mp3';
 import FoodLoader from './FoodLoader';
-import { useOrders } from '../context/OrderContext';
+import { useAuth } from '../contexts/AuthContext';
+import api from '../services/api';
 
 const { Option } = Select;
 const { Title, Text } = Typography;
 
 const AdminOrderComponent = () => {
-  const { orders, loading, setOrders, updateOrder } = useOrders();
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(false); // Start with false, will be set to true when fetching
   const [newOrders, setNewOrders] = useState([]);
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredOrders, setFilteredOrders] = useState([]);
-  const ws = useRef(null);
   const audioRef = useRef(null);
   const audioTimeout = useRef(null);
-  const orgId = localStorage.getItem('orgId');
+  const { orgId } = useAuth();
+  
+  // Debug: Log orgId changes
+  useEffect(() => {
+    console.log('AdminPage: orgId changed to:', orgId);
+  }, [orgId]);
 
   // Filter out cancelled and completed orders
   const activeOrders = orders.filter(order => 
     !['cancelled', 'completed'].includes(order.status)
   );
 
-  
-  
   const getStatusConfig = (status) => {
     const configs = {
       pending: {
@@ -78,93 +82,93 @@ const AdminOrderComponent = () => {
     };
     return configs[status] || configs.pending;
   };
+
+  const fetchOrders = useCallback(async () => {
+    if (!orgId) {
+      console.log('AdminPage: No orgId available');
+      setLoading(false);
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      console.log('AdminPage: Fetching orders for orgId:', orgId);
+      // Fetch live orders (pending, preparing, ready, delayed)
+      const ordersData = await api.getOrders(orgId);
+      
+      console.log('AdminPage: Received orders data:', ordersData);
+      
+      if (!ordersData || ordersData.length === 0) {
+        console.log('AdminPage: No orders found');
+        setOrders([]);
+        setLoading(false);
+        return;
+      }
+  
+      const ordersArray = ordersData
+        .map(order => ({
+          ...order,
+          id: order.orderId || order._id || order.id,
+          timestamp: order.createdAt || order.timestamp || new Date().toISOString()
+        }))
+        .filter(order => !['cancelled', 'completed'].includes(order.status))
+        .sort((a, b) => {
+          const dateA = new Date(a.timestamp || a.createdAt);
+          const dateB = new Date(b.timestamp || b.createdAt);
+          return dateB - dateA;
+        });
+  
+      console.log('AdminPage: Processed orders array:', ordersArray);
+      setOrders(ordersArray);
+    } catch (error) {
+      console.error('AdminPage: Failed to fetch orders', error);
+      message.error('Failed to fetch orders: ' + (error.message || 'Unknown error'));
+      setOrders([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [orgId]);
+
   useEffect(() => {
+    if (!orgId) {
+      setLoading(false);
+      return;
+    }
+    
+    // Initial fetch
     fetchOrders();
 
-    // Set up WebSocket connection
-    // ws.current = new WebSocket('wss://legend-sulfuric-ruby.glitch.me');
-
-    ws.current = new WebSocket('wss://smart-menu-web-socket-server.onrender.com');
-
-    ws.current.onopen = () => {
-      console.log('WebSocket connected');
-    };
-
-    ws.current.onmessage = (event) => {
-      console.log('Received message:', event.data);
-      const data = JSON.parse(event.data);
-      if (data.type === 'newOrder' && data.order.orgId == orgId) {
-        // Add the new order to the beginning of the orders array
-        setOrders(prevOrders => [data.order, ...prevOrders]);
-        
-        // Add the new order ID to the newOrders array for highlighting
-        setNewOrders(prev => [...prev, data.order.id]);
-
-        // Play sound notification if enabled
-        if (soundEnabled) {
-          playNotificationSound();
-        }
-
-        // Show visual notification
-        notification.open({
-          message: 'New Order Arrived',
-          description: `Order #${data.order.id} has been placed for Table ${data.order.tableNumber}`,
-          icon: <BellOutlined style={{ color: '#ff4d4f' }} />,
-          duration: 4.5,
-        });
-      } else if (data.type === 'statusUpdate' && data.orgId == orgId) {
-        setOrders(prevOrders =>
-          prevOrders?.map(order =>
-            order.id == data.orderId ? { ...order, status: data.status, statusMessage: data.statusMessage } : order
-          )
-        );
-
-        if (soundEnabled) {
-          playNotificationSound();
-        }
-
-        notification.open({
-          message: 'Order Status Updated',
-          description: `Order #${data.orderId} status: ${data.status}`,
-          icon: data.status === 'cancelled' ? <CloseCircleOutlined style={{ color: '#ff4d4f' }} /> : <BellOutlined style={{ color: '#1890ff' }} />,
-        });
-      }
-    };
-    ws.current.onerror = (error) => {
-      console.error('WebSocket error:', error);
-    };
+    // Poll for new orders every 15 seconds (reduced frequency)
+    const pollInterval = setInterval(() => {
+      fetchOrders();
+    }, 15000);
 
     return () => {
-      if (ws.current) {
-        ws.current.close();
-      }
+      clearInterval(pollInterval);
     };
-  }, [soundEnabled, orgId]);
+  }, [orgId, fetchOrders]);
 
   const handleUpdateStatus = async (orderId, newStatus) => {
     try {
       const statusMessage = getStatusMessage(newStatus);
-      const success = await updateOrder(orderId, { 
-        status: newStatus, 
-        statusMessage 
-      });
-
-      if (!success) throw new Error('Failed to update order status');
-
-      // Send status update through WebSocket
-      if (ws.current?.readyState === WebSocket.OPEN) {
-        const message = JSON.stringify({ 
-          type: 'statusUpdate', 
-          orderId, 
-          status: newStatus,
-          statusMessage,
-          orgId 
-        });
-        ws.current.send(message);
-      }
+      
+      // Use API to update order status
+      await api.updateOrderStatus(orgId, orderId, newStatus);
+      
+      // Update local state immediately
+      setOrders(prevOrders => 
+        prevOrders.map(order => 
+          order.id === orderId || order.orderId === orderId
+            ? { ...order, status: newStatus, statusMessage }
+            : order
+        )
+      );
 
       message.success(`Order #${orderId} status updated to ${newStatus}`);
       setNewOrders(prev => prev.filter(id => id !== orderId));
+      
+      // Refresh orders to get latest data
+      await fetchOrders();
     } catch (error) {
       console.error('Failed to update order status:', error);
       message.error('Failed to update order status');
@@ -183,73 +187,8 @@ const AdminOrderComponent = () => {
     }
   };
 
-  const fetchOrders = async () => {
-    try {
-      // Construct query URL with filters
-      const queryParams = new URLSearchParams({
-        orderBy: '"orgId"',
-        equalTo: `"${orgId}"`,
-        // Add additional filters as needed
-      }).toString();
-  
-      const response = await fetch(
-        `https://production-db-993e8-default-rtdb.firebaseio.com/history.json?${queryParams}`
-      );
-  
-      if (!response.ok) {
-        throw new Error('Failed to fetch orders');
-      }
-  
-      const data = await response.json();
-      
-      if (!data) {
-        setOrders([]);
-        return;
-      }
-  
-      const ordersArray = Object.entries(data)
-        .map(([key, order]) => ({
-          ...order,
-          id: order.id || key
-        }))
-        .filter(order => !['cancelled', 'completed'].includes(order.status))
-        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-  
-      setOrders(ordersArray);
-    } catch (error) {
-      console.error('Failed to fetch orders', error);
-      message.error('Failed to fetch orders');
-    }
-  };
-
   
 
-  // const fetchOrders = async () => {
-  //   try {
-  //     const response = await fetch(`https://production-db-993e8-default-rtdb.firebaseio.com/history.json`);
-  //     if (!response.ok) {
-  //       throw new Error('Failed to fetch orders');
-  //     }
-  
-  //     const data = await response.json();
-  
-  //     const ordersArray = Object.entries(data)
-  //       .map(([key, order]) => ({
-  //         ...order,
-  //         id: order.id || key
-  //       }))
-  //       .filter(order => 
-  //         order.orgId === orgId && 
-  //         !['cancelled', 'completed'].includes(order.status)
-  //       );
-  
-  //     const sortedOrders = ordersArray?.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-  //     setOrders(sortedOrders);
-  //   } catch (error) {
-  //     console.error('Failed to fetch orders', error);
-  //     message.error('Failed to fetch orders');
-  //   }
-  // };
 
   const getStatusIcon = (status) => {
     switch(status) {
@@ -502,7 +441,7 @@ const AdminOrderComponent = () => {
                         fontSize: 'clamp(1.1rem, 2.5vw, 1.4rem)',
                         color: '#ff4d4f'
                       }}>
-                        #{order.id}
+                        #{order.orderId || order.id}
                       </Text>
                       <div style={{
                         display: 'flex',
@@ -561,7 +500,7 @@ const AdminOrderComponent = () => {
                   <Select
                     value={order.status || 'pending'}
                     style={{ width: '100%', marginBottom: '10px' }}
-                    onChange={(newStatus) => handleUpdateStatus(order.id, newStatus)}
+                    onChange={(newStatus) => handleUpdateStatus(order.orderId || order.id, newStatus)}
                   >
                     {['pending', 'preparing', 'ready', 'delayed', 'cancelled', 'completed'].map((status) => (
                       <Option key={status} value={status}>

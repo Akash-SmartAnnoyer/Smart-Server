@@ -12,14 +12,8 @@ import {
 } from '@ant-design/icons';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import FoodLoader from './FoodLoader';
-import { db } from '../pages/fireBaseConfig';
-import { 
-  collection, 
-  query, 
-  where, 
-  getDocs,
-  orderBy
-} from 'firebase/firestore';
+import api from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -885,33 +879,36 @@ export const RestaurantDashboard = () => {
   const [activeTab, setActiveTab] = useState('1');
   const [dateRange, setDateRange] = useState([null, null]);
   const [timeFrame, setTimeFrame] = useState('today');
-  const orgId = localStorage.getItem('orgId');
+  const { orgId } = useAuth();
+
+  if (!orgId) {
+    return (
+      <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <FoodLoader />
+      </div>
+    );
+  }
 
   // Fetch Data
   useEffect(() => {
     let mounted = true;
     
     const loadData = async () => {
-      if (mounted) {
+      if (mounted && orgId) {
         await fetchDashboardData();
       }
     };
     
     loadData();
     
-    // Debug log when component mounts
-    console.log('Dashboard component mounted with orgId:', localStorage.getItem('orgId'));
-    
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [orgId]);
 
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const orgId = localStorage.getItem('orgId');
-      
       if (!orgId) {
         throw new Error('Organization ID not found');
       }
@@ -920,48 +917,37 @@ export const RestaurantDashboard = () => {
       const threeMonthsAgo = new Date();
       threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
 
-      const historyRef = collection(db, 'history');
-      const ordersQuery = query(
-        historyRef, 
-        where('orgId', '==', orgId), // Compare with string orgId
-        orderBy('timestamp', 'desc')  // Remove timestamp filter temporarily for testing
-      );
-
-      // Fetch all data
-      const [ordersSnapshot, categoriesSnapshot, menuItemsSnapshot] = await Promise.all([
-        getDocs(ordersQuery),
-        getDocs(query(collection(db, 'categories'), where('orgId', '==', orgId))),
-        getDocs(query(collection(db, 'menu_items'), where('orgId', '==', orgId)))
+      // Fetch all data from MongoDB API
+      const [ordersData, categoriesData, menuItemsData] = await Promise.all([
+        api.getHistory(orgId),
+        api.getCategories(orgId),
+        api.getMenuItems(orgId)
       ]);
 
       // Debug log
-      console.log('Raw orders count:', ordersSnapshot.docs.length);
+      console.log('Raw orders count:', ordersData?.length || 0);
 
-      // Process orders with detailed logging
-      const processedOrders = ordersSnapshot.docs
-        .map(doc => {
-          const data = doc.data();
-          // Debug log
-          console.log('Processing order:', doc.id, data);
-
-          const timestamp = data.timestamp?.toDate?.() 
-            || (typeof data.timestamp === 'string' ? new Date(data.timestamp) 
-            : data.timestamp instanceof Date ? data.timestamp 
-            : new Date());
+      // Process orders
+      const processedOrders = (ordersData || [])
+        .map(order => {
+          const timestamp = typeof order.timestamp === 'string' 
+            ? new Date(order.timestamp) 
+            : order.timestamp instanceof Date 
+            ? order.timestamp 
+            : new Date();
 
           return {
-            ...data,
-            id: doc.id,
-            firebaseId: doc.id,
+            ...order,
+            id: order._id || order.id,
+            firebaseId: order._id || order.id, // Keep for backward compatibility
             timestamp: timestamp,
-            total: parseFloat(data.total || 0),
-            items: Array.isArray(data.items) ? data.items : [],
-            status: data.status || 'pending',
-            tableNumber: data.tableNumber || '',
+            total: parseFloat(order.total || 0),
+            items: Array.isArray(order.items) ? order.items : [],
+            status: order.status || 'pending',
+            tableNumber: order.tableNumber || '',
           };
         })
         .filter(order => {
-          // Debug log for filtered orders
           if (!order.timestamp || isNaN(order.total)) {
             console.log('Filtered out order:', order);
           }
@@ -969,30 +955,24 @@ export const RestaurantDashboard = () => {
         });
 
       // Process categories
-      const processedCategories = categoriesSnapshot.docs
-        .map(doc => {
-          const data = doc.data();
-          return {
-            ...data,
-            id: doc.id,
-            firebaseId: doc.id,
-            name: data.name || 'Unnamed Category'
-          };
-        });
+      const processedCategories = (categoriesData || [])
+        .map(cat => ({
+          ...cat,
+          id: cat._id || cat.id,
+          firebaseId: cat._id || cat.id, // Keep for backward compatibility
+          name: cat.name || 'Unnamed Category'
+        }));
 
       // Process menu items
-      const processedMenuItems = menuItemsSnapshot.docs
-        .map(doc => {
-          const data = doc.data();
-          return {
-            ...data,
-            id: doc.id,
-            firebaseId: doc.id,
-            name: data.name || 'Unnamed Item',
-            price: parseFloat(data.price || 0),
-            categoryId: data.categoryId || ''
-          };
-        });
+      const processedMenuItems = (menuItemsData || [])
+        .map(item => ({
+          ...item,
+          id: item._id || item.id,
+          firebaseId: item._id || item.id, // Keep for backward compatibility
+          name: item.name || 'Unnamed Item',
+          price: parseFloat(item.price || 0),
+          categoryId: item.categoryId || ''
+        }));
 
       // Debug logs
       console.log('Processed orders:', processedOrders);

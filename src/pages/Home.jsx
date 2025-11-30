@@ -88,16 +88,82 @@ useEffect(() => {
     const subcategoryId = queryParams.get('subcategoryId');
     
     if (subcategoryId && subcategories.length > 0 && categories.length > 0) {
-      const subcategory = subcategories.find(sub => sub.id === subcategoryId);
+      // Try to find subcategory with string comparison
+      let subcategory = subcategories.find(sub => {
+        const subId = String(sub.id || '').trim();
+        const targetId = String(subcategoryId || '').trim();
+        return subId === targetId;
+      });
+      
+      // If exact match not found, try flexible matching
+      if (!subcategory) {
+        console.log('Exact subcategory match not found, trying flexible match');
+        
+        // Try matching by first 20 characters (prefix match)
+        subcategory = subcategories.find(sub => {
+          const subId = String(sub.id || '').trim();
+          const targetId = String(subcategoryId || '').trim();
+          if (subId.length >= 20 && targetId.length >= 20) {
+            return subId.slice(0, 20) === targetId.slice(0, 20);
+          }
+          return false;
+        });
+        
+        // If prefix match not found, try matching without last 1-3 characters
+        if (!subcategory && subcategories.length > 0) {
+          const targetId = String(subcategoryId || '').trim();
+          for (let i = 1; i <= 3 && i < targetId.length; i++) {
+            const targetIdBase = targetId.slice(0, -i);
+            subcategory = subcategories.find(sub => {
+              const subId = String(sub.id || '').trim();
+              if (subId.length === targetId.length) {
+                return subId.slice(0, -i) === targetIdBase && targetIdBase.length >= 20;
+              }
+              return false;
+            });
+            if (subcategory) break;
+          }
+        }
+        
+        if (subcategory) {
+          console.log('Found subcategory with flexible matching:', {
+            requested: subcategoryId,
+            found: subcategory.id,
+            name: subcategory.name
+          });
+        }
+      }
+      
       if (subcategory) {
-        const category = categories.find(cat => cat.id === subcategory.categoryId);
-        setSelectedCategory(category);
-        setSelectedSubcategory(subcategory);
+        const category = categories.find(cat => {
+          const catId = String(cat.id || '').trim();
+          const targetCatId = String(subcategory.categoryId || '').trim();
+          return catId === targetCatId;
+        });
+        if (category) {
+          setSelectedCategory(category);
+          setSelectedSubcategory(subcategory);
+        } else {
+          console.log('Category not found for subcategory:', subcategory.categoryId);
+        }
+      } else {
+        console.log('Subcategory not found:', subcategoryId);
+        console.log('Available subcategories:', subcategories.map(s => ({ 
+          id: s.id, 
+          name: s.name,
+          idBase: String(s.id || '').slice(0, -1)
+        })));
       }
     } else if (categoryId && categories.length > 0) {
-      const category = categories.find(cat => cat.id === categoryId);
+      const category = categories.find(cat => {
+        const catId = String(cat.id || '');
+        const targetId = String(categoryId || '');
+        return catId === targetId;
+      });
       if (category) {
         setSelectedCategory(category);
+      } else {
+        console.log('Category not found:', categoryId);
       }
     }
   }, [location.search, subcategories, categories]);
@@ -134,13 +200,141 @@ useEffect(() => {
 
   const filteredMenuItems = selectedSubcategory
     ? menuItems
-        .filter((item) => item.subcategoryId === selectedSubcategory.id)
+        .filter((item) => {
+          // Ensure both IDs are strings for comparison
+          const itemSubId = String(item.subcategoryId || '').trim();
+          const selectedSubId = String(selectedSubcategory.id || '').trim();
+          
+          // Exact match
+          if (itemSubId === selectedSubId) {
+            return true;
+          }
+          
+          // Try matching with progressively more characters removed from the end
+          // This handles cases where IDs differ by 1-3 characters at the end
+          if (itemSubId.length > 0 && selectedSubId.length > 0 && itemSubId.length === selectedSubId.length) {
+            // Try matching without last 1, 2, or 3 characters
+            for (let i = 1; i <= 3 && i < itemSubId.length; i++) {
+              const itemSubIdBase = itemSubId.slice(0, -i);
+              const selectedSubIdBase = selectedSubId.slice(0, -i);
+              if (itemSubIdBase === selectedSubIdBase && itemSubIdBase.length >= 20) {
+                console.log(`Matched subcategory ID with last ${i} character(s) difference:`, {
+                  itemName: item.name,
+                  itemSubId,
+                  selectedSubId,
+                  base: itemSubIdBase
+                });
+                return true;
+              }
+            }
+          }
+          
+          // Also try matching the first 20 characters (most of the ID)
+          if (itemSubId.length >= 20 && selectedSubId.length >= 20) {
+            const itemSubIdPrefix = itemSubId.slice(0, 20);
+            const selectedSubIdPrefix = selectedSubId.slice(0, 20);
+            if (itemSubIdPrefix === selectedSubIdPrefix) {
+              console.log('Matched subcategory ID by prefix (first 20 chars):', {
+                itemName: item.name,
+                itemSubId,
+                selectedSubId,
+                prefix: itemSubIdPrefix
+              });
+              return true;
+            }
+          }
+          
+          // Debug logging for mismatches
+          if (itemSubId && selectedSubId && itemSubId !== selectedSubId) {
+            console.log('Subcategory ID mismatch:', {
+              itemName: item.name,
+              itemSubId,
+              selectedSubId,
+              itemSubIdLength: itemSubId.length,
+              selectedSubIdLength: selectedSubId.length
+            });
+          }
+          
+          return false;
+        })
         .filter(
-          (item) =>
-            (filters.veg && item.foodType === 'veg') ||
-            (filters.nonVeg && item.foodType === 'nonveg')
+          (item) => {
+            // Handle both foodType (string) and isVeg (boolean) properties
+            let itemFoodType = item.foodType;
+            
+            // If foodType is not set but isVeg is set, convert it
+            if (!itemFoodType && item.isVeg !== undefined) {
+              itemFoodType = item.isVeg ? 'veg' : 'nonveg';
+            }
+            
+            // If foodType is still not set, show the item (don't filter it out)
+            if (!itemFoodType) {
+              return true;
+            }
+            
+            // Otherwise, apply the veg/non-veg filter
+            return (filters.veg && itemFoodType === 'veg') ||
+                   (filters.nonVeg && itemFoodType === 'nonveg');
+          }
         )
     : [];
+  
+  // Debug logging for filtered menu items
+  useEffect(() => {
+    if (selectedSubcategory) {
+      const itemsMatchingSubcategory = menuItems.filter((item) => {
+        const itemSubId = String(item.subcategoryId || '').trim();
+        const selectedSubId = String(selectedSubcategory.id || '').trim();
+        
+        if (itemSubId === selectedSubId) return true;
+        
+        if (itemSubId.length > 0 && selectedSubId.length > 0 && itemSubId.length === selectedSubId.length) {
+          for (let i = 1; i <= 3 && i < itemSubId.length; i++) {
+            const itemSubIdBase = itemSubId.slice(0, -i);
+            const selectedSubIdBase = selectedSubId.slice(0, -i);
+            if (itemSubIdBase === selectedSubIdBase && itemSubIdBase.length >= 20) {
+              return true;
+            }
+          }
+        }
+        
+        if (itemSubId.length >= 20 && selectedSubId.length >= 20) {
+          return itemSubId.slice(0, 20) === selectedSubId.slice(0, 20);
+        }
+        
+        return false;
+      });
+      
+      const afterVegFilter = itemsMatchingSubcategory.filter((item) => {
+        let itemFoodType = item.foodType;
+        if (!itemFoodType && item.isVeg !== undefined) {
+          itemFoodType = item.isVeg ? 'veg' : 'nonveg';
+        }
+        if (!itemFoodType) return true;
+        return (filters.veg && itemFoodType === 'veg') ||
+               (filters.nonVeg && itemFoodType === 'nonveg');
+      });
+      
+      console.log('Filtering menu items for subcategory:', {
+        subcategoryId: selectedSubcategory.id,
+        subcategoryName: selectedSubcategory.name,
+        totalMenuItems: menuItems.length,
+        itemsWithSubcategoryId: menuItems.filter(item => item.subcategoryId).length,
+        itemsMatchingSubcategory: itemsMatchingSubcategory.length,
+        afterVegFilter: afterVegFilter.length,
+        filteredCount: filteredMenuItems.length,
+        filters: filters,
+        menuItemSubcategoryIds: menuItems
+          .filter(item => item.subcategoryId)
+          .map(item => ({ 
+            name: item.name, 
+            subcategoryId: String(item.subcategoryId),
+            foodType: item.foodType || (item.isVeg !== undefined ? (item.isVeg ? 'veg' : 'nonveg') : 'not set'),
+            isVeg: item.isVeg
+          }))
+      });
+    }
+  }, [selectedSubcategory, menuItems, filteredMenuItems, filters]);
 
   const handleFilterChange = (newFilters) => {
     setFilters(newFilters);

@@ -19,8 +19,8 @@ import 'jspdf-autotable';
 import FoodLoader from './FoodLoader';
 import { calculateCharges } from '../utils/calculateCharges';
 import { useOrders } from '../context/OrderContext';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../pages/fireBaseConfig';
+import api from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 const { Title, Text } = Typography;
 
@@ -32,7 +32,7 @@ function BillSummary() {
   const [restaurantInfo, setRestaurantInfo] = useState(null);
   const [orderData, setOrderData] = useState(null);
   const [charges, setCharges] = useState([]);
-  const orgId = localStorage.getItem('orgId');
+  const { orgId } = useAuth();
   
   const lastOrder = getLastActiveOrder();
   const orderToDisplay = cart.length > 0 ? null : lastOrder;
@@ -43,12 +43,8 @@ function BillSummary() {
   useEffect(() => {
     const fetchRestaurantInfo = async () => {
       try {
-        const restaurantsRef = collection(db, 'restaurants');
-        const q = query(restaurantsRef, where('orgId', '==', orgId));
-        const querySnapshot = await getDocs(q);
-
-        if (!querySnapshot.empty) {
-          const restaurant = querySnapshot.docs[0].data();
+        const restaurant = await api.getRestaurant(orgId);
+        if (restaurant) {
           setRestaurantInfo(restaurant);
         } else {
           throw new Error('Organization not found');
@@ -67,14 +63,8 @@ function BillSummary() {
   useEffect(() => {
     const fetchCharges = async () => {
       try {
-        const chargesRef = collection(db, 'restaurants', orgId, 'charges');
-        const querySnapshot = await getDocs(chargesRef);
-        
-        if (!querySnapshot.empty) {
-          const chargesArray = querySnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          }));
+        const chargesArray = await api.getCharges(orgId);
+        if (chargesArray) {
           setCharges(chargesArray);
         }
       } catch (error) {
@@ -87,7 +77,7 @@ function BillSummary() {
     }
   }, [orgId]);
 
-  if (loading) {
+  if (!orgId || loading) {
     return (
       <div style={{
         position: 'fixed',

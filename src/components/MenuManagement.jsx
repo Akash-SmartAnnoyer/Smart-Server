@@ -25,7 +25,8 @@ import {
   Popover,
   Popconfirm,
   Tag,
-  Slider
+  Slider,
+  Tabs
 } from 'antd';
 import {
   PlusOutlined,
@@ -53,15 +54,8 @@ import { ScrollMenu } from 'react-horizontal-scrolling-menu';
 import FoodLoader from './FoodLoader';
 import StylishButton from './common/StylishButton';
 import { useMenu } from '../contexts/MenuProvider';
-import { db } from '../pages/fireBaseConfig';
-import { 
-  collection, 
-  getDocs, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  doc 
-} from 'firebase/firestore';
+import api from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 const { Content, Sider } = Layout;
 const { Option } = Select;
@@ -79,6 +73,8 @@ const theme = {
 };
 
 const ModernMenuManagement = () => {
+  const { orgId } = useAuth();
+  const [activeRestaurant, setActiveRestaurant] = useState(null);
   const [categories, setCategories] = useState([]);
   const [subcategories, setSubcategories] = useState([]);
   const [menuItems, setMenuItems] = useState([]);
@@ -90,9 +86,8 @@ const ModernMenuManagement = () => {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [availabilityDrawer, setAvailabilityDrawer] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
-  const [siderCollapsed, setSiderCollapsed] = useState(window.innerWidth <= 768);
-  const [drawerVisible, setDrawerVisible] = useState(false);
-    const [imageInputType, setImageInputType] = useState('url');
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [imageInputType, setImageInputType] = useState('url');
     const [showFilters, setShowFilters] = useState(false); // State to manage filter visibility
   
   // Add new state variables for search and filters
@@ -110,6 +105,31 @@ const ModernMenuManagement = () => {
 
   // Add constant for footer height
   const FOOTER_HEIGHT = 64; // Adjust this value to match your footer height
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    const loadRestaurant = async () => {
+      if (!orgId) return;
+      try {
+        const data = await api.getRestaurant(orgId);
+        if (data) {
+          setActiveRestaurant(data);
+        }
+      } catch (err) {
+        console.error('Failed to load restaurant context:', err);
+      }
+    };
+
+    loadRestaurant();
+  }, [orgId]);
 
   // Filter and sort functions
   const filterAndSortItems = (items) => {
@@ -208,20 +228,8 @@ const ModernMenuManagement = () => {
       }}
     >
       <Space align="center">
-        <Button
-          type="text"
-          className="menu-button"
-          icon={<MenuOutlined style={{ fontSize: '24px', color: 'white' }} />}
-          onClick={() => setDrawerVisible(true)}
-          style={{ 
-            border: 'none', 
-            padding: '8px',
-            background: 'transparent'
-          }}
-        />
         <Text strong style={{ color: 'white', fontSize: '20px', margin: 0 }}>
-          {activeTab === 'menu_items' ? 'Menu Items' : 
-           activeTab === 'categories' ? 'Categories' : 'Subcategories'}
+          Menu Management
         </Text>
       </Space>
       {activeTab === 'menu_items' && (
@@ -271,7 +279,7 @@ const ModernMenuManagement = () => {
         >
           <div className="search-container" style={{
             position: 'sticky',
-            top: 72,
+            top: isMobile ? '190px' : '170px', // Position below tabs (tabs are at 130px mobile, 120px desktop + ~50px height)
             zIndex: 100,
             padding: '8px 16px',
             background: 'rgba(255,255,255,0.95)',
@@ -318,8 +326,6 @@ const ModernMenuManagement = () => {
       </AnimatePresence>
     );
   });
-   // Get orgId from localStorage
-  const orgId = localStorage.getItem('orgId');
 
   const { 
     categories: cachedCategories, 
@@ -335,19 +341,30 @@ const ModernMenuManagement = () => {
     if (dataInitialized) {
       setCategories(cachedCategories.map(item => ({
         ...item,
-        firebaseId: item.id // Ensure firebaseId is set correctly
+        id: item._id || item.id,
+        firebaseId: item._id || item.id // Ensure firebaseId is set correctly for backward compatibility
       })));
       setSubcategories(cachedSubcategories.map(item => ({
         ...item,
-        firebaseId: item.id // Ensure firebaseId is set correctly
+        id: item._id || item.id,
+        firebaseId: item._id || item.id // Ensure firebaseId is set correctly for backward compatibility
       })));
       setMenuItems(cachedMenuItems.map(item => ({
         ...item,
-        firebaseId: item.id // Ensure firebaseId is set correctly
+        id: item._id || item.id,
+        firebaseId: item._id || item.id // Ensure firebaseId is set correctly for backward compatibility
       })));
       setLoading(false);
     }
   }, [dataInitialized, cachedCategories, cachedSubcategories, cachedMenuItems]);
+
+  if (!orgId) {
+    return (
+      <div style={{ minHeight: '60vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <FoodLoader />
+      </div>
+    );
+  }
 
   // Update loading check
   if (menuLoading.overall || !dataInitialized) {
@@ -457,6 +474,7 @@ const renderFormItems = () => {
           >
             <Input />
           </Form.Item>
+          {imageUploadFields}
           <Form.Item
             name="categoryId"
             label="Category"
@@ -641,19 +659,24 @@ const ModernCategoryCard = ({ item, type }) => (
                 setIsModalVisible(true);
               }}
             />
-             <Popconfirm
-      title="Are you sure you want to delete this item?"
-      onConfirm={() => handleDelete(item.firebaseId)}
-      okText="Yes"
-      cancelText="No"
-      placement="topRight"
-    >
-      <Button
-        type="text"
-        danger
-        icon={<DeleteOutlined />}
-      />
-    </Popconfirm>
+            <Popconfirm
+              title="Are you sure you want to delete this item?"
+              onConfirm={() =>
+                handleDelete(
+                  item.firebaseId,
+                  type === 'subcategory' ? item.categoryId : undefined
+                )
+              }
+              okText="Yes"
+              cancelText="No"
+              placement="topRight"
+            >
+              <Button
+                type="text"
+                danger
+                icon={<DeleteOutlined />}
+              />
+            </Popconfirm>
           </Space>
         </div>
       </div>
@@ -676,6 +699,9 @@ const handleCreate = async values => {
     // Validate required fields first
     if (!values.name || (type === 'menu_items' && !values.price)) {
       throw new Error('Required fields are missing');
+    }
+    if (type === 'subcategories' && !values.categoryId) {
+      throw new Error('Please select a parent category');
     }
 
     // Handle image data for all types
@@ -709,11 +735,14 @@ const handleCreate = async values => {
       description: values.description?.trim() || '',
       price: type === 'menu_items' ? Number(values.price) || 0 : undefined,
       image: imageData,
-      orgId: parseInt(orgId) || 0,
+      orgId,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       isAvailable: values.isAvailable ?? true,
-      isCustomizable: values.isCustomizable ?? false
+      isCustomizable: values.isCustomizable ?? false,
+      // Ensure categoryId and subcategoryId are included for menu items
+      categoryId: type === 'menu_items' ? (values.categoryId || selectedCategory) : undefined,
+      subcategoryId: type === 'menu_items' ? values.subcategoryId : undefined,
     };
 
     // Remove undefined and unnecessary fields
@@ -725,41 +754,54 @@ const handleCreate = async values => {
     delete dataToCreate.imageUrl;
     delete dataToCreate.imageUpload;
 
-    // Add document to Firestore with retry logic
-    let retries = 3;
-    let docRef = null;
-    
-    while (retries > 0) {
-      try {
-        docRef = await addDoc(collection(db, type), dataToCreate);
-        break;
-      } catch (error) {
-        retries--;
-        if (retries === 0) throw error;
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
-      }
+    if (!orgId) {
+      throw new Error('Organization ID not available');
     }
-
-    if (!docRef) {
-      throw new Error('Failed to create document after retries');
-    }
-    
-    // Update the document with its firebaseId
-    const newItem = {
-      ...dataToCreate,
-      id: docRef.id,
-      firebaseId: docRef.id
-    };
-    
-    try {
-      await updateDoc(docRef, {
-        id: docRef.id,
-        firebaseId: docRef.id
+    const categoryOrgId =
+      activeRestaurant?.organizationId || activeRestaurant?._id || orgId;
+    let createdItem = null;
+    if (type === 'menu_items') {
+      // Ensure organizationId and subcategoryId are included for menu items
+      // Convert IDs to strings to ensure consistency
+      const subcategoryIdValue = dataToCreate.subcategoryId || values.subcategoryId;
+      const categoryIdValue = dataToCreate.categoryId || values.categoryId || selectedCategory;
+      
+      const menuItemData = {
+        ...dataToCreate,
+        organizationId: categoryOrgId,
+        // Ensure subcategoryId is explicitly included and converted to string
+        subcategoryId: subcategoryIdValue ? String(subcategoryIdValue).trim() : null,
+        categoryId: categoryIdValue ? String(categoryIdValue).trim() : null,
+      };
+      console.log('Creating menu item with data:', {
+        name: menuItemData.name,
+        categoryId: menuItemData.categoryId,
+        subcategoryId: menuItemData.subcategoryId,
+        hasSubcategoryId: !!menuItemData.subcategoryId,
+        subcategoryIdType: typeof menuItemData.subcategoryId,
+        subcategoryIdLength: menuItemData.subcategoryId?.length
       });
-    } catch (updateError) {
-      console.warn('Failed to update document with IDs:', updateError);
-      // Don't fail the operation if this update fails
+      createdItem = await api.createMenuItem(orgId, menuItemData);
+    } else {
+      const payload = {
+        ...dataToCreate,
+        organizationId: categoryOrgId,
+        isSubcategory: type === 'subcategories',
+      };
+      if (type === 'subcategories') {
+        payload.categoryId = values.categoryId;
+      }
+      createdItem = await api.createCategory(orgId, payload);
     }
+    
+    // Format item to match expected structure
+    const newItem = {
+      ...createdItem,
+      id: createdItem._id || createdItem.id,
+      firebaseId: createdItem._id || createdItem.id, // Keep firebaseId for backward compatibility
+      categoryId: createdItem.categoryId || values.categoryId,
+      subcategoryId: createdItem.subcategoryId || values.subcategoryId // Ensure subcategoryId is included
+    };
 
     // Update local state
     updateLocalState(type, 'add', newItem);
@@ -818,7 +860,7 @@ const handleUpdate = async values => {
     const dataToUpdate = {
       ...values,
       image: imageData,
-      orgId: parseInt(orgId),
+      orgId,
       updatedAt: new Date().toISOString(),
       id: editingItem.firebaseId,
       firebaseId: editingItem.firebaseId,
@@ -828,12 +870,48 @@ const handleUpdate = async values => {
     delete dataToUpdate.imageUrl;
     delete dataToUpdate.imageUpload;
 
-    // Update document in Firestore
-    const docRef = doc(db, type, editingItem.firebaseId);
-    await updateDoc(docRef, dataToUpdate);
+    // Update via MongoDB API
+    const itemId = editingItem.firebaseId || editingItem._id || editingItem.id;
+    if (!orgId) {
+      throw new Error('Organization ID not available');
+    }
+    
+    let updatedItem = null;
+    if (type === 'menu_items') {
+      updatedItem = await api.updateMenuItem(orgId, itemId, dataToUpdate);
+    } else {
+      const categoryOrgId =
+        activeRestaurant?.organizationId || activeRestaurant?._id || orgId;
+      if (type === 'subcategories') {
+        const parentCategoryId = values.categoryId || editingItem?.categoryId;
+        if (!parentCategoryId) {
+          throw new Error('Parent category is required');
+        }
+        updatedItem = await api.updateCategory(orgId, parentCategoryId, {
+          ...dataToUpdate,
+          organizationId: categoryOrgId,
+          isSubcategory: true,
+          subcategoryId: editingItem?.firebaseId,
+        });
+      } else {
+        updatedItem = await api.updateCategory(orgId, itemId, {
+          ...dataToUpdate,
+          organizationId: categoryOrgId,
+          isSubcategory: false,
+        });
+      }
+    }
+    
+    // Format item to match expected structure
+    const formattedItem = {
+      ...updatedItem,
+      id: updatedItem._id || updatedItem.id,
+      firebaseId: updatedItem._id || updatedItem.id,
+      categoryId: updatedItem.categoryId || values.categoryId || editingItem?.categoryId
+    };
 
     // Update local state
-    updateLocalState(type, 'update', dataToUpdate);
+    updateLocalState(type, 'update', formattedItem);
 
     // Close modal and reset form
     setIsModalVisible(false);
@@ -867,7 +945,7 @@ const getImageUrl = (imageData) => {
   return 'https://via.placeholder.com/80'; // Fallback
 };
 
-const handleDelete = async (firebaseId) => {
+const handleDelete = async (firebaseId, parentCategoryId) => {
   if (processingAction) return;
   setProcessingAction(true);
 
@@ -878,9 +956,23 @@ const handleDelete = async (firebaseId) => {
     : 'menu_items';
 
   try {
-    // Delete document from Firestore
-    const docRef = doc(db, type, firebaseId);
-    await deleteDoc(docRef);
+    if (!orgId) {
+      throw new Error('Organization ID not available');
+    }
+    const itemId = firebaseId;
+    
+    if (type === 'menu_items') {
+      await api.deleteMenuItem(orgId, itemId);
+    } else if (type === 'subcategories') {
+      const categoryId = parentCategoryId || editingItem?.categoryId;
+      if (!categoryId) {
+        throw new Error('Parent category is required to delete subcategory');
+      }
+      console.log('Deleting subcategory:', { orgId, categoryId, subcategoryId: itemId });
+      await api.deleteCategory(orgId, categoryId, { subcategoryId: itemId });
+    } else {
+      await api.deleteCategory(orgId, itemId);
+    }
 
     // Update local state
     updateLocalState(type, 'delete', { firebaseId });
@@ -971,11 +1063,14 @@ const handleAvailabilityChange = async (itemId, isAvailable) => {
       )
     );
 
-    // Update availability in Firestore
-    const docRef = doc(db, 'menu_items', itemId);
-    await updateDoc(docRef, { 
+    if (!orgId) {
+      throw new Error('Organization ID not available');
+    }
+
+    // Update availability via MongoDB API
+    await api.updateMenuItem(orgId, itemId, { 
       isAvailable,
-      updatedAt: new Date()
+      updatedAt: new Date().toISOString()
     });
 
     // Refresh menu data after successful update
@@ -1087,20 +1182,20 @@ const columns = {
             }}
 
           />
- <Popconfirm
-      title="Are you sure you want to delete this item?"
-      onConfirm={() => handleDelete(record.firebaseId)}
-      okText="Yes"
-      cancelText="No"
-      placement="topRight"
-    >
-      <Button
-        type="text"
-        danger
-        icon={<DeleteOutlined />}
-        style={{ marginLeft: 8 }}
-      />
-    </Popconfirm>
+        <Popconfirm
+          title="Are you sure you want to delete this item?"
+          onConfirm={() => handleDelete(record.firebaseId)}
+          okText="Yes"
+          cancelText="No"
+          placement="topRight"
+        >
+          <Button
+            type="text"
+            danger
+            icon={<DeleteOutlined />}
+            style={{ marginLeft: 8 }}
+          />
+        </Popconfirm>
 
         </>
 
@@ -1152,20 +1247,20 @@ const columns = {
 
           />
 
-<Popconfirm
-      title="Are you sure you want to delete this item?"
-      onConfirm={() => handleDelete(record.firebaseId)}
-      okText="Yes"
-      cancelText="No"
-      placement="topRight"
-    >
-      <Button
-        type="text"
-        danger
-        icon={<DeleteOutlined />}
-        style={{ marginLeft: 8 }}
-      />
-    </Popconfirm>
+        <Popconfirm
+          title="Are you sure you want to delete this item?"
+          onConfirm={() => handleDelete(record.firebaseId, record.categoryId)}
+          okText="Yes"
+          cancelText="No"
+          placement="topRight"
+        >
+          <Button
+            type="text"
+            danger
+            icon={<DeleteOutlined />}
+            style={{ marginLeft: 8 }}
+          />
+        </Popconfirm>
         </>
 
       ),
@@ -1426,45 +1521,36 @@ const ModernMenuItem = memo(({ item }) => (
 
 
 
-  const renderSiderContent = () => (
-    <>
-      <div style={{ 
-        padding: '24px 16px', 
-        borderBottom: `1px solid ${theme.primary}20`,
-        background: theme.primary,
-      }}>
-        <Title level={4} style={{ color: 'white', margin: 0, textAlign: 'center' }}>
-          Menu Management
-        </Title>
-      </div>
-      <Menu
-        mode="inline"
-        selectedKeys={[activeTab]}
-        style={{ borderRight: 0 }}
-        items={[
-          {
-            key: 'categories',
-            icon: <ShopOutlined />,
-            label: 'Categories',
-          },
-          {
-            key: 'subcategories',
-            icon: <RestOutlined />,
-            label: 'Subcategories',
-          },
-          {
-            key: 'menu_items',
-            icon: <AppstoreOutlined />,
-            label: 'Menu Items',
-          },
-        ]}
-        onClick={({ key }) => {
-          setActiveTab(key);
-          setDrawerVisible(false);
-        }}
-      />
-    </>
-  );
+  // Tab items configuration
+  const tabItems = [
+    {
+      key: 'categories',
+      label: (
+        <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <ShopOutlined />
+          <span>Categories</span>
+        </span>
+      ),
+    },
+    {
+      key: 'subcategories',
+      label: (
+        <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <RestOutlined />
+          <span>Subcategories</span>
+        </span>
+      ),
+    },
+    {
+      key: 'menu_items',
+      label: (
+        <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <AppstoreOutlined />
+          <span>Menu Items</span>
+        </span>
+      ),
+    },
+  ];
 
   // Floating Action Button for adding new items
   const FloatingActionButton = () => (
@@ -1871,9 +1957,10 @@ const ModernMenuItem = memo(({ item }) => (
       <Layout style={{ 
         minHeight: '100vh', 
         background: theme.background,
-        maxWidth: '480px',
-        margin: '0 auto',
         width: '100%',
+        maxWidth: isMobile ? '100%' : '1200px',
+        margin: '0 auto',
+        padding: isMobile ? '0' : '0 24px',
       }}>
         <MobileHeader />
         
@@ -1888,28 +1975,42 @@ const ModernMenuItem = memo(({ item }) => (
           </div>
         ) : (
           <div className="menu-management-content">
-            <Drawer
-              placement="left"
-              closable={false}
-              onClose={() => setDrawerVisible(false)}
-              open={drawerVisible}
-              bodyStyle={{ padding: 0 }}
-              width="80%"
-              style={{
-                borderTopRightRadius: '20px',
-                borderBottomRightRadius: '20px'
-              }}
-            >
-              {renderSiderContent()}
-            </Drawer>
-
             <Layout style={{ 
-              marginTop: '112px',
+              marginTop: isMobile ? '130px' : '120px', // Account for header + initial tab space
               background: theme.background,
-              height: `calc(100vh - 72px)`,
+              minHeight: 'calc(100vh - 72px)',
               width: '100%',
-              maxWidth: '480px',
+              maxWidth: '100%',
             }}>
+              {/* Tabs Navigation */}
+              <div style={{
+                position: 'sticky',
+                top: isMobile ? '130px' : '120px', // Position below header (header: -15px top + 72px margin + ~64px height = ~121px, add 9px gap)
+                zIndex: 150, // Higher than search bar (100) but lower than header (1000)
+                background: theme.cardBg,
+                borderBottom: `2px solid ${theme.secondary}`,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                marginTop: '0',
+              }}>
+                <Tabs
+                  activeKey={activeTab}
+                  onChange={setActiveTab}
+                  items={tabItems}
+                  style={{
+                    margin: 0,
+                  }}
+                  tabBarStyle={{
+                    margin: 0,
+                    padding: isMobile ? '0 8px' : '0 24px',
+                    background: theme.cardBg,
+                  }}
+                  tabBarGutter={isMobile ? 8 : 24}
+                  size={isMobile ? 'small' : 'default'}
+                  type={isMobile ? 'card' : 'line'}
+                  centered={!isMobile}
+                />
+              </div>
+
               <Content style={{
                 padding: '0',
                 height: '100%',
@@ -2093,6 +2194,64 @@ const enhancedStyles = `
 `;
 
 document.head.insertAdjacentHTML('beforeend', `<style>${enhancedStyles}</style>`);
+
+// Add custom tab styles
+const tabStyles = `
+  .ant-tabs-tab {
+    font-weight: 500;
+    font-size: 14px;
+    padding: 12px 20px;
+    transition: all 0.3s ease;
+  }
+
+  .ant-tabs-tab:hover {
+    color: ${theme.primary} !important;
+  }
+
+  .ant-tabs-tab-active {
+    font-weight: 600;
+  }
+
+  .ant-tabs-tab-active .ant-tabs-tab-btn {
+    color: ${theme.primary} !important;
+  }
+
+  .ant-tabs-ink-bar {
+    background: ${theme.primary} !important;
+    height: 3px !important;
+  }
+
+  .ant-tabs-card > .ant-tabs-nav .ant-tabs-tab {
+    border: 1px solid ${theme.secondary};
+    background: ${theme.cardBg};
+    margin: 0 4px;
+    border-radius: 8px 8px 0 0;
+  }
+
+  .ant-tabs-card > .ant-tabs-nav .ant-tabs-tab-active {
+    background: ${theme.primary};
+    border-color: ${theme.primary};
+  }
+
+  .ant-tabs-card > .ant-tabs-nav .ant-tabs-tab-active .ant-tabs-tab-btn {
+    color: white !important;
+  }
+
+  @media (max-width: 768px) {
+    .ant-tabs-tab {
+      font-size: 12px;
+      padding: 8px 12px;
+    }
+
+    .ant-tabs-tab-btn {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+  }
+`;
+
+document.head.insertAdjacentHTML('beforeend', `<style>${tabStyles}</style>`);
 
 // Add these styles
 const drawerStyles = `

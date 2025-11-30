@@ -11,21 +11,66 @@ import {
   CustomerServiceOutlined
 } from '@ant-design/icons';
 import FoodLoader from './FoodLoader';
-import { useAdminOrders } from '../context/AdminOrderContext';
+import api from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 const { Title, Text } = Typography;
 
 const MyOrders = () => {
-  const { orders, loading, addOrder, updateOrderStatus } = useAdminOrders() || {};
   const navigate = useNavigate();
   const [ws, setWs] = useState(null);
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
   const tableNumber = localStorage.getItem('tableNumber');
   const customerId = localStorage.getItem('customerId');
+  const { orgId } = useAuth();
   const [customerIdMap, setCustomerIdMap] = useState({});
+
+  // Fetch customer orders
+  useEffect(() => {
+    const fetchCustomerOrders = async () => {
+      if (!orgId || !customerId) {
+        setLoading(false);
+        return;
+      }
+      
+      try {
+        setLoading(true);
+        // Fetch orders filtered by customerId
+        const ordersData = await api.getOrders(orgId, { customerName: customerId });
+        
+        if (ordersData && ordersData.length > 0) {
+          const processedOrders = ordersData
+            .map(order => ({
+              ...order,
+              id: order.orderId || order._id || order.id,
+              timestamp: order.createdAt || order.timestamp || new Date().toISOString()
+            }))
+            .filter(order => !['cancelled', 'completed'].includes(order.status))
+            .sort((a, b) => {
+              const dateA = new Date(a.timestamp || a.createdAt);
+              const dateB = new Date(b.timestamp || b.createdAt);
+              return dateB - dateA;
+            });
+          
+          setOrders(processedOrders);
+        } else {
+          setOrders([]);
+        }
+      } catch (error) {
+        console.error('Failed to fetch customer orders:', error);
+        setOrders([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchCustomerOrders();
+  }, [orgId, customerId]);
 
   // Map customer IDs to sequential numbers
   useEffect(() => {
-    const uniqueCustomerIds = [...new Set(orders.map(order => order.customerId))];
+    const uniqueCustomerIds = [...new Set(orders.map(order => order.customerId || order.customerName))];
     const map = uniqueCustomerIds.reduce((acc, id, index) => {
       acc[id] = index + 1;
       return acc;
@@ -33,60 +78,49 @@ const MyOrders = () => {
     setCustomerIdMap(map);
   }, [orders]);
 
-  // WebSocket connection setup
+  // Poll for order updates every 5 seconds
   useEffect(() => {
-    // ws.current = new WebSocket('wss://legend-sulfuric-ruby.glitch.me');
+    if (!orgId || !customerId) return;
 
-    const websocket = new WebSocket('wss://smart-menu-web-socket-server.onrender.com');
-
-    websocket.onopen = () => {
-      console.log('WebSocket connected in MyOrders');
-      // Send subscription message with orgId
-      const orgId = localStorage.getItem('orgId');
-      websocket.send(JSON.stringify({ type: 'subscribe', orgId }));
-    };
-
-    websocket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
+    const pollInterval = setInterval(() => {
+      const fetchCustomerOrders = async () => {
+        try {
+          const ordersData = await api.getOrders(orgId, { customerName: customerId });
+          
+          if (ordersData && ordersData.length > 0) {
+            const processedOrders = ordersData
+              .map(order => ({
+                ...order,
+                id: order.orderId || order._id || order.id,
+                timestamp: order.createdAt || order.timestamp || new Date().toISOString()
+              }))
+              .filter(order => !['cancelled', 'completed'].includes(order.status))
+              .sort((a, b) => {
+                const dateA = new Date(a.timestamp || a.createdAt);
+                const dateB = new Date(b.timestamp || b.createdAt);
+                return dateB - dateA;
+              });
+            
+            setOrders(processedOrders);
+          }
+        } catch (error) {
+          console.error('Failed to poll customer orders:', error);
+        }
+      };
       
-      // Handle new orders
-      if (data.type === 'newOrder' && data.order.tableNumber === tableNumber) {
-        addOrder?.(data.order);
-      }
-      
-      // Handle status updates
-      if (data.type === 'statusUpdate' && updateOrderStatus) {
-        updateOrderStatus(data.orderId, data.status, data.statusMessage);
-      }
-    };
-
-    websocket.onerror = (error) => {
-      console.error('WebSocket error:', error);
-    };
-
-    websocket.onclose = () => {
-      console.log('WebSocket disconnected');
-      // Attempt to reconnect after a delay
-      setTimeout(() => {
-        console.log('Attempting to reconnect...');
-        setWs(new WebSocket('wss://smart-menu-web-socket-server.onrender.com'));
-      }, 3000);
-    };
-
-    setWs(websocket);
+      fetchCustomerOrders();
+    }, 5000);
 
     return () => {
-      if (websocket) {
-        websocket.close();
-      }
+      clearInterval(pollInterval);
     };
-  }, [tableNumber, updateOrderStatus, addOrder]);
+  }, [orgId, customerId, tableNumber]);
 
   // Filter active orders for the current customer
   const activeOrders = orders.filter(order => 
     order.status !== 'completed' && 
     order.status !== 'cancelled' && 
-    order.customerId === customerId
+    (order.customerId === customerId || order.customerName === customerId)
   );
 
   const handleViewDetails = (order) => {

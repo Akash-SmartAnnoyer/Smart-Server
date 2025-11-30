@@ -35,7 +35,6 @@ const NewAdminPage = () => {
   const [newOrders, setNewOrders] = useState([]);
   const [customerIdMap, setCustomerIdMap] = useState({});
   const audioRef = useRef(new Audio(notificationSound));
-  const ws = useRef(null);
   const orgId = localStorage.getItem('orgId');
   const [lastOrderTimestamp, setLastOrderTimestamp] = useState(null);
   const [cancelledOrders, setCancelledOrders] = useState([]);
@@ -66,94 +65,6 @@ const NewAdminPage = () => {
     ))
   );
 
-  useEffect(() => {
-    // Function to establish WebSocket connection
-    const connectWebSocket = () => {
-      ws.current = new WebSocket('wss://smart-menu-web-socket-server.onrender.com');
-      ws.current.onopen = () => {
-        console.log('WebSocket connected');
-      };
-      ws.current.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        
-        if (data.type === 'newOrder' && data.order.orgId === orgId) {
-          setOrders(prevOrders => {
-            if (prevOrders.some(order => order.id === data.order.id)) {
-              return prevOrders;
-            }
-            return [data.order, ...prevOrders];
-          });
-          setNewOrders(prev => [...prev, data.order.id]);
-          
-          if (soundEnabled) {
-            playNotificationSound();
-          }
-
-          message.success({
-            content: `New order #${data.order.id} from Table ${data.order.tableNumber}`,
-            icon: <BellOutlined style={{ color: '#ff4d4f' }} />
-          });
-        } else if (data.type === 'statusUpdate' && data.orgId === orgId) {
-          // Only show notification and update state if the update is from another client
-          if (data.senderId !== ws.current.id) {
-            setOrders(prevOrders =>
-              prevOrders.map(order =>
-                order.id === data.orderId 
-                  ? { ...order, status: data.status, statusMessage: data.statusMessage }
-                  : order
-              )
-            );
-
-            if (soundEnabled) {
-              playNotificationSound();
-            }
-
-            message.info({
-              content: `Order #${data.orderId} status updated to ${data.status}`,
-              icon: <SyncOutlined spin style={{ color: '#1890ff' }} />
-            });
-          }
-        } else if (data.type === 'statusUpdate' && data.status === 'cancelled') {
-          // Add to cancelled orders list
-          setCancelledOrders(prev => {
-            const order = orders.find(o => o.id === data.orderId);
-            if (order && !prev.some(o => o.id === order.id)) {
-              return [{ ...order, timestamp: new Date().toISOString() }, ...prev];
-            }
-            return prev;
-          });
-          // Play notification sound
-          playNotificationSound();
-        }
-      };
-
-      // Assign a unique ID to this WebSocket connection
-      ws.current.id = Math.random().toString(36).substr(2, 9);
-
-      ws.current.onclose = () => {
-        console.log('WebSocket disconnected. Attempting to reconnect...');
-        setTimeout(connectWebSocket, 3000);
-      };
-
-      ws.current.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        ws.current.close();
-      };
-    };
-
-    if (orgId) {
-      connectWebSocket();
-    }
-
-    return () => {
-      if (ws.current) {
-        ws.current.onclose = () => {
-          console.log('WebSocket closed due to component unmount');
-        };
-        ws.current.close();
-      }
-    };
-  }, [orgId, soundEnabled, setOrders]);
 
   const playNotificationSound = () => {
     try {
@@ -225,18 +136,6 @@ const NewAdminPage = () => {
           )
         );
 
-        // Send WebSocket message for other clients
-        if (ws.current?.readyState === WebSocket.OPEN) {
-          ws.current.send(JSON.stringify({
-            type: 'statusUpdate',
-            orderId,
-            status: newStatus,
-            statusMessage,
-            orgId,
-            senderId: ws.current.id
-          }));
-        }
-
         setNewOrders(prev => prev.filter(id => id !== orderId));
         
         message.success('Order status updated successfully');
@@ -293,24 +192,7 @@ const NewAdminPage = () => {
     }
   }, [orders, fetchOrders, hasMore]);
 
-  // Add infinite scroll effect
-  useEffect(() => {
-    const handleScroll = debounce(() => {
-      // Check if we're near the bottom (within 200px)
-      if (
-        window.innerHeight + window.pageYOffset >= 
-        document.documentElement.scrollHeight - 200
-      ) {
-        loadMoreOrders();
-      }
-    }, 200); // Debounce scroll events
 
-    window.addEventListener('scroll', handleScroll);
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-      handleScroll.cancel(); // Cancel any pending debounce
-    };
-  }, [loadMoreOrders]);
 
   // Helper function to debounce scroll events
   function debounce(func, wait) {
@@ -324,15 +206,6 @@ const NewAdminPage = () => {
     return debouncedFunction;
   }
 
-  useEffect(() => {
-    // Check if page needs refresh
-    const needRefresh = localStorage.getItem('needRefresh');
-    if (needRefresh !== 'no') {
-      // Set flag to 'no' before refreshing to prevent refresh loop
-      localStorage.setItem('needRefresh', 'no');
-      window.location.reload();
-    }
-  }, []); // Empty dependency array ensures this runs only once on mount
 
   // Get pending orders count
   const pendingOrders = orders.filter(order => order.status === 'pending');

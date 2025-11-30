@@ -27,17 +27,8 @@ import {
 import { MapContainer, TileLayer, Marker, useMap, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { 
-  collection, 
-  query, 
-  where, 
-  getDocs, 
-  doc, 
-  updateDoc,
-  setDoc,
-  getDoc
-} from 'firebase/firestore';
-import { db } from '../pages/fireBaseConfig';
+import api from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
@@ -56,6 +47,7 @@ let cachedData = null;
 let cacheTimestamp = null;
 
 const RestaurantManagement = () => {
+  const { orgId } = useAuth();
   const [loading, setLoading] = useState(false);
   const [restaurant, setRestaurant] = useState(null);
   const [showMap, setShowMap] = useState(false);
@@ -76,6 +68,8 @@ const RestaurantManagement = () => {
   });
 
   useEffect(() => {
+    if (!orgId) return;
+    
     const isCacheValid = cachedData && cacheTimestamp && (Date.now() - cacheTimestamp < CACHE_DURATION);
     
     if (isCacheValid) {
@@ -83,26 +77,29 @@ const RestaurantManagement = () => {
     } else {
       fetchRestaurantData();
     }
-  }, []);
-  
+  }, [orgId]);
+
   const fetchRestaurantData = async () => {
     try {
       setLoading(true);
-      const orgId = localStorage.getItem('orgId');
       
-      const restaurantsRef = collection(db, 'restaurants');
-      const q = query(restaurantsRef, where('orgId', '==', orgId));
-      const querySnapshot = await getDocs(q);
+      if (!orgId) {
+        console.error("No orgId found in auth context");
+        setLoading(false);
+        return;
+      }
       
-      if (!querySnapshot.empty) {
-        const doc = querySnapshot.docs[0];
-        const restaurantData = {
-          ...doc.data(),
-          id: doc.id
+      const restaurantData = await api.getRestaurant(orgId);
+      
+      if (restaurantData) {
+        // Convert MongoDB _id to id for compatibility
+        const formattedData = {
+          ...restaurantData,
+          id: restaurantData._id || restaurantData.orgId
         };
         
-        setRestaurant(restaurantData);
-        cachedData = restaurantData;
+        setRestaurant(formattedData);
+        cachedData = formattedData;
         cacheTimestamp = Date.now();
       } else {
         console.error("No restaurant found for this orgId");
@@ -119,10 +116,13 @@ const RestaurantManagement = () => {
     setLoading(true);
     
     try {
-      const { id, ...restaurantData } = restaurant;
-      const restaurantRef = doc(db, 'restaurants', id);
+      if (!orgId) {
+        console.error("No orgId found in auth context");
+        return;
+      }
+      const { _id, id, ...restaurantData } = restaurant;
       
-      await updateDoc(restaurantRef, {
+      await api.updateRestaurant(orgId, {
         ...restaurantData,
         lastUpdated: new Date().toISOString()
       });
@@ -155,13 +155,9 @@ const RestaurantManagement = () => {
           const newLogo = reader.result;
           setRestaurant(prev => ({ ...prev, logo: newLogo }));
           
-          // Update logo in Firestore
-          if (restaurant?.id) {
-            const restaurantRef = doc(db, 'restaurants', restaurant.id);
-            await updateDoc(restaurantRef, {
-              logo: newLogo,
-              lastUpdated: new Date().toISOString()
-            });
+          // Update logo via API
+          if (orgId) {
+            await api.updateRestaurantLogo(orgId, newLogo);
             
             // Update cache
             cachedData = { ...restaurant, logo: newLogo };
@@ -198,20 +194,10 @@ const RestaurantManagement = () => {
         );
         const data = await response.json();
         
-        if (restaurant?.id) {
-          console.log('Restaurant ID:', restaurant.id);
-          console.log('Updating position in Firestore:', [latitude, longitude]);
+        if (orgId) {
+          console.log('Updating position via API:', [latitude, longitude]);
           
-          const restaurantRef = doc(db, 'restaurants', restaurant.id);
-          await updateDoc(restaurantRef, {
-            position: [latitude, longitude],
-            address: data.display_name,
-            lastUpdated: new Date().toISOString()
-          });
-          
-          // Verify the update
-          const updatedDoc = await getDoc(restaurantRef);
-          console.log('Updated restaurant data:', updatedDoc.data());
+          await api.updateRestaurantLocation(orgId, [latitude, longitude], data.display_name);
           
           setRestaurant(prev => ({
             ...prev,
@@ -227,7 +213,7 @@ const RestaurantManagement = () => {
           };
           cacheTimestamp = Date.now();
         } else {
-          console.error('No restaurant ID found');
+          console.error('No orgId found');
         }
       } catch (error) {
         console.error("Error updating location:", error);
@@ -253,13 +239,8 @@ const RestaurantManagement = () => {
       setLoading(true);
       const newPosition = [parseFloat(result.lat), parseFloat(result.lon)];
       
-      if (restaurant?.id) {
-        const restaurantRef = doc(db, 'restaurants', restaurant.id);
-        await updateDoc(restaurantRef, {
-          position: newPosition,
-          address: result.display_name,
-          lastUpdated: new Date().toISOString()
-        });
+      if (orgId) {
+        await api.updateRestaurantLocation(orgId, newPosition, result.display_name);
         
         setRestaurant(prev => ({
           ...prev,
@@ -559,14 +540,10 @@ const RestaurantManagement = () => {
   const handleLogoSave = async () => {
     setLoading(true);
     try {
-      const { id } = restaurant;
-      const restaurantRef = doc(db, 'restaurants', id);
-      
-      await updateDoc(restaurantRef, {
-        logo: restaurant.logo
-      });
-
-      console.log("Logo updated successfully");
+      if (orgId && restaurant?.logo) {
+        await api.updateRestaurantLogo(orgId, restaurant.logo);
+        console.log("Logo updated successfully");
+      }
     } catch (error) {
       console.error("Error updating logo:", error);
     } finally {

@@ -17,17 +17,19 @@ import { useCart } from '../contexts/CartContext';
 import './Header.css';
 import { Modal as AntModal } from 'antd';
 import { ProfileFilled } from '@ant-design/icons';
+import api from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 function Header({ onSearch }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { cart } = useCart();
+  const { role: authRole, orgId, logout } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPlaceholder, setCurrentPlaceholder] = useState(0);
   const [restaurantLogo, setRestaurantLogo] = useState('');
   const [isLogoModalVisible, setIsLogoModalVisible] = useState(false);
-  const [role, setRole] = useState(localStorage.getItem('role'));
   const [restaurantDetails, setRestaurantDetails] = useState(null);
   const [isSignOutModalVisible, setIsSignOutModalVisible] = useState(false);
   const [isProfileModalVisible, setIsProfileModalVisible] = useState(false);
@@ -57,34 +59,26 @@ function Header({ onSearch }) {
   }, []);
 
   useEffect(() => {
-    // Fetch restaurant details
-    fetchRestaurantDetails();
-  }, []);
-
-  const fetchRestaurantDetails = async () => {
-    try {
-      const orgId = localStorage.getItem('orgId');
-      const { db } = await import('../pages/fireBaseConfig');
-      const { collection, query, where, getDocs } = await import('firebase/firestore');
-
-      const restaurantsRef = collection(db, 'restaurants');
-      const q = query(restaurantsRef, where('orgId', '==', orgId));
-      const querySnapshot = await getDocs(q);
-
-      if (!querySnapshot.empty) {
-        // Get the first document since we're filtering by orgId
-        const doc = querySnapshot.docs[0];
-        const restaurant = doc.data();
+    const fetchRestaurantDetails = async () => {
+      try {
+        if (!orgId) return;
+        // Check if user is authenticated (has token) or is a guest customer
+        const token = localStorage.getItem('token');
+        const isPublic = !token || token === 'null' || token === ''; // Use public endpoint if no token (customer access)
+        console.log('Header: Fetching restaurant with isPublic:', isPublic, 'orgId:', orgId, 'hasToken:', !!token);
+        const restaurant = await api.getRestaurant(orgId, isPublic);
         
-        setRestaurantDetails({ ...restaurant, id: doc.id });
-        setRestaurantLogo(restaurant.logo);
-      } else {
-        console.error("No restaurant found with the given orgId");
+        if (restaurant) {
+          setRestaurantDetails({ ...restaurant, id: restaurant._id || restaurant.id });
+          setRestaurantLogo(restaurant.logo);
+        }
+      } catch (error) {
+        console.error('Error fetching restaurant details:', error);
       }
-    } catch (error) {
-      console.error('Error fetching restaurant details:', error);
-    }
-  };
+    };
+
+    fetchRestaurantDetails();
+  }, [orgId]);
 
   const handleSearch = (e) => {
     const value = e.target.value;
@@ -102,9 +96,7 @@ function Header({ onSearch }) {
   };
 
   const confirmSignOut = () => {
-    localStorage.removeItem('adminToken');
-    localStorage.removeItem('role');
-    localStorage.removeItem('orgId');
+    logout();
     setIsSignOutModalVisible(false);
     navigate('/');
   };
@@ -126,7 +118,7 @@ function Header({ onSearch }) {
             </div>
 
             <div className="header__right">
-              {role === 'customer' ? (
+              {(authRole ?? 'customer') === 'customer' ? (
                 <>
                   <div className="header__location">
                     <MapPin size={20} />
@@ -171,7 +163,7 @@ function Header({ onSearch }) {
             </div>
           </div>
 
-          {role !== 'admin' && (
+          {(authRole ?? 'customer') !== 'admin' && (
             <div className="header__search-row">
               <div className="search-container">
                 <Search className="search-icon" size={20} />
@@ -247,7 +239,7 @@ function Header({ onSearch }) {
               <AiFillMail style={{ marginRight: '10px', color: '#ff4d4f' }} />
               {restaurantDetails.email}
             </p>
-            {role === 'admin' && <p style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
+            {authRole === 'admin' && <p style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
               <Link to="/management" onClick={() => setIsLogoModalVisible(false)}>
                 <User style={{ marginRight: '10px', color: '#ff4d4f' }} />
                 Profile Settings

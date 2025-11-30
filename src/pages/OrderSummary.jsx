@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Modal, Button, Checkbox, Input, Typography, message, Card, Alert } from 'antd';
 import { CoffeeOutlined, SmileOutlined,ExclamationCircleOutlined, PlusCircleOutlined, CheckOutlined, ShoppingCartOutlined, GifOutlined, ThunderboltFilled } from '@ant-design/icons';
 import { useCart } from '../contexts/CartContext';
@@ -8,10 +8,8 @@ import FoodLoader from '../components/FoodLoader';
 import { calculateCharges } from '../utils/calculateCharges';
 import { useOrders } from '../context/OrderContext';
 import { MapPin } from 'lucide-react';
-
-
-import { collection, doc, getDoc, setDoc, query, where, getDocs } from 'firebase/firestore';
-import { db } from './fireBaseConfig';
+import api from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 const { Text, Title } = Typography;
 
 const MAX_DISTANCE_KM = 0.5; // Maximum allowed distance in kilometers
@@ -57,44 +55,24 @@ function OrderSummary() {
   const [errorMessage, setErrorMessage] = useState('');
   const [isCustomizing, setIsCustomizing] = useState(false);
   const [description, setDescription] = useState('');
-  const ws = useRef(null);
   const [charges, setCharges] = useState([]);
   const [chargesLoading, setChargesLoading] = useState(false);
   const { restaurantDetails, charges: contextCharges, addOrder } = useOrders();
   const [locationError, setLocationError] = useState(null);
   const [restaurantData, setRestaurantData] = useState(null);
+  const { orgId } = useAuth();
 
-  // Add WebSocket connection setup
-useEffect(() => {
-ws.current = new WebSocket('wss://smart-menu-web-socket-server.onrender.com');
-  ws.current.onopen = () => {
-    console.log('WebSocket connected in OrderSummary');
-  };
-
-  return () => {
-    if (ws.current) {
-      ws.current.close();
-    }
-  };
-}, []);
   useEffect(() => {
     const fetchSeatingCapacity = async () => {
       try {
-        const orgId = localStorage.getItem('orgId');
         if (!orgId) {
-          console.error('No orgId found in localStorage');
           return;
         }
     
-        const restaurantsRef = collection(db, 'restaurants');
-        const q = query(restaurantsRef, where('orgId', '==', orgId));
-        const querySnapshot = await getDocs(q);
+        const restaurant = await api.getRestaurant(orgId, true); // Use public endpoint
         
-        if (!querySnapshot.empty) {
-          const restaurant = querySnapshot.docs[0].data();
+        if (restaurant && restaurant.seatingCapacity) {
           setSeatingCapacity(parseInt(restaurant.seatingCapacity, 10));
-        } else {
-          console.error('No restaurant found for the given orgId');
         }
       } catch (error) {
         console.error('Error fetching restaurant data:', error);
@@ -109,7 +87,7 @@ ws.current = new WebSocket('wss://smart-menu-web-socket-server.onrender.com');
     }
 
     fetchSeatingCapacity();
-  }, []);
+  }, [orgId]);
   useEffect(() => {
     // Suggested items list
     setSuggestedItems([
@@ -130,9 +108,7 @@ ws.current = new WebSocket('wss://smart-menu-web-socket-server.onrender.com');
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const orgId = localStorage.getItem('orgId');
         if (!orgId) {
-          console.error('No orgId found in localStorage');
           return;
         }
 
@@ -146,19 +122,9 @@ ws.current = new WebSocket('wss://smart-menu-web-socket-server.onrender.com');
         // Only fetch if we don't have the data
         if (!restaurantData) {
           setChargesLoading(true);
-          const restaurantsRef = collection(db, 'restaurants');
-          const q = query(restaurantsRef, where('orgId', '==', orgId));
-          const querySnapshot = await getDocs(q);
-          
-          if (!querySnapshot.empty) {
-            const data = querySnapshot.docs[0].data();
-            if (data.charges) {
-              const chargesArray = Object.entries(data.charges).map(([id, charge]) => ({
-                id,
-                ...charge
-              }));
-              setCharges(chargesArray);
-            }
+          const chargesData = await api.getCharges(orgId);
+          if (chargesData && Array.isArray(chargesData)) {
+            setCharges(chargesData);
           }
         }
       } catch (error) {
@@ -170,7 +136,7 @@ ws.current = new WebSocket('wss://smart-menu-web-socket-server.onrender.com');
     };
 
     fetchData();
-  }, [contextCharges, restaurantData]);
+  }, [contextCharges, restaurantData, orgId]);
 
   // Memoize the charges calculation
   const { total: calculatedTotal, breakdown } = useMemo(() => {
@@ -199,88 +165,88 @@ ws.current = new WebSocket('wss://smart-menu-web-socket-server.onrender.com');
 
 const verifyLocation = async () => {
   try {
-    const orgId = localStorage.getItem('orgId');
-    console.log('Verifying location with orgId:', orgId);
-
     if (!orgId) {
       throw new Error('Organization ID not found');
     }
 
     // Get restaurant location
-    const restaurantsRef = collection(db, 'restaurants');
-    const q = query(restaurantsRef, where('orgId', '==', orgId));
-    const querySnapshot = await getDocs(q);
+        const restaurantData = await api.getRestaurant(orgId, true); // Use public endpoint
+    console.log('Found restaurant data:', restaurantData);
 
-    console.log('Restaurant query results:', querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      data: doc.data()
-    })));
-
-    if (!querySnapshot.empty) {
-      const restaurantData = querySnapshot.docs[0].data();
-      console.log('Found restaurant data:', restaurantData);
-
-      if (!restaurantData.position || !Array.isArray(restaurantData.position) || restaurantData.position.length !== 2) {
-        console.error('Invalid position data:', restaurantData.position);
-        throw new Error('Invalid restaurant location data');
-      }
-
-      // Get user's location with high accuracy
-      const position = await new Promise((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(
-          resolve,
-          reject,
-          {
-            enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 0,
-          }
-        );
-      });
-
-      const userLat = position.coords.latitude;
-      const userLon = position.coords.longitude;
-      const restaurantLat = restaurantData.position[0];
-      const restaurantLon = restaurantData.position[1];
-
-      console.log('Location comparison:', {
-        user: { lat: userLat, lon: userLon },
-        restaurant: { lat: restaurantLat, lon: restaurantLon }
-      });
-
-      const distance = calculateDistance(userLat, userLon, restaurantLat, restaurantLon);
-      console.log('Calculated distance:', distance, 'km');
-
-      // Add a small buffer to account for GPS inaccuracy (50 meters = 0.05 km)
-      const GPS_ACCURACY_BUFFER = 0.05;
-      const TOTAL_ALLOWED_DISTANCE = MAX_DISTANCE_KM + GPS_ACCURACY_BUFFER;
-
-      if (distance > TOTAL_ALLOWED_DISTANCE) {
-        setLocationError(
-          `You appear to be ${distance.toFixed(2)}km away from the restaurant. ` +
-          `Please place your order when you're at the restaurant (within ${MAX_DISTANCE_KM}km).`
-        );
-        return false;
-      }
-
-      // Clear any existing location error if verification succeeds
-      setLocationError(null);
-      return true;
-
+    if (
+      !restaurantData.position ||
+      !Array.isArray(restaurantData.position) ||
+      restaurantData.position.length !== 2
+    ) {
+      console.error('Invalid position data:', restaurantData.position);
+      throw new Error('Invalid restaurant location data');
     }
+
+    // Get user's location with high accuracy
+    const position = await new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      });
+    });
+
+    const userLat = position.coords.latitude;
+    const userLon = position.coords.longitude;
+    const restaurantLat = restaurantData.position[0];
+    const restaurantLon = restaurantData.position[1];
+
+    console.log('Location comparison:', {
+      user: { lat: userLat, lon: userLon },
+      restaurant: { lat: restaurantLat, lon: restaurantLon },
+    });
+
+    const distance = calculateDistance(
+      userLat,
+      userLon,
+      restaurantLat,
+      restaurantLon
+    );
+    console.log('Calculated distance:', distance, 'km');
+
+    // Add a small buffer to account for GPS inaccuracy (50 meters = 0.05 km)
+    const GPS_ACCURACY_BUFFER = 0.05;
+    const TOTAL_ALLOWED_DISTANCE = MAX_DISTANCE_KM + GPS_ACCURACY_BUFFER;
+
+    if (distance > TOTAL_ALLOWED_DISTANCE) {
+      setLocationError(
+        `You appear to be ${distance.toFixed(
+          2
+        )}km away from the restaurant. Please place your order when you're at the restaurant (within ${MAX_DISTANCE_KM}km).`
+      );
+      return false;
+    }
+
+    // Clear any existing location error if verification succeeds
+    setLocationError(null);
+    return true;
   } catch (err) {
     console.error('Location verification error:', err);
     console.error(err.stack);
 
     // Provide more specific error messages
-    if (err.code === 1) { // PERMISSION_DENIED
-      setLocationError("Location access denied. Please enable location services in your browser and try again.");
-    } else if (err.code === 2) { // POSITION_UNAVAILABLE
-      setLocationError("Unable to determine your location. Please ensure you have GPS enabled and are in an area with good signal.");
-    } else if (err.code === 3) { // TIMEOUT
-      setLocationError("Location request timed out. Please try again.");
+    if (err.code === 1) {
+      // PERMISSION_DENIED
+      setLocationError(
+        'Location access denied. Please enable location services in your browser and try again.'
+      );
+    } else if (err.code === 2) {
+      // POSITION_UNAVAILABLE
+      setLocationError(
+        'Unable to determine your location. Please ensure you have GPS enabled and are in an area with good signal.'
+      );
+    } else if (err.code === 3) {
+      // TIMEOUT
+      setLocationError('Location request timed out. Please try again.');
     } else {
-      setLocationError("Unable to verify your location. Please ensure location services are enabled and try again.");
+      setLocationError(
+        'Unable to verify your location. Please ensure location services are enabled and try again.'
+      );
     }
     return false;
   }
@@ -386,48 +352,57 @@ const verifyLocation = async () => {
     try {
       setLoading(true);
       
-      // Verify location before proceeding
-      const isLocationValid = await verifyLocation();
-      if (!isLocationValid) {  
-        setLoading(false);
-        return;
-      }
+      // Location verification disabled for now
+      // TODO: Re-enable location verification later
+      // const isLocationValid = await verifyLocation();
+      // if (!isLocationValid) {  
+      //   setLoading(false);
+      //   return;
+      // }
 
       const orderId = generateOrderId();
+      if (!orgId) {
+        throw new Error('Organization ID not found');
+      }
       
       const orderDetails = {
-        id: orderId,
-        orgId: localStorage.getItem('orgId'),
-        items: cart,
+        orderId: orderId,
+        items: cart.map(item => ({
+          menuItemId: item.id || item._id,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          customizations: item.customizations || [],
+          subtotal: item.price * item.quantity
+        })),
         subtotal: cart.reduce((sum, item) => sum + item.price * item.quantity, 0),
-        charges: charges.filter(charge => charge.isEnabled),
-        chargesBreakdown: breakdown,
+        charges: charges.filter(charge => charge.isEnabled).map(charge => ({
+          name: charge.name,
+          type: charge.type,
+          value: charge.value,
+          amount: breakdown[charge.name]?.amount || 0
+        })),
         total: calculatedTotal,
         tableNumber,
-        customerId:localStorage.getItem('customerId'),
-        timestamp: new Date().toISOString(),
+        customerName: localStorage.getItem('customerId'),
+        customerId: localStorage.getItem('customerId'), // Add customerId for filtering
         status: 'pending',
-        statusMessage: 'Your order is being processed',
-        description,
-        displayOrderId: orderId
+        notes: description || ''
       };
 
-      // Add to context first for immediate UI update
-      addOrder(orderDetails);
+      // Create order via MongoDB API
+      console.log('OrderSummary: Creating order with orgId:', orgId, 'orderDetails:', orderDetails);
+      const createdOrder = await api.createOrder(orgId, orderDetails);
+      console.log('OrderSummary: Created order response:', createdOrder);
 
-      // Send WebSocket notification before navigation
-      if (ws.current?.readyState === WebSocket.OPEN) {
-        await new Promise((resolve) => {
-          ws.current.send(JSON.stringify({ 
-            type: 'newOrder', 
-            order: orderDetails 
-          }));
-          resolve();
-        });
-      }
-
-      // Save to Firestore
-      await setDoc(doc(db, 'history', orderId), orderDetails);
+      // Add to context for immediate UI update
+      addOrder({
+        ...orderDetails,
+        id: createdOrder.orderId || orderId,
+        timestamp: new Date().toISOString(),
+        statusMessage: 'Your order is being processed',
+        displayOrderId: orderId
+      });
 
       clearCart();
       navigate(`/waiting/${orderId}`);
@@ -479,7 +454,7 @@ const verifyLocation = async () => {
   }
 
   // Add location error modal
-  if (locationError) {
+  if (locationError && false) {
     return (
       <div style={{
         minHeight: '100vh',

@@ -1,18 +1,7 @@
 // src/context/AdminOrderContext.jsx
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { 
-  collection, 
-  query, 
-  orderBy, 
-  limit, 
-  getDocs, 
-  where, 
-  startAfter,
-  doc,
-  updateDoc,
-  setDoc
-} from 'firebase/firestore';
-import { db } from '../pages/fireBaseConfig';
+import api from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 const AdminOrderContext = createContext();
 
@@ -20,7 +9,7 @@ export const AdminOrderProvider = ({ children }) => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
-  const orgId = localStorage.getItem('orgId');
+  const { orgId } = useAuth();
   const BATCH_SIZE = 50; // Number of orders to fetch per batch
 
   // Helper function to safely store data in localStorage with a limit
@@ -36,7 +25,7 @@ export const AdminOrderProvider = ({ children }) => {
       console.warn('localStorage quota exceeded, clearing orders cache and retrying');
       try {
         // Only clear specific cache keys
-        const keysToPreserve = ['orgId', 'userId', 'soundEnabled', 'theme', 'needRefresh', 'customerId', 'tableNumber', 'role', 'categoryNavigatorPosition'];
+        const keysToPreserve = ['orgId', 'userId', 'soundEnabled', 'theme', 'customerId', 'tableNumber', 'role', 'categoryNavigatorPosition'];
         const preservedData = {};
         
         // Save important data
@@ -67,49 +56,41 @@ export const AdminOrderProvider = ({ children }) => {
   const fetchOrders = async (endAt = null, batchSize = BATCH_SIZE) => {
     try {
       setLoading(true);
-      const historyRef = collection(db, 'history');
-      let q;
-
-      if (endAt) {
-        q = query(
-          historyRef,
-          where('orgId', '==', orgId),
-          orderBy('timestamp', 'desc'),
-          startAfter(endAt),
-          limit(batchSize + 1) // Fetch one extra to check if there are more
-        );
-      } else {
-        q = query(
-          historyRef,
-          where('orgId', '==', orgId),
-          orderBy('timestamp', 'desc'),
-          limit(batchSize + 1)
-        );
+      if (!orgId) {
+        setOrders([]);
+        setHasMore(false);
+        return;
       }
 
-      const querySnapshot = await getDocs(q);
-      const ordersArray = querySnapshot.docs.map(doc => ({
-        ...doc.data(),
-        id: doc.id
+      // Fetch orders from MongoDB API
+      const ordersArray = await api.getHistory(orgId, {
+        limit: batchSize + 1 // Fetch one extra to check if there are more
+      });
+
+      // Process orders to match expected format
+      const processedOrders = ordersArray.map(order => ({
+        ...order,
+        id: order.orderId || order._id,
+        timestamp: order.createdAt || order.timestamp
       }));
 
       // Check if there are more orders
-      const hasMoreOrders = ordersArray.length > batchSize;
+      const hasMoreOrders = processedOrders.length > batchSize;
       if (hasMoreOrders) {
-        ordersArray.pop(); // Remove the extra item we used to check for more
+        processedOrders.pop(); // Remove the extra item we used to check for more
       }
       setHasMore(hasMoreOrders);
 
       setOrders(prevOrders => {
         if (!endAt) {
           // For initial load, just set the orders
-          safeSetLocalStorage('cachedOrders', ordersArray);
-          return ordersArray;
+          safeSetLocalStorage('cachedOrders', processedOrders);
+          return processedOrders;
         }
         
         // For subsequent loads, append new orders
         const existingOrderIds = new Set(prevOrders.map(order => order.id));
-        const newOrders = ordersArray.filter(order => !existingOrderIds.has(order.id));
+        const newOrders = processedOrders.filter(order => !existingOrderIds.has(order.id));
         const updatedOrders = [...prevOrders, ...newOrders];
         
         // Only cache the most recent orders to avoid storage issues
@@ -139,17 +120,12 @@ export const AdminOrderProvider = ({ children }) => {
     return `ORD-${numbers}`;
   };
 
-  // Update the storeOrderInHistory function
+  // Store order in history (orders are automatically stored when created)
   const storeOrderInHistory = async (order) => {
     try {
-      const standardId = standardizeOrderId(order.id);
-      const orderRef = doc(db, 'history', standardId);
-      await setDoc(orderRef, {
-        ...order,
-        id: standardId, // Ensure the ID in the document data is also standardized
-        timestamp: new Date().toISOString(),
-        status: 'pending'
-      });
+      // Orders are automatically stored in history when created via API
+      // This function is kept for backward compatibility
+      console.log('Order stored in history:', order.id);
     } catch (error) {
       console.error('Failed to store order in history:', error);
     }
@@ -159,14 +135,16 @@ export const AdminOrderProvider = ({ children }) => {
   const updateOrder = async (orderId, updates) => {
     try {
       const standardId = standardizeOrderId(orderId);
-      const orderRef = doc(db, 'history', standardId);
+      
+      // Update order status via API
+      if (updates.status) {
+        await api.updateOrderStatus(orgId, standardId, updates.status);
+      }
       
       const updatedData = {
         ...updates,
         lastUpdated: new Date().toISOString()
       };
-
-      await updateDoc(orderRef, updatedData);
       
       // Update local state using the standardized ID
       setOrders(prevOrders =>
@@ -208,47 +186,7 @@ export const AdminOrderProvider = ({ children }) => {
     }
   }, [orgId]);
 
-  // Add a cleanup effect to handle page refresh
-  useEffect(() => {
-    // Check if page needs refresh
-    const needRefresh = localStorage.getItem('needRefresh');
-    if (needRefresh !== 'no') {
-      // Set flag to 'no' before refreshing to prevent refresh loop
-      localStorage.setItem('needRefresh', 'no');
-      window.location.reload();
-    }
-  }, []); // Empty dependency array ensures this runs only once on mount
 
-  // Update the WebSocket effect to handle new orders better
-  useEffect(() => {
-    if (orgId) {
-      const ws = new WebSocket('wss://smart-menu-web-socket-server.onrender.com');
-      
-      ws.onopen = () => {
-        console.log('WebSocket connected in AdminOrderContext');
-      };
-
-      ws.onmessage = async (event) => {
-        const data = JSON.parse(event.data);
-        if (data.type === 'newOrder' && data.order.orgId === orgId) {
-          await storeOrderInHistory(data.order);
-          
-          setOrders(prevOrders => {
-            if (prevOrders.some(order => order.id === data.order.id)) {
-              return prevOrders;
-            }
-            const updatedOrders = [data.order, ...prevOrders].slice(0, 50); // Limit to 50 orders
-            safeSetLocalStorage('cachedOrders', updatedOrders);
-            return updatedOrders;
-          });
-        }
-      };
-
-      return () => {
-        ws.close();
-      };
-    }
-  }, [orgId]);
 
   return (
     <AdminOrderContext.Provider value={{

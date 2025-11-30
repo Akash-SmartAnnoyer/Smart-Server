@@ -14,8 +14,8 @@ import {
 } from '@ant-design/icons';
 import { useAdminOrders } from '../context/AdminOrderContext';
 import FoodLoader from './FoodLoader';
-import { doc, deleteDoc } from 'firebase/firestore';
-import { db } from '../pages/fireBaseConfig';
+import api from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 function NewOrderHistory() {
   const { orders, loading, setOrders, fetchOrders, hasMore } = useAdminOrders();
@@ -26,6 +26,7 @@ function NewOrderHistory() {
   const [page, setPage] = useState(1);
   const ordersPerPage = 20; // Limit number of orders shown at once
   const [lastOrderTimestamp, setLastOrderTimestamp] = useState(null);
+  const { orgId } = useAuth();
 
   // Add a loading ref to prevent multiple simultaneous loads
   const loadingRef = useRef(false);
@@ -42,6 +43,14 @@ function NewOrderHistory() {
   };
 
   // Handle mobile view
+  if (!orgId) {
+    return (
+      <div style={{ minHeight: '60vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <FoodLoader />
+      </div>
+    );
+  }
+
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth <= 768);
@@ -78,9 +87,8 @@ function NewOrderHistory() {
   const handleDelete = async (orderId) => {
     try {
       const standardId = orderId.startsWith('ORD-') ? orderId : `ORD-${orderId.replace(/\D/g, '')}`;
-      const orderRef = doc(db, 'history', standardId);
       
-      await deleteDoc(orderRef);
+      await api.deleteHistory(orgId, standardId);
 
       message.success('Order deleted successfully');
       setOrders((prevOrders) => {

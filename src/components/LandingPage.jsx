@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Route, Routes } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
-import { Spin } from 'antd';
 import FoodLoader from './FoodLoader';
 import './landing-page.css';
 import QREntry from './QREntry ';
-
-const API_URL = process.env.REACT_APP_API_URL || 'https://www.py-server.smart-server.in';
+import api from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 const LandingPage = () => {
     const [username, setUsername] = useState('');
@@ -15,14 +14,16 @@ const LandingPage = () => {
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const navigate = useNavigate();
+    const { user, setSession, status } = useAuth();
 
     useEffect(() => {
-        // Check if user is already logged in
-        const role = localStorage.getItem('role');
-        if (role === 'admin') {
+        if (!user?.role) return;
+        if (user.role === 'super_admin') {
+            navigate('/super-admin');
+        } else if (['org_admin', 'admin', 'captain'].includes(user.role)) {
             navigate('/admin');
         }
-    }, [navigate]);
+    }, [user, navigate]);
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -30,25 +31,62 @@ const LandingPage = () => {
         setError('');
 
         try {
-            const response = await fetch(`${API_URL}/api/admin/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password }),
-            });
+            let response = null;
+            let loginSuccess = false;
 
-            if (response.ok) {
-                const data = await response.json();
-                localStorage.setItem('adminToken', data.token);
-                localStorage.setItem('role', 'admin');
-                localStorage.setItem('orgId', data.orgId);
-                localStorage.setItem('needRefresh', 'yes');
+            // Try Super Admin login first
+            try {
+                response = await api.superAdminLogin(username, password);
+                if (response && response.token) {
+                    loginSuccess = true;
+                }
+            } catch (err) {
+                // Not super admin, continue to other login types
+            }
+
+            // If not super admin, try Organization Admin
+            if (!loginSuccess) {
+                try {
+                    response = await api.orgAdminLogin(username, password);
+                    if (response && response.token) {
+                        loginSuccess = true;
+                    }
+                } catch (err) {
+                    // Not org admin, continue
+                }
+            }
+
+            // If still not successful, try Staff login
+            if (!loginSuccess) {
+                try {
+                    response = await api.staffLogin(username, password);
+                    if (response && response.token) {
+                        loginSuccess = true;
+                    }
+                } catch (err) {
+                    // Not staff either
+                }
+            }
+
+            if (!loginSuccess || !response) {
+                setError('Invalid credentials. Please check your username and password.');
+                setIsLoading(false);
+                return;
+            }
+
+            // Store authentication data
+            setSession({ token: response.token, user: response.user });
+            
+            // Navigate based on role
+            if (response.user.role === 'super_admin') {
+                navigate('/super-admin');
+            } else if (response.user.role === 'org_admin' || response.user.role === 'admin' || response.user.role === 'captain') {
                 navigate('/admin');
             } else {
-                const errorData = await response.json();
-                setError(errorData.message || 'Invalid credentials. Please try again.');
+                navigate('/home');
             }
         } catch (error) {
-            setError('An error occurred. Please try again.');
+            setError(error.message || 'Invalid credentials. Please try again.');
             console.error('Login error:', error);   
         } finally {
             setIsLoading(false);
@@ -70,7 +108,7 @@ const LandingPage = () => {
                     />
 
                     <div className="login-container">
-                        <h1 className="login-title">Welcome to Our Food Service</h1>
+                        <h1 className="login-title">Welcome to Smart Server</h1>
 
                         <form onSubmit={handleLogin}>
                             <div className="input-group">
@@ -81,6 +119,7 @@ const LandingPage = () => {
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
                                     required
+                                    autoFocus
                                 />
                             </div>
                             <div className="input-group">
@@ -100,8 +139,8 @@ const LandingPage = () => {
                                     {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                                 </button>
                             </div>
-                            <button type="submit" className="btn">
-                                Admin Login
+                            <button type="submit" className="btn" disabled={isLoading}>
+                                {isLoading ? 'Logging in...' : 'Login'}
                             </button>
                         </form>
 
@@ -119,7 +158,7 @@ const LandingPage = () => {
                     </div>
                 </div>
             } />
-            <Route path="/qr-entry/:orgId" element={<QREntry />} />
+                <Route path="/qr-entry/:orgId/:tableNumber" element={<QREntry />} />
         </Routes>
     );
 };
