@@ -11,7 +11,6 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import FoodLoader from './FoodLoader';
 import { calculateCharges } from '../utils/calculateCharges';
-import { useAdminOrders } from '../context/AdminOrderContext';
 import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -19,20 +18,142 @@ const { Title, Text } = Typography;
 const { Panel } = Collapse;
 
 function AllOrdersSummary() {
-  const { orders, loading } = useAdminOrders();
   const [errorModalVisible, setErrorModalVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [restaurantInfo, setRestaurantInfo] = useState(null);
   const [charges, setCharges] = useState([]);
-  const { orgId } = useAuth();
+  const { orgId, role } = useAuth();
   const tableNumber = localStorage.getItem('tableNumber');
   const customerId = localStorage.getItem('customerId');
   const [isCalculating, setIsCalculating] = useState(true);
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Determine if user is customer or admin
+  const isCustomer = !role || role === 'customer';
+
+  const showErrorModal = (message) => {
+    setErrorMessage(message);
+    setErrorModalVisible(true);
+  };
+  
+  // Fetch orders based on user type
+  useEffect(() => {
+    const fetchOrders = async () => {
+      if (!orgId) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        if (isCustomer && customerId) {
+          // For customers, fetch their orders (including waiter mode orders)
+          const customerOrdersData = await api.getOrders(orgId, { customerName: customerId });
+          if (customerOrdersData && customerOrdersData.length > 0) {
+            const processedOrders = customerOrdersData
+              .map(order => ({
+                ...order,
+                id: order.orderId || order._id || order.id,
+                timestamp: order.createdAt || order.timestamp || new Date().toISOString()
+              }))
+              .filter(order => !['cancelled', 'completed'].includes(order.status))
+              .sort((a, b) => {
+                const dateA = new Date(a.timestamp || a.createdAt);
+                const dateB = new Date(b.timestamp || b.createdAt);
+                return dateB - dateA;
+              });
+            setOrders(processedOrders);
+          } else {
+            setOrders([]);
+          }
+        } else if (!isCustomer) {
+          // For admins, fetch all orders (excluding waiter mode)
+          const adminOrdersData = await api.getOrders(orgId, {});
+          if (adminOrdersData && adminOrdersData.length > 0) {
+            const processedOrders = adminOrdersData
+              .map(order => ({
+                ...order,
+                id: order.orderId || order._id || order.id,
+                timestamp: order.createdAt || order.timestamp || new Date().toISOString()
+              }))
+              .filter(order => !['cancelled', 'completed'].includes(order.status))
+              .sort((a, b) => {
+                const dateA = new Date(a.timestamp || a.createdAt);
+                const dateB = new Date(b.timestamp || b.createdAt);
+                return dateB - dateA;
+              });
+            setOrders(processedOrders);
+          } else {
+            setOrders([]);
+          }
+        } else {
+          setOrders([]);
+        }
+      } catch (error) {
+        console.error('Failed to fetch orders:', error);
+        setOrders([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOrders();
+  }, [orgId, customerId, isCustomer]);
+
+  useEffect(() => {
+    const fetchRestaurantInfo = async () => {
+      try {
+        if (!orgId) return;
+        
+        // Check if user is authenticated (has token) or is a guest customer
+        const token = localStorage.getItem('token');
+        const isPublic = !token || token === 'null' || token === '';
+        
+        const restaurant = await api.getRestaurant(orgId, isPublic);
+        if (restaurant) {
+          setRestaurantInfo(restaurant);
+        } else {
+          throw new Error('Organization not found');
+        }
+      } catch (error) {
+        console.error(error);
+        showErrorModal('Failed to fetch organization details.');
+      }
+    };
+
+    if (orgId) {
+      fetchRestaurantInfo();
+    }
+  }, [orgId]);
+
+  useEffect(() => {
+    const fetchCharges = async () => {
+      try {
+        if (!orgId) return;
+        
+        // Check if user is authenticated (has token) or is a guest customer
+        const token = localStorage.getItem('token');
+        const isPublic = !token || token === 'null' || token === '';
+        
+        const chargesArray = await api.getCharges(orgId, isPublic);
+        if (chargesArray) {
+          setCharges(chargesArray);
+        }
+      } catch (error) {
+        console.error('Error fetching charges:', error);
+      }
+    };
+
+    if (orgId) {
+      fetchCharges();
+    }
+  }, [orgId]);
 
   // Filter active orders for the current customer
   const activeOrders = orders?.filter(order => 
     !['cancelled', 'completed'].includes(order.status) && 
-    order.customerId === customerId
+    (isCustomer ? order.customerId === customerId : true)
   ) || [];
 
   // Calculate total for all active orders
@@ -58,6 +179,13 @@ function AllOrdersSummary() {
     return sum + orderTotal;
   }, 0);
 
+  useEffect(() => {
+    // Simulate calculation delay
+    setTimeout(() => {
+      setIsCalculating(false);
+    }, 1000); // Adjust the delay as needed
+  }, [activeOrders, charges]);
+
   if (!orgId) {
     return (
       <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -66,60 +194,11 @@ function AllOrdersSummary() {
     );
   }
 
-  useEffect(() => {
-    const fetchRestaurantInfo = async () => {
-      try {
-        const restaurant = await api.getRestaurant(orgId);
-        if (restaurant) {
-          setRestaurantInfo(restaurant);
-        } else {
-          throw new Error('Organization not found');
-        }
-      } catch (error) {
-        console.error(error);
-        showErrorModal('Failed to fetch organization details.');
-      }
-    };
-
-    if (orgId) {
-      fetchRestaurantInfo();
-    }
-  }, [orgId]);
-
-  useEffect(() => {
-    const fetchCharges = async () => {
-      try {
-        const chargesArray = await api.getCharges(orgId);
-        if (chargesArray) {
-          setCharges(chargesArray);
-        }
-      } catch (error) {
-        console.error('Error fetching charges:', error);
-      }
-    };
-
-    if (orgId) {
-      fetchCharges();
-    }
-  }, [orgId]);
-
-  useEffect(() => {
-    // Simulate calculation delay
-    setTimeout(() => {
-      setIsCalculating(false);
-    }, 1000); // Adjust the delay as needed
-  }, [activeOrders, charges]);
-
   const getImageUrl = (imageData) => {
     if (!imageData) return '';
     if (typeof imageData === 'string') return imageData;
     if (imageData.file?.url) return imageData.file.url;
     return '';
-  };
-
-  const showErrorModal = (message) => {
-    setErrorMessage(message);
-    setErrorModalVisible(true);
   };
 
   const handleDownloadBill = () => {

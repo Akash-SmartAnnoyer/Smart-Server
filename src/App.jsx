@@ -31,6 +31,7 @@ import AllOrdersSummary from './components/AllOrdersSummary';
 import SuperAdminDashboard from './components/SuperAdminDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './contexts/AuthContext';
+import PendingSelections from './components/PendingSelections';
 
 const App = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -133,12 +134,16 @@ const App = () => {
                                 } 
                               />
                               <Route 
-                                path="/all-orders-summary" 
+                                path="/pending-selections" 
                                 element={
                                   <ProtectedRoute allowedRoles={['org_admin', 'admin', 'captain']}>
-                                    <AllOrdersSummary />
+                                    <PendingSelections />
                                   </ProtectedRoute>
                                 } 
+                              />
+                              <Route 
+                                path="/all-orders-summary" 
+                                element={<AllOrdersSummary />}
                               />
                               <Route 
                                 path="/dashboard" 

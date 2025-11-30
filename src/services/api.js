@@ -308,6 +308,52 @@ class ApiService {
     const token = localStorage.getItem('token');
     return token ? { 'Authorization': `Bearer ${token}` } : {};
   }
+
+  // Pending Selections APIs (for waiter confirmation mode)
+  async createPendingSelection(orgId, selectionData) {
+    return this.request(`/pending-selections/${orgId}`, {
+      method: 'POST',
+      body: selectionData,
+      requireAuth: false
+    });
+  }
+
+  async getPendingSelections(orgId, filters = {}) {
+    const queryParams = new URLSearchParams();
+    if (filters.status) queryParams.append('status', filters.status);
+    if (filters.tableNumber) queryParams.append('tableNumber', filters.tableNumber);
+    
+    const queryString = queryParams.toString();
+    return this.request(`/pending-selections/${orgId}${queryString ? `?${queryString}` : ''}`);
+  }
+
+  async getCustomerPendingSelections(orgId, customerId) {
+    return this.request(`/pending-selections/${orgId}/customer/${customerId}`, {
+      requireAuth: false
+    });
+  }
+
+  async confirmPendingSelection(orgId, selectionId, data) {
+    return this.request(`/pending-selections/${orgId}/${selectionId}/confirm`, {
+      method: 'POST',
+      body: data
+    });
+  }
+
+  async rejectPendingSelection(orgId, selectionId, reason) {
+    return this.request(`/pending-selections/${orgId}/${selectionId}/reject`, {
+      method: 'POST',
+      body: { reason }
+    });
+  }
+
+  async cancelPendingSelection(orgId, selectionId, customerId) {
+    return this.request(`/pending-selections/${orgId}/${selectionId}`, {
+      method: 'DELETE',
+      body: { customerId },
+      requireAuth: false
+    });
+  }
 }
 
 // Export singleton instance

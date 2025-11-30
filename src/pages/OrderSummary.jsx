@@ -60,6 +60,7 @@ function OrderSummary() {
   const { restaurantDetails, charges: contextCharges, addOrder } = useOrders();
   const [locationError, setLocationError] = useState(null);
   const [restaurantData, setRestaurantData] = useState(null);
+  const [allowDirectOrdering, setAllowDirectOrdering] = useState(true); // Default to true
   const { orgId } = useAuth();
 
   useEffect(() => {
@@ -71,8 +72,14 @@ function OrderSummary() {
     
         const restaurant = await api.getRestaurant(orgId, true); // Use public endpoint
         
-        if (restaurant && restaurant.seatingCapacity) {
-          setSeatingCapacity(parseInt(restaurant.seatingCapacity, 10));
+        if (restaurant) {
+          if (restaurant.seatingCapacity) {
+            setSeatingCapacity(parseInt(restaurant.seatingCapacity, 10));
+          }
+          // Check organization settings for direct ordering
+          if (restaurant.organizationSettings) {
+            setAllowDirectOrdering(restaurant.organizationSettings.allowDirectOrdering !== false);
+          }
         }
       } catch (error) {
         console.error('Error fetching restaurant data:', error);
@@ -350,23 +357,22 @@ const verifyLocation = async () => {
   //   }
   // };
 
-  // Modify handlePayClick to include location verification
+  // Handle order placement (direct ordering mode)
   const handlePayClick = async () => {
     try {
       setLoading(true);
       
-      // Location verification disabled for now
-      // TODO: Re-enable location verification later
-      // const isLocationValid = await verifyLocation();
-      // if (!isLocationValid) {  
-      //   setLoading(false);
-      //   return;
-      // }
-
-      const orderId = generateOrderId();
       if (!orgId) {
         throw new Error('Organization ID not found');
       }
+
+      // If waiter mode, create pending selection instead
+      if (!allowDirectOrdering) {
+        await handleRequestWaiter();
+        return;
+      }
+
+      const orderId = generateOrderId();
       
       const orderDetails = {
         orderId: orderId,
@@ -388,7 +394,7 @@ const verifyLocation = async () => {
         total: calculatedTotal,
         tableNumber,
         customerName: localStorage.getItem('customerId'),
-        customerId: localStorage.getItem('customerId'), // Add customerId for filtering
+        customerId: localStorage.getItem('customerId'),
         status: 'pending',
         notes: description || ''
       };
@@ -415,6 +421,92 @@ const verifyLocation = async () => {
       message.error('Failed to place order. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Handle waiter request (waiter mode - create order for customer view, but hide from admin)
+  const handleRequestWaiter = async () => {
+    try {
+      if (!orgId) {
+        throw new Error('Organization ID not found');
+      }
+
+      const customerId = localStorage.getItem('customerId');
+      if (!customerId) {
+        throw new Error('Customer ID not found');
+      }
+
+      const orderId = generateOrderId();
+      
+      // Create order for customer to see in "My Orders" (but hidden from admin)
+      const orderDetails = {
+        orderId: orderId,
+        items: cart.map(item => ({
+          menuItemId: item.id || item._id,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          customizations: item.customizations || [],
+          subtotal: item.price * item.quantity
+        })),
+        subtotal: cart.reduce((sum, item) => sum + item.price * item.quantity, 0),
+        charges: charges.filter(charge => charge.isEnabled).map(charge => ({
+          name: charge.name,
+          type: charge.type,
+          value: charge.value,
+          amount: breakdown[charge.name]?.amount || 0
+        })),
+        total: calculatedTotal,
+        tableNumber,
+        customerName: customerId,
+        customerId: customerId,
+        status: 'pending',
+        notes: description || '',
+        isWaiterMode: true // Mark as waiter mode order (hidden from admin)
+      };
+
+      // Create order (for customer to see in My Orders)
+      console.log('OrderSummary: Creating waiter mode order with orgId:', orgId, 'orderDetails:', orderDetails);
+      const createdOrder = await api.createOrder(orgId, orderDetails);
+      console.log('OrderSummary: Created waiter mode order response:', createdOrder);
+
+      // Also create pending selection for waiter to view
+      const selectionData = {
+        items: cart.map(item => ({
+          menuItemId: item.id || item._id,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          customizations: item.customizations || [],
+          subtotal: item.price * item.quantity
+        })),
+        subtotal: cart.reduce((sum, item) => sum + item.price * item.quantity, 0),
+        tableNumber,
+        customerId,
+        customerName: customerId,
+        notes: description || ''
+      };
+
+      console.log('OrderSummary: Creating pending selection with orgId:', orgId, 'selectionData:', selectionData);
+      const createdSelection = await api.createPendingSelection(orgId, selectionData);
+      console.log('OrderSummary: Created pending selection response:', createdSelection);
+
+      // Add to context for immediate UI update in My Orders
+      addOrder({
+        ...orderDetails,
+        id: createdOrder.orderId || orderId,
+        timestamp: new Date().toISOString(),
+        statusMessage: 'Shown to waiter',
+        displayOrderId: orderId
+      });
+
+      message.success('Your selection has been shown to the waiter.');
+      clearCart();
+      navigate('/home'); // Go back to menu
+
+    } catch (error) {
+      console.error('Error creating waiter mode order/selection:', error);
+      message.error('Failed to send selection to waiter. Please try again.');
     }
   };
 
@@ -760,33 +852,49 @@ const verifyLocation = async () => {
       </Modal>
 
 
-      {/* Confirm Order Button */}
+      {/* Confirm Order / Show to Waiter Button */}
       <button 
         className="pay-button" 
         onClick={handlePayClick}
-        disabled={chargesLoading}
+        disabled={chargesLoading || cart.length === 0}
         style={{
           width: '100%',
           padding: '15px',
-          backgroundColor: chargesLoading ? '#ccc' : '#ff4d4f',
+          backgroundColor: chargesLoading || cart.length === 0 ? '#ccc' : '#ff4d4f',
           color: 'white',
           border: 'none',
           borderRadius: '8px',
           fontSize: '18px',
           fontWeight: 'bold',
           marginTop: '25px',
-          cursor: chargesLoading ? 'not-allowed' : 'pointer',
+          cursor: chargesLoading || cart.length === 0 ? 'not-allowed' : 'pointer',
           transition: 'all 0.3s ease',
-          boxShadow: '0 4px 12px rgba(255, 77, 79, 0.2)',
-          ':hover': {
-            backgroundColor: chargesLoading ? '#ccc' : '#ff7875',
-            transform: chargesLoading ? 'none' : 'translateY(-2px)'
-          }
+          boxShadow: chargesLoading || cart.length === 0 ? 'none' : '0 4px 12px rgba(255, 77, 79, 0.2)',
         }}
       >
-        <CheckOutlined style={{ marginRight: '10px' }} />
-        Confirm Order
+        {allowDirectOrdering ? (
+          <>
+            <CheckOutlined style={{ marginRight: '10px' }} />
+            Confirm Order
+          </>
+        ) : (
+          <>
+            <ShoppingCartOutlined style={{ marginRight: '10px' }} />
+            Show to Waiter
+          </>
+        )}
       </button>
+      {!allowDirectOrdering && (
+        <p style={{ 
+          textAlign: 'center', 
+          color: '#666', 
+          fontSize: '14px', 
+          marginTop: '10px',
+          fontStyle: 'italic'
+        }}>
+          Your selection will be shown to the waiter
+        </p>
+      )}
     </div>
   );
 }

@@ -20,6 +20,7 @@ import {
   Copy,
   Check
 } from 'lucide-react';
+import { message } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -654,6 +655,76 @@ const SuperAdminDashboard = () => {
                     OrgId: {org.orgId}
                   </div>
                   
+                  {/* Direct Ordering Toggle */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '0.75rem',
+                    backgroundColor: '#F8F9FA',
+                    borderRadius: '0.5rem',
+                    marginBottom: '0.5rem',
+                    border: '1px solid #E0E0E0'
+                  }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: '600', fontSize: '0.875rem', color: '#333', marginBottom: '0.25rem' }}>
+                        Direct Ordering
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: '#666' }}>
+                        {org.settings?.allowDirectOrdering !== false 
+                          ? 'Customers can place orders directly' 
+                          : 'Waiter confirmation mode'}
+                      </div>
+                    </div>
+                    <label style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '0.5rem',
+                      cursor: 'pointer'
+                    }}>
+                      <input
+                        type="checkbox"
+                        checked={org.settings?.allowDirectOrdering !== false}
+                        onChange={async (e) => {
+                          const authToken = ensureToken();
+                          if (!authToken) return;
+                          
+                          try {
+                            const orgId = org._id || org.id;
+                            const response = await fetch(`http://localhost:5000/api/organizations/${orgId}`, {
+                              method: 'PUT',
+                              headers: {
+                                'Authorization': `Bearer ${authToken}`,
+                                'Content-Type': 'application/json'
+                              },
+                              body: JSON.stringify({
+                                settings: {
+                                  ...org.settings,
+                                  allowDirectOrdering: e.target.checked
+                                }
+                              })
+                            });
+
+                            if (response.ok) {
+                              const updated = await response.json();
+                              setOrganizations(organizations.map(o => 
+                                o._id === orgId || o.id === orgId ? { ...o, ...updated } : o
+                              ));
+                              message.success('Setting updated successfully!');
+                            } else {
+                              const errorData = await response.json();
+                              message.error(errorData.error || 'Failed to update setting');
+                            }
+                          } catch (error) {
+                            console.error('Error updating setting:', error);
+                            message.error('Error updating setting');
+                          }
+                        }}
+                        style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+                      />
+                    </label>
+                  </div>
+                  
                   {/* Customer Access Link */}
                   <div style={{
                     backgroundColor: '#E8F5E9',
@@ -1068,6 +1139,86 @@ const SuperAdminDashboard = () => {
                       }}>
                         {selectedOrg.organization.isActive ? 'Active' : 'Inactive'}
                       </span>
+                    </div>
+                    <div style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '0.5rem',
+                      marginTop: '0.75rem',
+                      padding: '0.75rem',
+                      backgroundColor: '#F8F9FA',
+                      borderRadius: '0.5rem',
+                      border: '1px solid #E0E0E0'
+                    }}>
+                      <strong style={{ flex: 1 }}>Allow Direct Ordering:</strong>
+                      <label style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '0.5rem',
+                        cursor: 'pointer'
+                      }}>
+                        <input
+                          type="checkbox"
+                          checked={selectedOrg.organization.settings?.allowDirectOrdering !== false}
+                          onChange={async (e) => {
+                            const authToken = ensureToken();
+                            if (!authToken) return;
+                            
+                            try {
+                              const orgId = selectedOrg.organization._id || selectedOrg.organization.id;
+                              const response = await fetch(`http://localhost:5000/api/organizations/${orgId}`, {
+                                method: 'PUT',
+                                headers: {
+                                  'Authorization': `Bearer ${authToken}`,
+                                  'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                  settings: {
+                                    ...selectedOrg.organization.settings,
+                                    allowDirectOrdering: e.target.checked
+                                  }
+                                })
+                              });
+
+                              if (response.ok) {
+                                const updated = await response.json();
+                                setSelectedOrg({
+                                  ...selectedOrg,
+                                  organization: updated
+                                });
+                                setOrganizations(organizations.map(org => 
+                                  org._id === orgId || org.id === orgId ? { ...org, ...updated } : org
+                                ));
+                                alert('Setting updated successfully!');
+                              } else {
+                                const errorData = await response.json();
+                                alert(errorData.error || 'Failed to update setting');
+                              }
+                            } catch (error) {
+                              console.error('Error updating setting:', error);
+                              alert('Error updating setting');
+                            }
+                          }}
+                          style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+                        />
+                        <span style={{ 
+                          color: selectedOrg.organization.settings?.allowDirectOrdering !== false ? '#2E7D32' : '#666',
+                          fontWeight: '500'
+                        }}>
+                          {selectedOrg.organization.settings?.allowDirectOrdering !== false ? 'Enabled' : 'Disabled'}
+                        </span>
+                      </label>
+                    </div>
+                    <div style={{ 
+                      fontSize: '0.75rem', 
+                      color: '#666', 
+                      marginTop: '0.25rem',
+                      fontStyle: 'italic',
+                      paddingLeft: '0.5rem'
+                    }}>
+                      {selectedOrg.organization.settings?.allowDirectOrdering !== false 
+                        ? 'Customers can place orders directly' 
+                        : 'Customers can only view menu and request waiter confirmation'}
                     </div>
                     <div><strong>Created:</strong> {new Date(selectedOrg.organization.createdAt).toLocaleDateString()}</div>
                   </div>
